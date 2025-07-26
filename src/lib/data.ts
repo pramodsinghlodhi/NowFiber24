@@ -1,11 +1,20 @@
 
+
 export type Device = {
   id: string;
-  type: 'OLT' | 'ONU' | 'Switch' | 'Pole';
+  type: 'Datacenter' | 'Core Switch' | 'OLT' | 'ONU' | 'Switch' | 'Pole' | 'Splice Box' | 'Customer Premise';
   lat: number;
   lng: number;
-  ip: string;
-  status: 'online' | 'offline' | 'maintenance';
+  ip?: string;
+  status: 'online' | 'offline' | 'maintenance' | 'planned';
+  attributes?: {
+    assetLabel?: string; // Company label for the asset
+    fiberCapacity?: '2F' | '4F' | '8F' | '12F' | '24F' | '48F' | '96F';
+    tubeColor?: string;
+    fiberColor?: string;
+    couplerRatio?: '1:2' | '1:4' | '1:8' | '1:16' | '1:32' | '1:64';
+    powerLevel?: string; // e.g., "-25 dBm"
+  }
 };
 
 export type User = {
@@ -66,15 +75,18 @@ export const mockStats: Stats = {
 };
 
 export const mockDevices: Device[] = [
-  { id: 'OLT-01', type: 'OLT', lat: 34.0522, lng: -118.2437, ip: '192.168.1.1', status: 'online' },
-  { id: 'ONU-101', type: 'ONU', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online' },
-  { id: 'ONU-102', type: 'ONU', lat: 34.058, lng: -118.245, ip: '10.0.1.102', status: 'offline' },
-  { id: 'SW-01', type: 'Switch', lat: 34.05, lng: -118.24, ip: '192.168.1.10', status: 'online' },
-  { id: 'ONU-103', type: 'ONU', lat: 34.06, lng: -118.255, ip: '10.0.1.103', status: 'maintenance' },
-  { id: 'ONU-104', type: 'ONU', lat: 34.048, lng: -118.238, ip: '10.0.1.104', status: 'offline' },
-  { id: 'Pole-23', type: 'Pole', lat: 34.053, lng: -118.248, ip: '', status: 'online'},
-  { id: 'Pole-24', type: 'Pole', lat: 34.059, lng: -118.252, ip: '', status: 'online'},
-  { id: 'ONU-105', type: 'ONU', lat: 34.0515, lng: -118.257, ip: '10.0.1.105', status: 'offline' },
+  { id: 'DC-LA1', type: 'Datacenter', lat: 34.0522, lng: -118.2437, ip: '192.168.1.1', status: 'online', attributes: { assetLabel: 'LA1-DC-01' } },
+  { id: 'CSW-LA1-01', type: 'Core Switch', lat: 34.0525, lng: -118.2440, ip: '192.168.1.2', status: 'online', attributes: { assetLabel: 'LA1-CSW-01' } },
+  { id: 'OLT-01', type: 'OLT', lat: 34.0530, lng: -118.2450, ip: '192.168.2.1', status: 'online', attributes: { assetLabel: 'LA1-OLT-01', powerLevel: '-10 dBm' } },
+  { id: 'SPL-01', type: 'Splice Box', lat: 34.0555, lng: -118.2480, status: 'online', attributes: { assetLabel: 'SB-J-101', couplerRatio: '1:8' } },
+  { id: 'ONU-101', type: 'ONU', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online', attributes: { assetLabel: 'CID-23884', powerLevel: '-22 dBm' } },
+  { id: 'ONU-102', type: 'ONU', lat: 34.058, lng: -118.245, ip: '10.0.1.102', status: 'offline', attributes: { assetLabel: 'CID-24109', powerLevel: '-inf' } },
+  { id: 'SW-01', type: 'Switch', lat: 34.05, lng: -118.24, ip: '192.168.1.10', status: 'online', attributes: { assetLabel: 'LA1-SW-55' } },
+  { id: 'ONU-103', type: 'ONU', lat: 34.06, lng: -118.255, ip: '10.0.1.103', status: 'maintenance', attributes: { assetLabel: 'CID-25001' } },
+  { id: 'ONU-104', type: 'ONU', lat: 34.048, lng: -118.238, ip: '10.0.1.104', status: 'offline', attributes: { assetLabel: 'CID-25134' } },
+  { id: 'Pole-23', type: 'Pole', lat: 34.053, lng: -118.248, status: 'online', attributes: { assetLabel: 'P-5829A' } },
+  { id: 'Pole-24', type: 'Pole', lat: 34.059, lng: -118.252, status: 'online', attributes: { assetLabel: 'P-5830B' } },
+  { id: 'ONU-105', type: 'ONU', lat: 34.0515, lng: -118.257, ip: '10.0.1.105', status: 'offline', attributes: { assetLabel: 'CID-25210' } },
 ];
 
 export let mockTechnicians: Technician[] = [

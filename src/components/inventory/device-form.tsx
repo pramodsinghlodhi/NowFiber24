@@ -27,11 +27,12 @@ interface DeviceFormProps {
 
 export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: DeviceFormProps) {
   const [id, setId] = useState('');
-  const [type, setType] = useState<'OLT' | 'ONU' | 'Switch' | 'Pole'>('ONU');
+  const [type, setType] = useState<Device['type']>('ONU');
   const [ip, setIp] = useState('');
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
-  const [status, setStatus] = useState<'online' | 'offline' | 'maintenance'>('online');
+  const [status, setStatus] = useState<Device['status']>('online');
+  const [attributes, setAttributes] = useState<Device['attributes']>({});
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -41,10 +42,11 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
     if (device) {
       setId(device.id);
       setType(device.type);
-      setIp(device.ip);
+      setIp(device.ip || '');
       setLat(device.lat);
       setLng(device.lng);
       setStatus(device.status);
+      setAttributes(device.attributes || {});
     } else {
       // Reset form for new entry
       setId('');
@@ -53,6 +55,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
       setLat(34.0522);
       setLng(-118.2437);
       setStatus('online');
+      setAttributes({});
     }
   }, [device, isOpen]);
 
@@ -79,12 +82,17 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
             lat,
             lng,
             status,
+            attributes,
         };
 
         onSave(newOrUpdatedDevice);
         setIsLoading(false);
     }, 500);
   };
+
+  const handleAttributeChange = (key: keyof NonNullable<Device['attributes']>, value: string) => {
+    setAttributes(prev => ({...prev, [key]: value}));
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -97,7 +105,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <div className="space-y-2">
               <Label htmlFor="id">Device ID</Label>
               <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing} />
@@ -108,10 +116,14 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                     <Select value={type} onValueChange={(value) => setType(value as any)} required>
                         <SelectTrigger id="type"><SelectValue placeholder="Select type" /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ONU">ONU</SelectItem>
+                            <SelectItem value="Datacenter">Datacenter</SelectItem>
+                            <SelectItem value="Core Switch">Core Switch</SelectItem>
                             <SelectItem value="OLT">OLT</SelectItem>
                             <SelectItem value="Switch">Switch</SelectItem>
+                            <SelectItem value="Splice Box">Splice Box</SelectItem>
+                            <SelectItem value="ONU">ONU</SelectItem>
                             <SelectItem value="Pole">Pole</SelectItem>
+                             <SelectItem value="Customer Premise">Customer Premise</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -123,6 +135,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                             <SelectItem value="online">Online</SelectItem>
                             <SelectItem value="offline">Offline</SelectItem>
                             <SelectItem value="maintenance">Maintenance</SelectItem>
+                             <SelectItem value="planned">Planned</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -141,8 +154,20 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                     <Input id="lng" type="number" value={lng} onChange={(e) => setLng(parseFloat(e.target.value))} placeholder="e.g., -118.2437" required />
                 </div>
             </div>
+
+            <div className="space-y-4 pt-4 border-t">
+                <h4 className="font-semibold text-sm">Device Attributes</h4>
+                 <div className="space-y-2">
+                    <Label htmlFor="assetLabel">Asset Label</Label>
+                    <Input id="assetLabel" value={attributes?.assetLabel || ''} onChange={(e) => handleAttributeChange('assetLabel', e.target.value)} placeholder="e.g., LA1-OLT-01" />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="powerLevel">Power Level (dBm)</Label>
+                    <Input id="powerLevel" value={attributes?.powerLevel || ''} onChange={(e) => handleAttributeChange('powerLevel', e.target.value)} placeholder="e.g., -24.5 dBm" />
+                </div>
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
