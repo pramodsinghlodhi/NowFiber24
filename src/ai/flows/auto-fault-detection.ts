@@ -165,7 +165,7 @@ const autoFaultDetectionFlow = ai.defineFlow(
     outputSchema: AutoFaultDetectionOutputSchema,
   },
   async (input) => {
-    const result = await autoFaultDetectionFlowPrompt(input);
-    return result.output!;
+    const {output} = await autoFaultDetectionFlowPrompt(input);
+    return output!;
   }
 );

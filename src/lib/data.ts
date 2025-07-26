@@ -133,7 +133,7 @@ export const mockTasks: Task[] = [
 
 export const mockAlerts: Alert[] = [
   { id: 1, device_id: 'ONU-102', issue: 'Device Offline', lat: 34.058, lng: -118.245, timestamp: '2024-05-23T10:30:00Z', severity: 'Critical' },
-  { id: 2, device_id: 'ONU-104', issue: 'High Latency', lat: 34.048, lng: -118.238, timestamp: '2024-05-23T10:32:00Z', severity: 'High' },
+  { id: 2, device_id: 'ONU-104', issue: 'Device Offline', lat: 34.048, lng: -118.238, timestamp: '2024-05-23T10:32:00Z', severity: 'Critical' },
   { id: 3, device_id: 'ONU-105', issue: 'Device Offline', lat: 34.0515, lng: -118.257, timestamp: '2024-05-23T10:35:00Z', severity: 'Critical' },
 ];
 
