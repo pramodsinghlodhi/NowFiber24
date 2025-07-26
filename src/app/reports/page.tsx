@@ -12,7 +12,7 @@ import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Label, LabelList, PieLabel } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Label, LabelList } from 'recharts';
 import { mockTechnicianPerformance, mockAlertsBySeverity, mockAlertsByType, mockTaskStatusDistribution } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
@@ -176,7 +176,7 @@ export default function ReportsPage() {
                                             return (
                                                 <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
                                                     <tspan x={viewBox.cx} y={viewBox.cy} className="text-3xl font-bold fill-foreground">{totalAlerts.toLocaleString()}</tspan>
-                                                    <tspan x={viewBox.cx} y={viewBox.cy! + 20} className="text-sm fill-muted-foreground">Alerts</tspan>
+                                                    <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="text-sm fill-muted-foreground">Alerts</tspan>
                                                 </text>
                                             )
                                         }
@@ -193,3 +193,5 @@ export default function ReportsPage() {
     </SidebarProvider>
   );
 }
+
+    
