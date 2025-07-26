@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
-  login: (id: string) => boolean;
+  login: (id: string, password?: string) => boolean;
   logout: () => void;
 }
 
@@ -34,8 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [pathname, router]);
 
-  const login = (id: string): boolean => {
-    const foundUser = mockUsers.find(u => u.id === id);
+  const login = (id: string, password?: string): boolean => {
+    const foundUser = mockUsers.find(u => u.id === id && u.password === password);
     if (foundUser) {
       setUser(foundUser);
       localStorage.setItem('user', JSON.stringify(foundUser));

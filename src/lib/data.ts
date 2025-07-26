@@ -11,6 +11,7 @@ export type User = {
     id: string;
     name: string;
     role: 'Admin' | 'Technician';
+    password?: string;
 };
 
 export type Technician = {
@@ -19,6 +20,7 @@ export type Technician = {
   lat: number;
   lng: number;
   onDuty: boolean;
+  status: 'available' | 'on-break' | 'on-task';
 };
 
 export type Task = {
@@ -49,10 +51,10 @@ export type Stats = {
 }
 
 export const mockUsers: User[] = [
-    { id: 'admin', name: 'Admin User', role: 'Admin' },
-    { id: 'tech-001', name: 'John Doe', role: 'Technician' },
-    { id: 'tech-002', name: 'Jane Smith', role: 'Technician' },
-    { id: 'tech-003', name: 'Mike Ross', role: 'Technician' },
+    { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin' },
+    { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password' },
+    { id: 'tech-002', name: 'Jane Smith', role: 'Technician', password: 'password' },
+    { id: 'tech-003', name: 'Mike Ross', role: 'Technician', password: 'password' },
 ];
 
 export const mockStats: Stats = {
@@ -75,16 +77,17 @@ export const mockDevices: Device[] = [
 ];
 
 export const mockTechnicians: Technician[] = [
-  { id: 'Tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, onDuty: true },
-  { id: 'Tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, onDuty: true },
-  { id: 'Tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, onDuty: true },
+  { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, onDuty: true, status: 'on-task' },
+  { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, onDuty: true, status: 'available' },
+  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, onDuty: true, status: 'on-break' },
+  { id: 'tech-004', name: 'Emily White', lat: 34.055, lng: -118.258, onDuty: false, status: 'available' },
 ];
 
 export const mockTasks: Task[] = [
-  { id: 1, tech_id: 'Tech-001', title: 'Fix ONU-102 Connectivity', description: 'Customer reported no internet. Check fiber link and ONU status.', status: 'In Progress', lat: 34.058, lng: -118.245 },
-  { id: 2, tech_id: 'Tech-002', title: 'New Installation at 123 Maple St', description: 'Install new ONU and configure services for a new client.', status: 'Pending', lat: 34.05, lng: -118.235 },
-  { id: 3, tech_id: 'Tech-001', title: 'Routine Maintenance on SW-01', description: 'Perform software update and check logs.', status: 'Pending', lat: 34.05, lng: -118.24 },
-  { id: 4, tech_id: 'Tech-003', title: 'Resolve Alert for ONU-104', description: 'Device is offline. Investigate the cause.', status: 'In Progress', lat: 34.048, lng: -118.238 },
+  { id: 1, tech_id: 'tech-001', title: 'Fix ONU-102 Connectivity', description: 'Customer reported no internet. Check fiber link and ONU status.', status: 'In Progress', lat: 34.058, lng: -118.245 },
+  { id: 2, tech_id: 'tech-002', title: 'New Installation at 123 Maple St', description: 'Install new ONU and configure services for a new client.', status: 'Pending', lat: 34.05, lng: -118.235 },
+  { id: 3, tech_id: 'tech-001', title: 'Routine Maintenance on SW-01', description: 'Perform software update and check logs.', status: 'Pending', lat: 34.05, lng: -118.24 },
+  { id: 4, tech_id: 'tech-003', title: 'Resolve Alert for ONU-104', description: 'Device is offline. Investigate the cause.', status: 'In Progress', lat: 34.048, lng: -118.238 },
 ];
 
 export const mockAlerts: Alert[] = [

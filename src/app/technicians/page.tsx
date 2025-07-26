@@ -16,10 +16,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, PlusCircle, Trash, Edit } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+const getStatusBadge = (tech: Technician) => {
+    if (!tech.onDuty) {
+        return <Badge variant="secondary">Off Duty</Badge>;
+    }
+    switch (tech.status) {
+        case 'available':
+            return <Badge variant="secondary" className="bg-green-500/20 text-green-700 border-green-400">Available</Badge>;
+        case 'on-task':
+            return <Badge variant="default">On Task</Badge>;
+        case 'on-break':
+            return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 border-yellow-400">On Break</Badge>;
+        default:
+            return <Badge variant="outline">Unknown</Badge>;
+    }
+}
+
 
 export default function TechniciansPage() {
     const { user } = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
 
     useEffect(() => {
         if (!user) {
@@ -30,6 +52,14 @@ export default function TechniciansPage() {
             router.push('/');
         }
     }, [user, router]);
+
+    const handleDelete = (techId: string) => {
+        toast({
+            title: `Deleted Technician ${techId}`,
+            description: "In a real app, this would remove the technician from the database.",
+            variant: "destructive"
+        })
+    }
 
     if (!user || user.role !== 'Admin') {
         return (
@@ -46,17 +76,25 @@ export default function TechniciansPage() {
         <Header />
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Card>
-                <CardHeader>
-                    <CardTitle>Field Technicians</CardTitle>
-                    <CardDescription>Manage and monitor your field engineering team.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Field Technicians</CardTitle>
+                        <CardDescription>Manage and monitor your field engineering team.</CardDescription>
+                    </div>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Technician
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>Duty Status</TableHead>
+                                <TableHead>Current Activity</TableHead>
                                 <TableHead>Current Location</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -73,7 +111,30 @@ export default function TechniciansPage() {
                                         <Badge variant={tech.onDuty ? 'default' : 'secondary'} className={cn(tech.onDuty && 'bg-green-500 text-primary-foreground hover:bg-green-600')}>{tech.onDuty ? 'On Duty' : 'Off Duty'}</Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {tech.lat}, {tech.lng}
+                                       {getStatusBadge(tech)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {tech.onDuty ? `${tech.lat}, ${tech.lng}` : 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))}

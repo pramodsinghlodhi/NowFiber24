@@ -1,10 +1,13 @@
 'use client';
 
-import {Task} from '@/lib/data';
+import {Task, mockTechnicians} from '@/lib/data';
 import {Button} from '@/components/ui/button';
-import {CheckCircle, Clock} from 'lucide-react';
+import {CheckCircle, Clock, User, Wrench} from 'lucide-react';
 import MaterialsAnalyzer from './materials-analyzer';
 import {useToast} from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useState } from 'react';
 
 const getStatusIcon = (status: 'Pending' | 'In Progress' | 'Completed') => {
   switch (status) {
@@ -24,16 +27,15 @@ type TaskItemProps = {
 
 function TaskItem({task}: TaskItemProps) {
   const {toast} = useToast();
+  const {user} = useAuth();
+  const [assignedTech, setAssignedTech] = useState(task.tech_id);
 
   const handleCheckIn = () => {
-    // Mock Geo-fencing logic
-    // In a real app, this would use navigator.geolocation
-    const isNearby = Math.random() > 0.3; // Simulate being nearby 70% of the time
+    const isNearby = Math.random() > 0.3; 
     if (isNearby) {
       toast({
         title: 'Check-in Successful',
         description: `You are now checked in for task: ${task.title}`,
-        variant: 'default',
       });
     } else {
       toast({
@@ -44,30 +46,62 @@ function TaskItem({task}: TaskItemProps) {
     }
   };
 
+  const handleReassign = (newTechId: string) => {
+    setAssignedTech(newTechId);
+    const techName = mockTechnicians.find(t => t.id === newTechId)?.name;
+    toast({
+        title: "Task Re-assigned",
+        description: `${task.title} has been assigned to ${techName}.`
+    })
+  }
+
+  const assignedTechnician = mockTechnicians.find(t => t.id === assignedTech);
+
+
   return (
-    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-      <div className="flex items-center gap-4">
-        {getStatusIcon(task.status)}
-        <div>
-          <p className="font-medium">{task.title}</p>
-          <p className="text-sm text-muted-foreground">Device ID: {task.description.split(' ')[1].replace('.','')}</p>
+    <div className="flex flex-col p-3 rounded-lg hover:bg-muted/50 transition-colors border-b last:border-b-0">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                {getStatusIcon(task.status)}
+                <div>
+                <p className="font-semibold">{task.title}</p>
+                <p className="text-sm text-muted-foreground">Device ID: {task.description.split(' ')[1].replace('.','')}</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                {task.status !== 'Completed' && user?.role === 'Technician' && (
+                    <Button variant="outline" size="sm" onClick={handleCheckIn}>
+                        Check In
+                    </Button>
+                )}
+                 {task.status !== 'Completed' && <MaterialsAnalyzer task={task} /> }
+            </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {task.status !== 'Completed' && (
-             <Button variant="outline" size="sm" onClick={handleCheckIn}>
-                Check In
-            </Button>
-        )}
-        <MaterialsAnalyzer task={task} />
-      </div>
+         <div className="flex items-center justify-between mt-3 pl-9">
+            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+                <User className="h-4 w-4" />
+                <span>{assignedTechnician?.name || 'Unassigned'}</span>
+            </div>
+            {user?.role === 'Admin' && task.status !== 'Completed' && (
+                 <Select value={assignedTech} onValueChange={handleReassign}>
+                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                        <SelectValue placeholder="Re-assign task..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {mockTechnicians.filter(t => t.onDuty).map(tech => (
+                            <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            )}
+        </div>
     </div>
   );
 }
 
 export default function TasksList({tasks}: {tasks: Task[]}) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
         {tasks.map(task => (
             <TaskItem key={task.id} task={task} />
         ))}

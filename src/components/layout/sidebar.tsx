@@ -11,11 +11,12 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, UserPlus} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import FaultDetector from '@/components/dashboard/fault-detector';
 import {useAuth} from '@/contexts/auth-context';
 import {Button} from '../ui/button';
+import ReferCustomer from '../dashboard/refer-customer';
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -61,6 +62,7 @@ export default function AppSidebar() {
       <SidebarSeparator />
       <SidebarFooter className="flex flex-col gap-2 p-2">
         <FaultDetector />
+        { user?.role === 'Technician' && <ReferCustomer /> }
         <SidebarMenu>
           {hasAccess({roles: ['Admin']}) && (
             <SidebarMenuItem>

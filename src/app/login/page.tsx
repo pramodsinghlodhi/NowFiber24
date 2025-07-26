@@ -13,6 +13,7 @@ import { mockUsers } from '@/lib/data';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
@@ -24,12 +25,12 @@ export default function LoginPage() {
 
     // Simulate API call
     setTimeout(() => {
-      const success = login(userId);
+      const success = login(userId, password);
       if (success) {
         toast({ title: 'Login Successful', description: 'Welcome back!' });
         router.push('/');
       } else {
-        toast({ title: 'Login Failed', description: 'Invalid User ID. Please try again.', variant: 'destructive' });
+        toast({ title: 'Login Failed', description: 'Invalid credentials. Please try again.', variant: 'destructive' });
         setIsLoading(false);
       }
     }, 500);
@@ -44,26 +45,36 @@ export default function LoginPage() {
             </div>
           <CardTitle className="text-2xl font-headline">FiberVision Login</CardTitle>
           <CardDescription>
-            Enter your User ID to access the dashboard.
+            Enter your credentials to access the dashboard.
             <br />
             <span className="text-xs text-muted-foreground">
-                (Try: {mockUsers.map(u => u.id).join(', ')})
+                (Try: admin/admin or tech-001/password)
             </span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="userId">User ID</Label>
-                <Input
-                id="userId"
-                type="text"
-                placeholder="e.g., admin or tech-001"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                required
-                />
-            </div>
+                <div className="space-y-2">
+                    <Label htmlFor="userId">User ID</Label>
+                    <Input
+                    id="userId"
+                    type="text"
+                    placeholder="e.g., admin or tech-001"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    required
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    />
+                </div>
             </CardContent>
             <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>

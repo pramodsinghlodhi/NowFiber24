@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockTasks, Task } from '@/lib/data';
+import { mockTasks, mockTechnicians, Task } from '@/lib/data';
 import TasksList from '@/components/dashboard/tasks-list';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
@@ -25,14 +25,15 @@ export default function TasksPage() {
         }
     }, [user, router]);
 
-    const { userTasks, inProgressTasks, pendingTasks } = useMemo(() => {
+    const { userTasks, inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
         if (!user) {
-            return { userTasks: [], inProgressTasks: [], pendingTasks: [] };
+            return { userTasks: [], inProgressTasks: [], pendingTasks: [], completedTasks: [] };
         }
         const tasks = user.role === 'Admin' ? mockTasks : mockTasks.filter(task => task.tech_id === user.id);
         const inProgress = tasks.filter(task => task.status === 'In Progress');
         const pending = tasks.filter(task => task.status === 'Pending');
-        return { userTasks: tasks, inProgressTasks: inProgress, pendingTasks: pending };
+        const completed = tasks.filter(task => task.status === 'Completed');
+        return { userTasks: tasks, inProgressTasks: inProgress, pendingTasks: pending, completedTasks: completed };
     }, [user]);
 
     if (!user) {
@@ -48,9 +49,9 @@ export default function TasksPage() {
       <AppSidebar />
       <SidebarInset>
         <Header />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card>
+        <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle>In Progress</CardTitle>
                         <CardDescription>
@@ -61,11 +62,11 @@ export default function TasksPage() {
                         {inProgressTasks.length > 0 ? (
                             <TasksList tasks={inProgressTasks} />
                         ) : (
-                            <p className="text-muted-foreground">No tasks currently in progress.</p>
+                            <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
                         )}
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle>Pending Tasks</CardTitle>
                         <CardDescription>
@@ -76,7 +77,22 @@ export default function TasksPage() {
                         {pendingTasks.length > 0 ? (
                            <TasksList tasks={pendingTasks} />
                         ) : (
-                            <p className="text-muted-foreground">No pending tasks.</p>
+                            <p className="text-muted-foreground text-sm">No pending tasks.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                 <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle>Completed</CardTitle>
+                        <CardDescription>
+                            Recently completed jobs.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {completedTasks.length > 0 ? (
+                           <TasksList tasks={completedTasks} />
+                        ) : (
+                            <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
                         )}
                     </CardContent>
                 </Card>
