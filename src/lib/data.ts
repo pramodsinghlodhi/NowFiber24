@@ -89,6 +89,30 @@ export type MaterialAssignment = {
     timestamp: string;
 }
 
+export type TechnicianPerformance = {
+    techId: string;
+    name: string;
+    assignedTasks: number;
+    completedTasks: number;
+    completionRate: number;
+}
+
+export type AlertsBySeverity = {
+    severity: string;
+    count: number;
+}
+
+export type AlertsByType = {
+    type: string;
+    count: number;
+}
+
+export type TaskStatusDistribution = {
+    status: string;
+    count: number;
+    fill: string;
+}
+
 export const mockUsers: User[] = [
     { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin' },
     { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password' },
@@ -130,12 +154,16 @@ export const mockTasks: Task[] = [
   { id: 2, tech_id: 'tech-002', title: 'New Installation at 123 Maple St', description: 'Install new ONU and configure services for a new client.', status: 'Pending', lat: 34.05, lng: -118.235 },
   { id: 3, tech_id: 'tech-001', title: 'Routine Maintenance on SW-01', description: 'Perform software update and check logs.', status: 'Pending', lat: 34.05, lng: -118.24 },
   { id: 4, tech_id: 'tech-003', title: 'Resolve Alert for ONU-104', description: 'Device is offline. Investigate the cause.', status: 'In Progress', lat: 34.048, lng: -118.238 },
+  { id: 5, tech_id: 'tech-001', title: 'Completed: Fix Low Signal', description: 'Replaced faulty connector.', status: 'Completed', lat: 34.055, lng: -118.25 },
+  { id: 6, tech_id: 'tech-002', title: 'Completed: Customer Upgrade', description: 'Upgraded customer to 1 Gig plan.', status: 'Completed', lat: 34.051, lng: -118.239 },
 ];
 
 export const mockAlerts: Alert[] = [
   { id: 1, device_id: 'ONU-102', issue: 'Device Offline', lat: 34.058, lng: -118.245, timestamp: '2024-05-23T10:30:00Z', severity: 'Critical' },
   { id: 2, device_id: 'ONU-104', issue: 'Device Offline', lat: 34.048, lng: -118.238, timestamp: '2024-05-23T10:32:00Z', severity: 'Critical' },
   { id: 3, device_id: 'ONU-105', issue: 'Device Offline', lat: 34.0515, lng: -118.257, timestamp: '2024-05-23T10:35:00Z', severity: 'Critical' },
+  { id: 4, device_id: 'SW-01', issue: 'High Temperature', lat: 34.05, lng: -118.24, timestamp: '2024-05-23T11:00:00Z', severity: 'High' },
+  { id: 5, device_id: 'ONU-101', issue: 'Low Signal Strength', lat: 34.055, lng: -118.25, timestamp: '2024-05-23T11:05:00Z', severity: 'Medium' },
 ];
 
 export let mockReferrals: Referral[] = [
@@ -154,4 +182,42 @@ export let mockAssignments: MaterialAssignment[] = [
     { id: 1, materialId: 'splicer-fujikura', technicianId: 'tech-001', quantityAssigned: 1, status: 'Issued', timestamp: '2024-05-23T08:00:00Z'},
     { id: 2, materialId: 'conn-sc-apc', technicianId: 'tech-001', quantityAssigned: 10, status: 'Issued', timestamp: '2024-05-23T08:00:00Z'},
     { id: 3, materialId: 'fiber-24', technicianId: 'tech-002', quantityAssigned: 50, status: 'Pending', timestamp: '2024-05-24T09:00:00Z'},
+];
+
+// MOCK REPORTING DATA
+export const mockTechnicianPerformance: TechnicianPerformance[] = mockTechnicians.map(tech => {
+    const assignedTasks = mockTasks.filter(t => t.tech_id === tech.id);
+    const completedTasks = assignedTasks.filter(t => t.status === 'Completed');
+    const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
+    return {
+        techId: tech.id,
+        name: tech.name,
+        assignedTasks: assignedTasks.length,
+        completedTasks: completedTasks.length,
+        completionRate: Math.round(completionRate)
+    };
+});
+
+export const mockAlertsBySeverity: AlertsBySeverity[] = [
+    { severity: 'Critical', count: mockAlerts.filter(a => a.severity === 'Critical').length },
+    { severity: 'High', count: mockAlerts.filter(a => a.severity === 'High').length },
+    { severity: 'Medium', count: mockAlerts.filter(a => a.severity === 'Medium').length },
+    { severity: 'Low', count: mockAlerts.filter(a => a.severity === 'Low').length },
+];
+
+export const mockAlertsByType: AlertsByType[] = mockAlerts.reduce((acc, alert) => {
+    const existingType = acc.find(item => item.type === alert.issue);
+    if (existingType) {
+        existingType.count++;
+    } else {
+        acc.push({ type: alert.issue, count: 1 });
+    }
+    return acc;
+}, [] as AlertsByType[]);
+
+
+export const mockTaskStatusDistribution: TaskStatusDistribution[] = [
+    { status: 'Completed', count: mockTasks.filter(t => t.status === 'Completed').length, fill: 'var(--color-completed)' },
+    { status: 'In Progress', count: mockTasks.filter(t => t.status === 'In Progress').length, fill: 'var(--color-in-progress)' },
+    { status: 'Pending', count: mockTasks.filter(t => t.status === 'Pending').length, fill: 'var(--color-pending)' },
 ];
