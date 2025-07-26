@@ -12,7 +12,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -48,8 +47,8 @@ export default function TechniciansPage() {
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Technicians</CardTitle>
-                    <CardDescription>Manage your field technicians.</CardDescription>
+                    <CardTitle>Field Technicians</CardTitle>
+                    <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -63,15 +62,15 @@ export default function TechniciansPage() {
                         <TableBody>
                             {mockTechnicians.map((tech: Technician) => (
                                 <TableRow key={tech.id}>
-                                    <TableCell className="font-medium flex items-center gap-2">
+                                    <TableCell className="font-medium flex items-center gap-3">
                                         <Avatar className="h-9 w-9">
                                             <AvatarImage src={`https://i.pravatar.cc/150?u=${tech.id}`} alt={tech.name} />
                                             <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
                                         </Avatar>
-                                        {tech.name}
+                                        <span className="font-medium">{tech.name}</span>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={tech.onDuty ? 'default' : 'secondary'} className={cn(tech.onDuty && 'bg-green-500')}>{tech.onDuty ? 'On Duty' : 'Off Duty'}</Badge>
+                                        <Badge variant={tech.onDuty ? 'default' : 'secondary'} className={cn(tech.onDuty && 'bg-green-500 text-primary-foreground hover:bg-green-600')}>{tech.onDuty ? 'On Duty' : 'Off Duty'}</Badge>
                                     </TableCell>
                                     <TableCell>
                                         {tech.lat}, {tech.lng}

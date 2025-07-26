@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   SidebarProvider,
   SidebarInset,
@@ -10,13 +11,20 @@ import {
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
-import { mockAlerts, Alert as AlertType } from '@/lib/data';
+import { mockAlerts, Alert as AlertType, mockDevices, Device } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[200px] w-full rounded-md" />,
+});
 
 const getSeverityBadge = (severity: 'Critical' | 'High' | 'Medium' | 'Low') => {
   switch (severity) {
@@ -48,12 +56,23 @@ const getSeverityClass = (severity: 'Critical' | 'High' | 'Medium' | 'Low') => {
 export default function AlertsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
     }
   }, [user, router]);
+
+  useEffect(() => {
+    if (selectedAlert) {
+      const device = mockDevices.find(d => d.id === selectedAlert.device_id) || null;
+      setSelectedDevice(device);
+    } else {
+      setSelectedDevice(null);
+    }
+  }, [selectedAlert]);
 
   if (!user) {
     return (
@@ -97,7 +116,7 @@ export default function AlertsPage() {
                       <TableCell>{alert.issue}</TableCell>
                       <TableCell>{formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm">View Details</Button>
+                        <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)}>View Details</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -107,6 +126,34 @@ export default function AlertsPage() {
           </Card>
         </main>
       </SidebarInset>
+
+       <Dialog open={!!selectedAlert} onOpenChange={(open) => !open && setSelectedAlert(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Alert Details</DialogTitle>
+            <DialogDescription>
+              Detailed information for alert #{selectedAlert?.id}.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAlert && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <h4 className="font-semibold">Issue</h4>
+                <p>{selectedAlert.issue}</p>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-semibold">Device</h4>
+                <p>{selectedDevice ? `${selectedDevice.id} (${selectedDevice.type})` : selectedAlert.device_id}</p>
+                {selectedDevice && <p className="text-sm text-muted-foreground">IP: {selectedDevice.ip}</p>}
+              </div>
+               <div className="space-y-2">
+                <h4 className="font-semibold">Location</h4>
+                 <MiniMap key={selectedAlert.id} center={[selectedAlert.lat, selectedAlert.lng]} />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

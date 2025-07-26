@@ -11,11 +11,14 @@ import { Device, Technician, Alert } from "@/lib/data";
 
 // This is a workaround for a common issue with Leaflet and Next.js
 // It manually sets the paths for the default marker icons.
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+if (typeof window !== 'undefined') {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+}
 
 
 type MapViewProps = {
@@ -26,7 +29,7 @@ type MapViewProps = {
 
 const getDeviceIcon = (device: Device) => {
   const iconSize: [number, number] = [32, 32];
-  const commonClasses = "p-1.5 rounded-full text-white shadow-lg";
+  const commonClasses = "p-1.5 rounded-full text-white shadow-lg flex items-center justify-center";
 
   const statusColor = device.status === 'online' ? 'bg-green-500' : 
                       device.status === 'offline' ? 'bg-destructive' : 'bg-yellow-500';
@@ -45,9 +48,7 @@ const getDeviceIcon = (device: Device) => {
       break;
     case 'ONU':
     default:
-      iconSvg = device.status === 'online' ? 
-        `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>` :
-        `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`;
+       iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-router h-5 w-5"><path d="M2 9.5a2.5 2.5 0 0 1 2.5-2.5h15A2.5 2.5 0 0 1 22 9.5v5a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 14.5Z"/><path d="M6 12h.01"/><path d="M10 12h.01"/><path d="M14 12h.01"/></svg>`
       break;
   }
   
@@ -62,7 +63,7 @@ const getDeviceIcon = (device: Device) => {
 
 const getTechnicianIcon = () => {
     return L.divIcon({
-        html: `<div class="p-1.5 rounded-full text-white shadow-lg bg-blue-500 border-2 border-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hard-hat h-5 w-5"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a8 8 0 0 1 16 0v3"/></svg></div>`,
+        html: `<div class="p-1.5 rounded-full text-white shadow-lg bg-blue-500 border-2 border-white flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hard-hat h-5 w-5"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a8 8 0 0 1 16 0v3"/></svg></div>`,
         className: 'bg-transparent border-0',
         iconSize: [32, 32],
         iconAnchor: [16, 32],
@@ -87,7 +88,10 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
 
   useEffect(() => {
     if (mapRef.current && !mapInstance.current) {
-      mapInstance.current = L.map(mapRef.current).setView([34.0522, -118.2437], 13);
+      mapInstance.current = L.map(mapRef.current, {
+          center: [34.0522, -118.2437],
+          zoom: 13,
+      });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(mapInstance.current);
@@ -105,34 +109,39 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
 
 
   useEffect(() => {
-    if (layerGroupRef.current) {
+    const lg = layerGroupRef.current;
+    if (lg) {
         // Clear existing markers from the layer group
-        layerGroupRef.current.clearLayers();
+        lg.clearLayers();
 
         // Add device markers
         devices.forEach(device => {
             L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
-                .addTo(layerGroupRef.current!)
-                .bindPopup(`<div class="font-bold">${device.id} (${device.type})</div>
-                            <div>Status: <span class="${cn(device.status === 'online' ? 'text-green-500' : 'text-destructive')}">${device.status}</span></div>
-                            <p>IP: ${device.ip || 'N/A'}</p>`);
+                .addTo(lg)
+                .bindPopup(`<div class="font-sans">
+                            <div class="font-bold text-base mb-1">${device.id} (${device.type})</div>
+                            <div class="text-sm">Status: <span class="${cn(device.status === 'online' ? 'text-green-600' : device.status === 'offline' ? 'text-red-600' : 'text-yellow-600')} font-semibold">${device.status}</span></div>
+                            <p class="text-sm">IP: ${device.ip || 'N/A'}</p>
+                           </div>`);
         });
 
         // Add technician markers
         technicians.forEach(tech => {
             if (tech.onDuty) {
                 L.marker([tech.lat, tech.lng], { icon: getTechnicianIcon() })
-                    .addTo(layerGroupRef.current!)
-                    .bindPopup(`<p class="font-bold">${tech.name}</p>
-                            <p>Status: ${tech.onDuty ? 'On Duty' : 'Off Duty'}</p>`);
+                    .addTo(lg)
+                    .bindPopup(`<div class="font-sans">
+                                <div class="font-bold text-base mb-1">${tech.name}</div>
+                                <p class="text-sm">Status: <span class="font-semibold text-green-600">On Duty</span></p>
+                               </div>`);
             }
         });
         
         // Add alert markers
         alerts.forEach(alert => {
             L.marker([alert.lat, alert.lng], { icon: getAlertIcon(), zIndexOffset: 1000 })
-                .addTo(layerGroupRef.current!)
-                .bindTooltip(`<p class="font-bold">${alert.device_id}: ${alert.issue}</p>`, {
+                .addTo(lg)
+                .bindTooltip(`<div class="font-sans font-bold">${alert.device_id}: ${alert.issue}</div>`, {
                     permanent: true,
                     direction: 'top',
                     offset: [0, -10],
