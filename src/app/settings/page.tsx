@@ -14,8 +14,9 @@ import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useToast} from '@/hooks/use-toast';
 import {runAutoFaultDetection} from '@/app/actions';
-import {Loader2, Map, Bell, HardHat} from 'lucide-react';
+import {Loader2, Map, Bell, HardHat, Send} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { mockNotifications, Notification } from '@/lib/notifications';
 
 export default function SettingsPage() {
   const {user} = useAuth();
@@ -23,6 +24,9 @@ export default function SettingsPage() {
   const {toast} = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastType, setBroadcastType] = useState<Notification['type']>('System');
 
   useEffect(() => {
     if (!user) {
@@ -50,10 +54,10 @@ export default function SettingsPage() {
     setIsTesting(true);
     toast({
       title: 'Running Automated Scan...',
-      description: 'This will check all devices and create alerts for any faults found.',
+      description: 'This will check a single faulty device and create an alert.',
     });
     try {
-      const results = await runAutoFaultDetection(true);
+      const results = await runAutoFaultDetection();
       const faults = results.filter(r => r.alertCreated);
       if (faults.length > 0) {
         toast({
@@ -64,7 +68,7 @@ export default function SettingsPage() {
       } else {
         toast({
           title: 'Scan Complete',
-          description: 'No new faults were detected across the network.',
+          description: 'No new faults were detected on the monitored device.',
         });
       }
     } catch (error) {
@@ -77,6 +81,30 @@ export default function SettingsPage() {
       setIsTesting(false);
     }
   };
+
+  const handleBroadcast = () => {
+    if (!broadcastMessage) {
+        toast({ title: 'Message is empty', description: 'Please enter a message to broadcast.', variant: 'destructive' });
+        return;
+    }
+    setIsBroadcasting(true);
+    setTimeout(() => {
+        const newNotification: Notification = {
+            id: mockNotifications.length + 1,
+            type: broadcastType,
+            message: broadcastMessage,
+            read: false,
+            timestamp: new Date().toISOString(),
+        };
+        mockNotifications.unshift(newNotification);
+        setBroadcastMessage('');
+        setIsBroadcasting(false);
+        toast({
+            title: 'Broadcast Sent!',
+            description: 'Your message has been sent to all users.',
+        });
+    }, 1000);
+  }
 
   if (!user || user.role !== 'Admin') {
     return (
@@ -146,12 +174,44 @@ export default function SettingsPage() {
                             Running Scan...
                             </>
                         ) : (
-                            'Run Full Scan Now'
+                            'Run Test Scan'
                         )}
                         </Button>
                     </div>
                     </div>
                 </CardContent>
+                </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className='flex items-center gap-2'><Send/> Broadcast Message</CardTitle>
+                        <CardDescription>Send a notification to all users of the application.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="broadcast-message">Message</Label>
+                            <Textarea id="broadcast-message" placeholder="Enter your announcement..." value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} />
+                        </div>
+                        <div className="flex items-end gap-4">
+                             <div className="space-y-2 flex-1">
+                                <Label htmlFor="broadcast-type">Type</Label>
+                                <Select value={broadcastType} onValueChange={(v) => setBroadcastType(v as any)}>
+                                <SelectTrigger id="broadcast-type">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="System">System Update</SelectItem>
+                                    <SelectItem value="New Alert">Announcement</SelectItem>
+                                    <SelectItem value="Task Assigned">Urgent</SelectItem>
+                                </SelectContent>
+                                </Select>
+                            </div>
+                            <Button onClick={handleBroadcast} disabled={isBroadcasting}>
+                                {isBroadcasting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send/>}
+                                Send Broadcast
+                            </Button>
+                        </div>
+                    </CardContent>
                 </Card>
 
                 <Card>

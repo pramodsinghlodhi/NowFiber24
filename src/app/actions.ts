@@ -4,7 +4,7 @@ import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {mockDevices, mockTechnicians} from '@/lib/data';
 
-export async function runAutoFaultDetection(allDevices: boolean = false) {
+export async function runAutoFaultDetection() {
   // In a real application, you would fetch this data from your database.
   const techniciansWithLocation = mockTechnicians.filter(t => t.onDuty).map(t => ({
     techId: t.id,
@@ -12,8 +12,7 @@ export async function runAutoFaultDetection(allDevices: boolean = false) {
     longitude: t.lng,
   }));
 
-  // Find a single faulty device for the manual trigger, regardless of the allDevices flag.
-  // This prevents memory overload from running too many AI flows at once.
+  // Find a single faulty device for the manual trigger, to prevent memory overload.
   const faultyDevice = mockDevices.find(d => d.status === 'offline' && (d.type === 'ONU' || d.type === 'Switch'));
 
   if (!faultyDevice) {
