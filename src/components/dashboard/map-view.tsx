@@ -87,12 +87,14 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const technicianMarkers = useRef<{ [key: string]: L.Marker }>({});
+
 
   useEffect(() => {
     if (mapRef.current && !mapInstance.current) {
       mapInstance.current = L.map(mapRef.current, {
-          center: [20, 0], // Centered on the world
-          zoom: 2, // Zoom out to see the world
+          center: [34.05, -118.25], // Centered on LA
+          zoom: 12,
           zoomControl: false, // Disable default zoom control
       });
       
@@ -124,41 +126,66 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
 
 
   useEffect(() => {
-    if (mapRef.current && mapInstance.current) {
+    if (mapInstance.current && layerGroupRef.current) {
         const lg = layerGroupRef.current;
-        if (lg) {
-            lg.clearLayers();
+        lg.clearLayers(); // Clear previous markers
 
-            // Add a representation of the global fiber network
-            // This is a simplified representation. A real implementation would load GeoJSON data.
-            const fiberPaths = [
-                // Transatlantic
-                [[51.50, -0.12], [40.71, -74.00]],
-                [[38.90, -77.03], [38.72, -9.13]],
-                // Transpacific
-                [[34.05, -118.24], [35.68, 139.69]],
-                [[37.77, -122.41], [22.31, 114.16]],
-                // Europe-Asia
-                [[52.52, 13.40], [55.75, 37.61], [39.90, 116.40]],
-                 // Americas
-                [[45.42, -75.69], [19.43, -99.13], [-34.60, -58.38]],
-                // Intra-Asia
-                [[1.35, 103.81], [13.75, 100.49], [25.03, 121.56]],
-                // Africa
-                [[-26.20, 28.04], [9.07, 7.49], [30.04, 31.23]],
-                // Australia
-                [[-33.86, 151.20], [-37.81, 144.96]]
-            ];
+        // Add device markers
+        devices.forEach(device => {
+            const marker = L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
+                .addTo(lg)
+                .bindPopup(`
+                    <div class="p-2">
+                        <h3 class="font-bold">${device.id}</h3>
+                        <p>${device.type}</p>
+                        <p class="capitalize text-sm ${device.status === 'online' ? 'text-green-600' : 'text-red-600'}">${device.status}</p>
+                        ${device.ip ? `<p class="text-xs text-gray-500">${device.ip}</p>` : ''}
+                    </div>
+                `, { className: 'custom-popup' });
+        });
 
-            fiberPaths.forEach(path => {
-                L.polyline(path as L.LatLngExpression[], { color: '#4285F4', weight: 1.5, opacity: 0.8 }).addTo(lg);
-            });
-        }
+        // Add alert markers with permanent tooltips
+        alerts.forEach(alert => {
+            const alertMarker = L.marker([alert.lat, alert.lng], { icon: getAlertIcon() })
+                .addTo(lg)
+                .bindTooltip(`${alert.device_id}: ${alert.issue}`, {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -15],
+                    className: 'custom-tooltip'
+                });
+        });
+
+         // Initialize or update technician markers
+        technicians.filter(t => t.onDuty).forEach(tech => {
+            const pos: [number, number] = [tech.lat, tech.lng];
+            if (technicianMarkers.current[tech.id]) {
+                technicianMarkers.current[tech.id].setLatLng(pos);
+            } else {
+                const marker = L.marker(pos, { icon: getTechnicianIcon() })
+                    .addTo(lg)
+                    .bindPopup(`
+                        <div class="p-2">
+                            <h3 class="font-bold">${tech.name}</h3>
+                            <p>Status: ${tech.status}</p>
+                        </div>
+                    `, { className: 'custom-popup' });
+                technicianMarkers.current[tech.id] = marker;
+            }
+        });
+
+        // Remove markers for off-duty technicians
+        Object.keys(technicianMarkers.current).forEach(techId => {
+            if (!technicians.some(t => t.id === techId && t.onDuty)) {
+                technicianMarkers.current[techId].remove();
+                delete technicianMarkers.current[techId];
+            }
+        });
     }
-  }, [devices, technicians, alerts]);
+  }, [devices, technicians, alerts, mapStyle]);
 
   return (
-    <div className="h-[400px] lg:h-[calc(100vh-380px)] w-full bg-muted rounded-xl shadow-inner">
+    <div className="h-full w-full bg-muted rounded-xl shadow-inner">
          <div ref={mapRef} className="h-full w-full rounded-xl"></div>
     </div>
   );

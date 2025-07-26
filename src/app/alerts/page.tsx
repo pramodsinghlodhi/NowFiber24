@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import {
   SidebarProvider,
   SidebarInset,
@@ -20,11 +19,6 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
-  ssr: false,
-  loading: () => <Skeleton className="h-[200px] w-full rounded-md" />,
-});
 
 const getSeverityBadge = (severity: 'Critical' | 'High' | 'Medium' | 'Low') => {
   switch (severity) {
@@ -148,7 +142,7 @@ export default function AlertsPage() {
               </div>
                <div className="space-y-2">
                 <h4 className="font-semibold">Location</h4>
-                 <MiniMap key={selectedAlert.id} center={[selectedAlert.lat, selectedAlert.lng]} />
+                 <p className="text-sm text-muted-foreground">{selectedAlert.lat}, {selectedAlert.lng}</p>
               </div>
             </div>
           )}

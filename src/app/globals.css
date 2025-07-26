@@ -71,3 +71,20 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.leaflet-popup-content-wrapper {
+    @apply bg-card text-card-foreground rounded-lg shadow-lg;
+}
+
+.leaflet-popup-content {
+    @apply text-sm;
+    margin: 8px 12px;
+}
+
+.leaflet-popup-tip {
+    @apply bg-card;
+}
+
+.custom-tooltip {
+    @apply bg-card text-card-foreground border-none shadow-lg rounded-md px-2 py-1;
+}
