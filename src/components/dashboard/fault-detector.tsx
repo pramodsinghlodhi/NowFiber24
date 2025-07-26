@@ -25,7 +25,8 @@ export default function FaultDetector() {
     setIsLoading(true);
     setResult(null);
     try {
-      const detectionResult = await runAutoFaultDetection();
+      const detectionResults = await runAutoFaultDetection();
+      const detectionResult = detectionResults[0]; // For single detection summary
       setResult(detectionResult);
       if (detectionResult.alertCreated) {
         toast({
