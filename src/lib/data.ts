@@ -53,6 +53,17 @@ export type Alert = {
   severity: 'Critical' | 'High' | 'Medium' | 'Low';
 };
 
+export type Referral = {
+    id: number;
+    tech_id: string;
+    customer_name: string;
+    phone: string;
+    address: string;
+    notes: string;
+    status: 'Pending' | 'Contacted' | 'Closed';
+    timestamp: string;
+}
+
 export type Stats = {
   onlineDevices: number;
   activeAlerts: number;
@@ -107,4 +118,9 @@ export const mockAlerts: Alert[] = [
   { id: 1, device_id: 'ONU-102', issue: 'Device Offline', lat: 34.058, lng: -118.245, timestamp: '2024-05-23T10:30:00Z', severity: 'Critical' },
   { id: 2, device_id: 'ONU-104', issue: 'High Latency', lat: 34.048, lng: -118.238, timestamp: '2024-05-23T10:32:00Z', severity: 'High' },
   { id: 3, device_id: 'ONU-105', issue: 'Device Offline', lat: 34.0515, lng: -118.257, timestamp: '2024-05-23T10:35:00Z', severity: 'Critical' },
+];
+
+export let mockReferrals: Referral[] = [
+    {id: 1, tech_id: 'tech-001', customer_name: 'Stark Industries', phone: '555-123-4567', address: '10880 Malibu Point', notes: 'Interested in gigabit enterprise plan.', status: 'Contacted', timestamp: '2024-05-22T14:00:00Z'},
+    {id: 2, tech_id: 'tech-002', customer_name: 'Wayne Enterprises', phone: '555-987-6543', address: '1007 Mountain Drive', notes: 'Requires high-security connection for a new R&D facility.', status: 'Pending', timestamp: '2024-05-21T09:30:00Z'},
 ];

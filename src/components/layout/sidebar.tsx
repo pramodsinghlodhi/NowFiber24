@@ -13,7 +13,7 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion, UserPlus} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
@@ -25,6 +25,7 @@ const menuItemsTop = [
     {href: '/inventory', icon: Network, label: 'Inventory'},
     {href: '/tasks', icon: ListTodo, label: 'Tasks'},
     {href: '/technicians', icon: HardHat, label: 'Technicians'},
+    {href: '/referrals', icon: UserPlus, label: 'Referrals'},
     {href: '/reports', icon: BarChart, label: 'Reports'},
 ];
 
@@ -51,7 +52,8 @@ export default function AppSidebar() {
           {menuItemsTop.map(
             (item) =>
               // Conditionally render based on user role
-              (item.href !== '/inventory' && item.href !== '/technicians' && item.href !== '/reports' && item.href !== '/settings' || user?.role === 'Admin') && (
+              (item.href !== '/inventory' && item.href !== '/technicians' && item.href !== '/reports' && item.href !== '/settings' && item.href !== '/referrals' || user?.role === 'Admin') && 
+              (item.href !== '/referrals' || user?.role !== 'Admin') && (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
                     <item.icon />

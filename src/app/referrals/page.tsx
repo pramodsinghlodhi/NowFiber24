@@ -1,0 +1,137 @@
+
+"use client";
+
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  SidebarProvider,
+  SidebarInset,
+} from '@/components/ui/sidebar';
+import AppSidebar from '@/components/layout/sidebar';
+import Header from '@/components/layout/header';
+import { useAuth } from '@/contexts/auth-context';
+import { mockReferrals, Referral, mockTechnicians } from '@/lib/data';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+
+
+const getStatusBadge = (status: 'Pending' | 'Contacted' | 'Closed') => {
+  switch (status) {
+    case 'Contacted':
+      return <Badge variant="secondary" className="bg-blue-500/20 text-blue-700 border-blue-400">Contacted</Badge>;
+    case 'Closed':
+      return <Badge variant="secondary" className="bg-green-500/20 text-green-700 border-green-400">Closed</Badge>;
+    case 'Pending':
+    default:
+      return <Badge variant="outline">Pending</Badge>;
+  }
+};
+
+
+export default function ReferralsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [referrals, setReferrals] = useState(mockReferrals);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
+  
+  const filteredReferrals = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'Admin') return referrals;
+    return referrals.filter(r => r.tech_id === user.id);
+  }, [user, referrals]);
+
+
+  const handleStatusChange = (referralId: number, newStatus: Referral['status']) => {
+    setReferrals(prev => prev.map(r => r.id === referralId ? {...r, status: newStatus} : r));
+    toast({ title: "Status Updated", description: `Referral status changed to ${newStatus}.` });
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Header />
+        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Referrals</CardTitle>
+              <CardDescription>
+                {user.role === 'Admin' ? 'View and manage all customer referrals from technicians.' : 'Track the status of your submitted referrals.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Date</TableHead>
+                    {user.role === 'Admin' && <TableHead>Referred By</TableHead>}
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredReferrals.map((referral: Referral) => (
+                    <TableRow key={referral.id}>
+                      <TableCell className="font-medium">{referral.customer_name}</TableCell>
+                      <TableCell>{referral.phone}</TableCell>
+                      <TableCell>{referral.address}</TableCell>
+                      <TableCell>{format(new Date(referral.timestamp), 'MMM dd, yyyy')}</TableCell>
+                      {user.role === 'Admin' && (
+                        <TableCell>{mockTechnicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
+                      )}
+                      <TableCell>{getStatusBadge(referral.status)}</TableCell>
+                       <TableCell className="text-right">
+                        {user.role === 'Admin' ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Open menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Contacted')}>Mark as Contacted</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Closed')}>Mark as Closed</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Pending')}>Mark as Pending</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                             <Button variant="link" size="sm" disabled>No Actions</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
+
