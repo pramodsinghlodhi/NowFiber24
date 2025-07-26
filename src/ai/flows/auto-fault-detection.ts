@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -132,16 +133,28 @@ const autoFaultDetectionFlowPrompt = ai.definePrompt({
     outputSchema: AutoFaultDetectionOutputSchema,
     tools: [pingDevice, createAlert, findClosestTechnician],
     prompt: `You are a network operations AI. Your task is to detect and report faults in the network.
+    You will be given device information and a list of available technicians.
 
-    1. Ping the device with IP address {{{deviceIp}}} to check its reachability.
-    2. If the device is unreachable:
-        a. Find the closest available technician from the provided list of technicians to the device's location (latitude: {{{latitude}}}, longitude: {{{longitude}}}).
-        b. Create an alert for the unreachable device with ID {{{deviceId}}} and type {{{deviceType}}}.
-        c. Assign the closest technician to the alert.
-        d. Formulate an issue description indicating the device is unreachable and which technician (if any) was assigned.
-    3. If the device is reachable, formulate a message confirming its status.
-    
-    Return the result based on the actions taken.
+    Your instructions are:
+    1.  Use the 'pingDevice' tool with the provided 'deviceIp' to check its reachability.
+    2.  If the 'pingDevice' tool returns 'true', it means the device is reachable. In this case, your final output should be:
+        - isReachable: true
+        - alertCreated: false
+        - issue: "Device {{{deviceId}}} is online and reachable."
+    3.  If the 'pingDevice' tool returns 'false', it means the device is unreachable. You must then perform the following steps:
+        a. Use the 'findClosestTechnician' tool to find the closest available technician. Pass the device's latitude ('{{{latitude}}}'), longitude ('{{{longitude}}}'), and the list of 'assignedTechs' to this tool.
+        b. The 'findClosestTechnician' tool will return a technician ID or nothing if no technicians are available.
+        c. Formulate an issue description string.
+            - If a technician was found, the issue should be: "Device {{{deviceId}}} is unreachable. Alert created and assigned to technician {{technicianId}}." (replace {{technicianId}} with the actual ID).
+            - If no technician was found, the issue should be: "Device {{{deviceId}}} is unreachable. Alert created. No technicians available to assign."
+        d. Use the 'createAlert' tool. Pass it the 'deviceId', 'deviceType', 'latitude', 'longitude', the formulated issue description, and the 'assignedTechId' (if one was found).
+        e. After the alert is created, formulate your final output:
+            - isReachable: false
+            - alertCreated: true
+            - assignedTechId: The ID of the assigned technician (or undefined).
+            - issue: The issue description you formulated in step 3c.
+
+    Follow these instructions carefully. Do not deviate from this logic. Base your final response on the outcomes of the tool calls.
     `,
 });
 
