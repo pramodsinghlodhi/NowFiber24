@@ -23,8 +23,8 @@ import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 
 const getStatusBadge = (tech: Technician) => {
-    if (!tech.onDuty) {
-        return <Badge variant="secondary">Off Duty</Badge>;
+    if (!tech.isActive) {
+        return <Badge variant="secondary">Inactive</Badge>;
     }
     switch (tech.status) {
         case 'available':
@@ -132,7 +132,7 @@ export default function TechniciansPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Duty Status</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Current Activity</TableHead>
                                 <TableHead>Current Location</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -152,13 +152,15 @@ export default function TechniciansPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={tech.onDuty ? 'default' : 'secondary'} className={cn(tech.onDuty && 'bg-green-500 text-primary-foreground hover:bg-green-600')}>{tech.onDuty ? 'On Duty' : 'Off Duty'}</Badge>
+                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600')}>
+                                            {tech.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
                                        {getStatusBadge(tech)}
                                     </TableCell>
                                     <TableCell>
-                                        {tech.onDuty ? `${tech.lat.toFixed(4)}, ${tech.lng.toFixed(4)}` : 'N/A'}
+                                        {tech.isActive ? `${tech.lat.toFixed(4)}, ${tech.lng.toFixed(4)}` : 'N/A'}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>

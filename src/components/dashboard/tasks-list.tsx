@@ -88,7 +88,7 @@ function TaskItem({task}: TaskItemProps) {
                         <SelectValue placeholder="Re-assign task..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {mockTechnicians.filter(t => t.onDuty).map(tech => (
+                        {mockTechnicians.filter(t => t.isActive).map(tech => (
                             <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
                         ))}
                     </SelectContent>

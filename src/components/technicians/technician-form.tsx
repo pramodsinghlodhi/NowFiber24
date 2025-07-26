@@ -64,7 +64,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     // Simulate saving
     setTimeout(() => {
         const newOrUpdatedTechnician: Technician = {
-            ...(technician || { lat: 34.0522, lng: -118.2437, onDuty: false, status: 'available' }), // Provide defaults for new tech
+            ...(technician || { lat: 34.0522, lng: -118.2437, isActive: false, status: 'available' }), // Provide defaults for new tech
             id,
             name,
         };

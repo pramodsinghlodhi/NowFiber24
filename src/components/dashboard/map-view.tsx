@@ -41,7 +41,7 @@ const getDeviceIcon = (device: Device) => {
       iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="14" width="18" height="7" rx="2" ry="2" /><line x1="6" y1="17" x2="6.01" y2="17" /><line x1="10" y1="17" x2="10.01" y2="17" /><path d="M4 14V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6" /></svg>`;
       break;
     case 'Switch':
-      iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2m20 0-3-3m3 3-3 3M2 12l3 3M2 12l3-3"/><path d="M17 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-5 10a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>`;
+      iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2m20 0-3-3m3 3-3 3M2 12l3 3M2 12l3 3"/><path d="M17 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-5 10a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>`;
       break;
     case 'Pole':
       iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M12 22l4-4"/><path d="M12 22l-4-4"/></svg>`;
@@ -169,7 +169,7 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
         });
 
          // Initialize or update technician markers and paths
-        technicians.filter(t => t.onDuty).forEach(tech => {
+        technicians.filter(t => t.isActive).forEach(tech => {
             const pos: [number, number] = [tech.lat, tech.lng];
             if (technicianMarkers.current[tech.id]) {
                 const { marker, path } = technicianMarkers.current[tech.id];
@@ -195,7 +195,7 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
 
         // Remove markers and paths for off-duty technicians
         Object.keys(technicianMarkers.current).forEach(techId => {
-            if (!technicians.some(t => t.id === techId && t.onDuty)) {
+            if (!technicians.some(t => t.id === techId && t.isActive)) {
                 const { marker, path } = technicianMarkers.current[techId];
                 marker.remove();
                 if (path) path.remove();
