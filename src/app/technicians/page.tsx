@@ -7,10 +7,10 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockTechnicians, Technician } from '@/lib/data';
+import { mockTechnicians, Technician, mockUsers, User } from '@/lib/data';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle, Trash, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import TechnicianForm from '@/components/technicians/technician-form';
 
 const getStatusBadge = (tech: Technician) => {
     if (!tech.onDuty) {
@@ -42,6 +43,10 @@ export default function TechniciansPage() {
     const { user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
+    const [technicians, setTechnicians] = useState<Technician[]>(mockTechnicians);
+    const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+
 
     useEffect(() => {
         if (!user) {
@@ -54,11 +59,47 @@ export default function TechniciansPage() {
     }, [user, router]);
 
     const handleDelete = (techId: string) => {
+        setTechnicians(prev => prev.filter(t => t.id !== techId));
+        // Also remove from mockUsers to prevent login
+        const userIndex = mockUsers.findIndex(u => u.id === techId);
+        if(userIndex > -1) mockUsers.splice(userIndex, 1);
+
         toast({
             title: `Deleted Technician ${techId}`,
-            description: "In a real app, this would remove the technician from the database.",
+            description: "Technician has been removed from the list.",
             variant: "destructive"
         })
+    }
+
+    const handleSave = (techData: Technician, userData: User) => {
+        const isEditing = !!selectedTechnician;
+
+        if(isEditing) {
+            // Update technician
+            setTechnicians(prev => prev.map(t => t.id === techData.id ? techData : t));
+            // Update user
+            const userIndex = mockUsers.findIndex(u => u.id === userData.id);
+            if(userIndex > -1) mockUsers[userIndex] = userData;
+            toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
+        } else {
+             // Add new technician
+            setTechnicians(prev => [...prev, techData]);
+            // Add new user
+            mockUsers.push(userData);
+            toast({ title: "Technician Added", description: `${techData.name} has been added to the team.` });
+        }
+        setIsFormOpen(false);
+        setSelectedTechnician(null);
+    }
+
+    const handleAddNew = () => {
+        setSelectedTechnician(null);
+        setIsFormOpen(true);
+    }
+
+    const handleEdit = (tech: Technician) => {
+        setSelectedTechnician(tech);
+        setIsFormOpen(true);
     }
 
     if (!user || user.role !== 'Admin') {
@@ -81,7 +122,7 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
-                    <Button>
+                    <Button onClick={handleAddNew}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Add Technician
                     </Button>
@@ -98,14 +139,17 @@ export default function TechniciansPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {mockTechnicians.map((tech: Technician) => (
+                            {technicians.map((tech: Technician) => (
                                 <TableRow key={tech.id}>
                                     <TableCell className="font-medium flex items-center gap-3">
                                         <Avatar className="h-9 w-9">
                                             <AvatarImage src={`https://i.pravatar.cc/150?u=${tech.id}`} alt={tech.name} />
                                             <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
                                         </Avatar>
-                                        <span className="font-medium">{tech.name}</span>
+                                        <div className='flex flex-col'>
+                                            <span className="font-medium">{tech.name}</span>
+                                            <span className='text-xs text-muted-foreground'>{tech.id}</span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={tech.onDuty ? 'default' : 'secondary'} className={cn(tech.onDuty && 'bg-green-500 text-primary-foreground hover:bg-green-600')}>{tech.onDuty ? 'On Duty' : 'Off Duty'}</Badge>
@@ -114,7 +158,7 @@ export default function TechniciansPage() {
                                        {getStatusBadge(tech)}
                                     </TableCell>
                                     <TableCell>
-                                        {tech.onDuty ? `${tech.lat}, ${tech.lng}` : 'N/A'}
+                                        {tech.onDuty ? `${tech.lat.toFixed(4)}, ${tech.lng.toFixed(4)}` : 'N/A'}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
@@ -125,7 +169,7 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     Edit
                                                 </DropdownMenuItem>
@@ -144,6 +188,12 @@ export default function TechniciansPage() {
             </Card>
         </main>
       </SidebarInset>
+       <TechnicianForm
+            isOpen={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            onSave={handleSave}
+            technician={selectedTechnician}
+        />
     </SidebarProvider>
   );
 }

@@ -1,3 +1,4 @@
+
 export type Device = {
   id: string;
   type: 'OLT' | 'ONU' | 'Switch' | 'Pole';
@@ -76,7 +77,7 @@ export const mockDevices: Device[] = [
   { id: 'ONU-105', type: 'ONU', lat: 34.0515, lng: -118.257, ip: '10.0.1.105', status: 'offline' },
 ];
 
-export const mockTechnicians: Technician[] = [
+export let mockTechnicians: Technician[] = [
   { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, onDuty: true, status: 'on-task' },
   { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, onDuty: true, status: 'available' },
   { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, onDuty: true, status: 'on-break' },
