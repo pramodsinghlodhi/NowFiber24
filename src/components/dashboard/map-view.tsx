@@ -1,15 +1,12 @@
 "use client";
 
+import { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'leaflet-defaulticon-compatibility';
 
-import { MapContainer, TileLayer, Marker, Popup, Tooltip as LeafletTooltip } from 'react-leaflet';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Device, Technician, Alert } from "@/lib/data";
-import { Wifi, WifiOff, Wrench, HardHat, Siren, MapPin, Server } from "lucide-react";
 
 // This is a workaround for a common issue with Leaflet and Next.js
 // It manually sets the paths for the default marker icons.
@@ -83,7 +80,69 @@ const getAlertIcon = () => {
 
 
 export default function MapView({ devices, technicians, alerts }: MapViewProps) {
-  const center: [number, number] = [34.0522, -118.2437]; // Centered on LA
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    if (mapRef.current && !mapInstance.current) {
+      // Initialize map
+      mapInstance.current = L.map(mapRef.current).setView([34.0522, -118.2437], 13);
+
+      // Add tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(mapInstance.current);
+    }
+
+    if (mapInstance.current) {
+        // Clear existing markers
+        mapInstance.current.eachLayer((layer) => {
+            if (layer instanceof L.Marker) {
+                mapInstance.current?.removeLayer(layer);
+            }
+        });
+
+        // Add device markers
+        devices.forEach(device => {
+            L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
+                .addTo(mapInstance.current!)
+                .bindPopup(`<div class="font-bold">${device.id} (${device.type})</div>
+                            <div>Status: <span class="${cn(device.status === 'online' ? 'text-green-500' : 'text-destructive')}">${device.status}</span></div>
+                            <p>IP: ${device.ip || 'N/A'}</p>`);
+        });
+
+        // Add technician markers
+        technicians.forEach(tech => {
+            L.marker([tech.lat, tech.lng], { icon: getTechnicianIcon() })
+                .addTo(mapInstance.current!)
+                .bindPopup(`<p class="font-bold">${tech.name}</p>
+                           <p>Status: ${tech.onDuty ? 'On Duty' : 'Off Duty'}</p>`);
+        });
+        
+        // Add alert markers
+        alerts.forEach(alert => {
+            L.marker([alert.lat, alert.lng], { icon: getAlertIcon(), zIndexOffset: 1000 })
+                .addTo(mapInstance.current!)
+                .bindTooltip(`<p class="font-bold">${alert.device_id}: ${alert.issue}</p>`, {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -10],
+                    className: "border-destructive bg-destructive/20 text-destructive-foreground"
+                });
+        });
+    }
+
+    // Cleanup function to destroy the map instance
+    return () => {
+        if (mapInstance.current) {
+            // Check if the container element still exists before trying to remove the map
+            if (mapRef.current && mapInstance.current.getContainer()) {
+                 mapInstance.current.remove();
+            }
+            mapInstance.current = null;
+        }
+    };
+  }, [devices, technicians, alerts]);
 
   return (
     <Card className="h-[400px] lg:h-[650px]">
@@ -91,39 +150,7 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
         <CardTitle className="font-headline">GIS Network Visualizer</CardTitle>
       </CardHeader>
       <CardContent className="h-[320px] lg:h-[570px] p-0">
-        <MapContainer center={center} zoom={13} className="h-full w-full rounded-b-lg">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
-          {devices.map((device) => (
-            <Marker key={device.id} position={[device.lat, device.lng]} icon={getDeviceIcon(device)}>
-              <Popup>
-                <div className="font-bold">{device.id} ({device.type})</div>
-                <div>Status: <span className={cn(device.status === 'online' ? 'text-green-500' : 'text-destructive')}>{device.status}</span></div>
-                <p>IP: {device.ip || 'N/A'}</p>
-              </Popup>
-            </Marker>
-          ))}
-          
-          {alerts.map((alert) => (
-            <Marker key={`alert-${alert.id}`} position={[alert.lat, alert.lng]} icon={getAlertIcon()} zIndexOffset={1000}>
-               <LeafletTooltip permanent direction="top" offset={[0, -10]} className="border-destructive bg-destructive/20 text-destructive-foreground">
-                <p className="font-bold">{alert.device_id}: {alert.issue}</p>
-              </LeafletTooltip>
-            </Marker>
-          ))}
-
-          {technicians.map((tech) => (
-             <Marker key={tech.id} position={[tech.lat, tech.lng]} icon={getTechnicianIcon()}>
-                <Popup>
-                    <p className="font-bold">{tech.name}</p>
-                    <p>Status: {tech.onDuty ? 'On Duty' : 'Off Duty'}</p>
-                </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+         <div ref={mapRef} className="h-full w-full rounded-b-lg"></div>
       </CardContent>
     </Card>
   );
