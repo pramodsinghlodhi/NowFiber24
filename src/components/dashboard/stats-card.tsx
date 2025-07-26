@@ -1,42 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Wifi, Siren, Users, CheckCircle, Icon as LucideIcon } from "lucide-react";
 import type { LucideProps } from "lucide-react";
-
-const iconMap: { [key: string]: React.ElementType<LucideProps> | undefined } = {
-  wifi: Wifi,
-  siren: Siren,
-  users: Users,
-  "check-circle": CheckCircle,
-};
 
 type StatsCardProps = {
   title: string;
   value: string | number;
-  icon: string;
-  variant?: "default" | "destructive";
+  icon: React.ElementType<LucideProps>;
+  color: string;
+  iconColor: string;
 };
 
-export default function StatsCard({ title, value, icon, variant = "default" }: StatsCardProps) {
-  const Icon = iconMap[icon] || LucideIcon;
-
+export default function StatsCard({ title, value, icon: Icon, color, iconColor }: StatsCardProps) {
+  
   return (
-    <Card className={cn(
-      "transition-all hover:shadow-md",
-      variant === "destructive" && "bg-destructive/10 border-destructive"
-    )}>
+    <Card className={cn("rounded-2xl border-none shadow-sm", color)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={cn(
-          "h-4 w-4 text-muted-foreground",
-          variant === "destructive" && "text-destructive"
-        )} />
+        <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className={cn(
-          "text-2xl font-bold",
-          variant === "destructive" && "text-destructive"
-        )}>{value}</div>
+      <CardContent className="flex items-center justify-between">
+        <div className="text-3xl font-bold">{value}</div>
+        <div className={cn("p-3 rounded-full bg-black/5", )}>
+            <Icon className={cn("h-6 w-6", iconColor)} />
+        </div>
       </CardContent>
     </Card>
   );

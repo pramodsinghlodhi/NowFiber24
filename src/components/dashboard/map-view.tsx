@@ -25,6 +25,7 @@ type MapViewProps = {
   devices: Device[];
   technicians: Technician[];
   alerts: Alert[];
+  mapStyle?: string;
 };
 
 const getDeviceIcon = (device: Device) => {
@@ -81,84 +82,84 @@ const getAlertIcon = () => {
 }
 
 
-export default function MapView({ devices, technicians, alerts }: MapViewProps) {
+export default function MapView({ devices, technicians, alerts, mapStyle = 'map' }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   useEffect(() => {
     if (mapRef.current && !mapInstance.current) {
       mapInstance.current = L.map(mapRef.current, {
-          center: [34.0522, -118.2437],
-          zoom: 13,
+          center: [20, 0], // Centered on the world
+          zoom: 2, // Zoom out to see the world
+          zoomControl: false, // Disable default zoom control
       });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(mapInstance.current);
+      
+      // Add custom zoom control to the top right
+      L.control.zoom({ position: 'topright' }).addTo(mapInstance.current);
+
       layerGroupRef.current = L.layerGroup().addTo(mapInstance.current);
     }
-    
-    // Cleanup function to destroy the map instance
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
-    };
-  }, []); // Empty dependency array ensures this runs only once on mount and unmount
+  }, []);
+
+  useEffect(() => {
+    if (mapInstance.current) {
+        const newUrl = mapStyle === 'satellite'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+        const newAttribution = mapStyle === 'satellite'
+        ? 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+        if(tileLayerRef.current) {
+            tileLayerRef.current.setUrl(newUrl);
+            tileLayerRef.current.options.attribution = newAttribution;
+        } else {
+            tileLayerRef.current = L.tileLayer(newUrl, { attribution: newAttribution }).addTo(mapInstance.current);
+        }
+    }
+  }, [mapStyle]);
 
 
   useEffect(() => {
-    const lg = layerGroupRef.current;
-    if (lg) {
-        // Clear existing markers from the layer group
-        lg.clearLayers();
+    if (mapRef.current && mapInstance.current) {
+        const lg = layerGroupRef.current;
+        if (lg) {
+            lg.clearLayers();
 
-        // Add device markers
-        devices.forEach(device => {
-            L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
-                .addTo(lg)
-                .bindPopup(`<div class="font-sans">
-                            <div class="font-bold text-base mb-1">${device.id} (${device.type})</div>
-                            <div class="text-sm">Status: <span class="${cn(device.status === 'online' ? 'text-green-600' : device.status === 'offline' ? 'text-red-600' : 'text-yellow-600')} font-semibold">${device.status}</span></div>
-                            <p class="text-sm">IP: ${device.ip || 'N/A'}</p>
-                           </div>`);
-        });
+            // Add a representation of the global fiber network
+            // This is a simplified representation. A real implementation would load GeoJSON data.
+            const fiberPaths = [
+                // Transatlantic
+                [[51.50, -0.12], [40.71, -74.00]],
+                [[38.90, -77.03], [38.72, -9.13]],
+                // Transpacific
+                [[34.05, -118.24], [35.68, 139.69]],
+                [[37.77, -122.41], [22.31, 114.16]],
+                // Europe-Asia
+                [[52.52, 13.40], [55.75, 37.61], [39.90, 116.40]],
+                 // Americas
+                [[45.42, -75.69], [19.43, -99.13], [-34.60, -58.38]],
+                // Intra-Asia
+                [[1.35, 103.81], [13.75, 100.49], [25.03, 121.56]],
+                // Africa
+                [[-26.20, 28.04], [9.07, 7.49], [30.04, 31.23]],
+                // Australia
+                [[-33.86, 151.20], [-37.81, 144.96]]
+            ];
 
-        // Add technician markers
-        technicians.forEach(tech => {
-            if (tech.onDuty) {
-                L.marker([tech.lat, tech.lng], { icon: getTechnicianIcon() })
-                    .addTo(lg)
-                    .bindPopup(`<div class="font-sans">
-                                <div class="font-bold text-base mb-1">${tech.name}</div>
-                                <p class="text-sm">Status: <span class="font-semibold text-green-600">On Duty</span></p>
-                               </div>`);
-            }
-        });
-        
-        // Add alert markers
-        alerts.forEach(alert => {
-            L.marker([alert.lat, alert.lng], { icon: getAlertIcon(), zIndexOffset: 1000 })
-                .addTo(lg)
-                .bindTooltip(`<div class="font-sans font-bold">${alert.device_id}: ${alert.issue}</div>`, {
-                    permanent: true,
-                    direction: 'top',
-                    offset: [0, -10],
-                    className: "border-destructive bg-destructive/20 text-destructive-foreground"
-                });
-        });
+            fiberPaths.forEach(path => {
+                L.polyline(path as L.LatLngExpression[], { color: '#4285F4', weight: 1.5, opacity: 0.8 }).addTo(lg);
+            });
+        }
     }
   }, [devices, technicians, alerts]);
 
   return (
-    <Card className="h-[400px] lg:h-[650px]">
-      <CardHeader>
-        <CardTitle className="font-headline">GIS Network Visualizer</CardTitle>
-      </CardHeader>
-      <CardContent className="h-[320px] lg:h-[570px] p-0">
-         <div ref={mapRef} className="h-full w-full rounded-b-lg"></div>
-      </CardContent>
-    </Card>
+    <div className="h-[400px] lg:h-[calc(100vh-380px)] w-full bg-muted rounded-xl shadow-inner">
+         <div ref={mapRef} className="h-full w-full rounded-xl"></div>
+    </div>
   );
 }

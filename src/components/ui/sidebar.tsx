@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { LayoutDashboard, ListTodo } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -133,6 +134,15 @@ const SidebarProvider = React.forwardRef<
       [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
     )
 
+    const menuItems = [
+      {href: '/', icon: LayoutDashboard, label: 'Dashboard'},
+      {href: '/alerts', icon: AlertTriangle, label: 'PODA Portal'},
+      {href: '/inventory', icon: Network, label: 'App Provider Portal'},
+      {href: '/tasks', icon: ListTodo, label: 'DOT Registration'},
+      {href: '/reports', icon: BarChart, label: 'PN-WANI Guideline'},
+    ];
+
+
     return (
       <SidebarContext.Provider value={contextValue}>
         <TooltipProvider delayDuration={0}>
@@ -152,6 +162,7 @@ const SidebarProvider = React.forwardRef<
             {...props}
           >
             {children}
+            {isMobile && <MobileBottomNav menuItems={menuItems} />}
           </div>
         </TooltipProvider>
       </SidebarContext.Provider>
@@ -159,6 +170,31 @@ const SidebarProvider = React.forwardRef<
   }
 )
 SidebarProvider.displayName = "SidebarProvider"
+
+
+const MobileBottomNav = ({ menuItems }: { menuItems: any[] }) => {
+  const pathname = usePathname();
+  return (
+    <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 md:hidden">
+      <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
+        {menuItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group",
+              pathname === item.href ? "text-primary" : "text-gray-500"
+            )}
+          >
+            <item.icon className="w-5 h-5 mb-1" />
+            <span className="text-[10px] leading-tight">{item.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 
 const Sidebar = React.forwardRef<
   HTMLDivElement,
@@ -180,21 +216,6 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-
-    if (collapsible === "none") {
-      return (
-        <div
-          className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
-            className
-          )}
-          ref={ref}
-          {...props}
-        >
-          {children}
-        </div>
-      )
-    }
 
     if (isMobile) {
       return (
@@ -491,4 +512,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-

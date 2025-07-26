@@ -12,14 +12,14 @@ import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats, Technician } from '@/lib/data';
 import StatsCard from '@/components/dashboard/stats-card';
-import AlertsList from '@/components/dashboard/alerts-list';
-import TasksList from '@/components/dashboard/tasks-list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
+import { Users, Wifi, Siren } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   ssr: false,
-  loading: () => <Skeleton className="h-[400px] w-full lg:h-[650px]" />,
+  loading: () => <Skeleton className="h-[400px] w-full lg:h-[calc(100vh-280px)] rounded-xl" />,
 });
 
 
@@ -27,6 +27,7 @@ export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
   const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
+  const [mapStyle, setMapStyle] = useState('map');
 
   useEffect(() => {
     if (!user) {
@@ -70,21 +71,22 @@ export default function Home() {
       <AppSidebar />
       <SidebarInset>
         <Header />
-        <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatsCard title="Online Devices" value={stats.onlineDevices} icon="wifi" />
-            <StatsCard title="Active Alerts" value={stats.activeAlerts} icon="siren" variant="destructive" />
-            <StatsCard title="Technicians On-Duty" value={stats.techniciansOnDuty} icon="users" />
-            <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon="check-circle" />
+        <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+          <h1 className="text-3xl font-bold font-headline">Fiber network manager</h1>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StatsCard title="PDO Aggregator" value={stats.techniciansOnDuty} icon={Users} color="bg-yellow-100" iconColor="text-yellow-600" />
+            <StatsCard title="App Provider" value={stats.onlineDevices} icon={Wifi} color="bg-green-100" iconColor="text-green-600" />
+            <StatsCard title="Wi-Fi Hotspot" value={stats.activeAlerts} icon={Siren} color="bg-purple-100" iconColor="text-purple-600"/>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <div className="col-span-1 lg:col-span-4">
-              <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} />
-            </div>
-            <div className="col-span-1 flex flex-col gap-4 lg:col-span-3">
-                <AlertsList alerts={alerts.slice(0, 5)} />
-                <TasksList tasks={tasks.slice(0, 4)} />
-            </div>
+          <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold font-headline">Map</h2>
+                <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
+                    <Button variant={mapStyle === 'map' ? 'secondary' : 'ghost'} size="sm" onClick={() => setMapStyle('map')}>Map</Button>
+                    <Button variant={mapStyle === 'satellite' ? 'secondary' : 'ghost'} size="sm" onClick={() => setMapStyle('satellite')}>Satellite</Button>
+                </div>
+              </div>
+              <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} mapStyle={mapStyle}/>
           </div>
         </main>
       </SidebarInset>

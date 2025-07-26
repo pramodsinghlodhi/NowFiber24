@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer } from "lucide-react";
+import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "../ui/badge";
@@ -66,34 +66,15 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-lg sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-background/80 px-4 backdrop-blur-lg sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
       <SidebarTrigger className="sm:hidden" />
       <div className="flex-1">
-        <h1 className="font-headline text-xl font-semibold">{getPageTitle()}</h1>
       </div>
       <div className="flex items-center gap-2">
-        {user?.role === 'Technician' && (
-            <div className="flex items-center gap-2">
-                <Button variant={isClockedIn ? "outline" : "default"} size="sm" onClick={handleClockInOut}>
-                    <Timer className="mr-2 h-4 w-4" />
-                    {isClockedIn ? 'Clock Out' : 'Clock In'}
-                </Button>
-                {isClockedIn && (
-                    <Button variant={isOnBreak ? "secondary" : "outline"} size="sm" onClick={handleToggleBreak}>
-                        <Coffee className="mr-2 h-4 w-4" />
-                        {isOnBreak ? 'End Break' : 'Take Break'}
-                    </Button>
-                )}
-            </div>
-        )}
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-9 w-9">
+             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Avatar className="h-10 w-10">
                 {user && (
                     <>
                         <AvatarImage src={`https://i.pravatar.cc/150?u=${user.id}`} alt={user.name} />
