@@ -47,16 +47,14 @@ const pingDevice = ai.defineTool({
   }),
   outputSchema: z.boolean(),
 }, async (input) => {
-  try {
-    // In a real implementation, this would execute a ping command.
-    // For this example, we simulate the ping with a random result.
-    const isReachable = Math.random() < 0.8; // Simulate 80% success rate
-    console.log(`Simulated ping to ${input.ipAddress}: ${isReachable ? 'Success' : 'Failure'}`);
-    return isReachable;
-  } catch (error) {
-    console.error(`Error pinging ${input.ipAddress}:`, error);
-    return false;
-  }
+  // In a real implementation, this would execute a ping command.
+  // For this example, we simulate the ping. Devices with certain IPs are more likely to fail.
+  const lastOctet = parseInt(input.ipAddress.split('.')[3], 10);
+  // Devices with last octet 102, 104, 105 will be offline
+  const isUnreachable = [102, 104, 105].includes(lastOctet);
+  const isReachable = !isUnreachable;
+  console.log(`Simulated ping to ${input.ipAddress}: ${isReachable ? 'Success' : 'Failure'}`);
+  return isReachable;
 });
 
 const createAlert = ai.defineTool({
@@ -162,6 +160,7 @@ const autoFaultDetectionFlow = ai.defineFlow({
       return {
         isReachable: true,
         alertCreated: false,
+        issue: `Device ${input.deviceId} (${input.deviceType}) is reachable.`
       };
     }
   }
