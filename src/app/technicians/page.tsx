@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 
@@ -201,6 +201,10 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
+                                                    <BarChart2 className="mr-2 h-4 w-4" />
+                                                    View Report
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleEdit(tech)}>
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     Edit
