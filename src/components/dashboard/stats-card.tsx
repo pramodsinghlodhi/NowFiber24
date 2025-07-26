@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 import { Wifi, Siren, Users, CheckCircle, Icon as LucideIcon } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 
-const iconMap: { [key: string]: React.ElementType<LucideProps> } = {
+const iconMap: { [key: string]: React.ElementType<LucideProps> | undefined } = {
   wifi: Wifi,
   siren: Siren,
   users: Users,
-  checkCircle: CheckCircle,
+  "check-circle": CheckCircle,
 };
 
 type StatsCardProps = {
