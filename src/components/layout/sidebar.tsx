@@ -12,9 +12,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarSeparator,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion, UserPlus, Wrench} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
@@ -22,6 +21,8 @@ import FaultDetector from '../dashboard/fault-detector';
 import RequestMaterial from '../materials/request-material-form';
 import { mockAssignments } from '@/lib/data';
 import { Badge } from '../ui/badge';
+import { useSidebar } from '@/components/ui/sidebar';
+
 
 const menuItemsTop = [
     {href: '/', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
@@ -42,7 +43,11 @@ const menuItemsBottom = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const {user, logout} = useAuth();
-  const router = useRouter();
+  const { setOpenMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    setOpenMobile(false);
+  }
 
   const isNavItemVisible = (item: { admin: boolean, tech: boolean }) => {
     if (!user) return false;
@@ -62,7 +67,7 @@ export default function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
           <Logo className="w-8 h-8 text-primary" />
           <span className="text-xl font-semibold font-headline">FiberVision</span>
         </Link>
@@ -73,14 +78,18 @@ export default function AppSidebar() {
             (item) =>
               isNavItemVisible(item) && (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
-                    <div className="flex items-center gap-2 w-full">
-                        <item.icon />
-                        <span>{item.label}</span>
-                         {item.notificationKey && getNotificationCount(item.notificationKey) > 0 && (
-                            <Badge className="ml-auto animate-pulse">{getNotificationCount(item.notificationKey)}</Badge>
-                        )}
-                    </div>
+                  <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+                    <Link href={item.href} onClick={handleLinkClick}>
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <item.icon />
+                                <span>{item.label}</span>
+                            </div>
+                            {item.notificationKey && getNotificationCount(item.notificationKey) > 0 && (
+                                <Badge variant="destructive" className="animate-pulse">{getNotificationCount(item.notificationKey)}</Badge>
+                            )}
+                        </div>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
@@ -88,7 +97,7 @@ export default function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />
-      <SidebarFooter className="flex flex-col gap-2 p-4">
+      <SidebarFooter className="flex flex-col gap-2 p-2">
         {user?.role === 'Technician' && (
           <>
             <RequestMaterial />
@@ -104,9 +113,11 @@ export default function AppSidebar() {
             {menuItemsBottom.map((item) => (
                 isNavItemVisible(item) && (
                     <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
-                            <item.icon />
-                            {item.label}
+                        <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+                           <Link href={item.href} onClick={handleLinkClick}>
+                                <item.icon />
+                                <span>{item.label}</span>
+                           </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 )
@@ -114,7 +125,7 @@ export default function AppSidebar() {
              <SidebarMenuItem>
                 <SidebarMenuButton onClick={logout} tooltip="Logout">
                     <LogOut />
-                    Logout
+                    <span>Logout</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>
