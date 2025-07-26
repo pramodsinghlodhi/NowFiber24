@@ -11,9 +11,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell } from "lucide-react";
+import { Bell, User, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { Badge } from "../ui/badge";
 
 export default function Header() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+  
+  const getInitials = (name: string) => {
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[1][0]}`;
+    }
+    return names[0].substring(0, 2).toUpperCase();
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-lg px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <SidebarTrigger className="sm:hidden" />
@@ -29,18 +48,38 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src="https://i.pravatar.cc/150?u=admin" alt="Admin User" />
-                <AvatarFallback>AD</AvatarFallback>
+                {user && (
+                    <>
+                        <AvatarImage src={`https://i.pravatar.cc/150?u=${user.id}`} alt={user.name} />
+                        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                    </>
+                )}
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            {user && (
+                <>
+                <DropdownMenuLabel className="flex flex-col">
+                    <span>{user.name}</span>
+                    <Badge variant="outline" className="w-fit mt-1">{user.role}</Badge>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                </>
+            )}
+            <DropdownMenuItem onClick={() => router.push('/settings')}>
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                Support
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -12,6 +12,9 @@ import AlertsList from '@/components/dashboard/alerts-list';
 import TasksList from '@/components/dashboard/tasks-list';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   ssr: false,
@@ -20,6 +23,23 @@ const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
 
 
 export default function Home() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
+
+  if (!user) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Skeleton className="h-full w-full" />
+        </div>
+    );
+  }
+
   const stats = mockStats;
   const devices = mockDevices;
   const technicians = mockTechnicians;

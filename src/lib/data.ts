@@ -7,6 +7,12 @@ export type Device = {
   status: 'online' | 'offline' | 'maintenance';
 };
 
+export type User = {
+    id: string;
+    name: string;
+    role: 'Admin' | 'Technician';
+};
+
 export type Technician = {
   id: string;
   name: string;
@@ -41,6 +47,13 @@ export type Stats = {
   techniciansOnDuty: number;
   tasksCompletedToday: number;
 }
+
+export const mockUsers: User[] = [
+    { id: 'admin', name: 'Admin User', role: 'Admin' },
+    { id: 'tech-001', name: 'John Doe', role: 'Technician' },
+    { id: 'tech-002', name: 'Jane Smith', role: 'Technician' },
+    { id: 'tech-003', name: 'Mike Ross', role: 'Technician' },
+];
 
 export const mockStats: Stats = {
   onlineDevices: 487,
