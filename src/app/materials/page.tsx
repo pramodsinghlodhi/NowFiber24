@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, CheckCircle, Undo2, Ban, Trash, Edit } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CheckCircle, Undo2, Ban, Trash, Edit, Check, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import AssignMaterialForm from '@/components/materials/assign-material-form';
@@ -24,12 +24,16 @@ import MaterialForm from '@/components/materials/material-form';
 
 const getStatusBadge = (status: MaterialAssignment['status']) => {
     switch(status) {
+        case 'Requested':
+            return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 border-yellow-400">Requested</Badge>;
         case 'Pending':
             return <Badge variant="outline">Pending Issuance</Badge>;
         case 'Issued':
             return <Badge variant="secondary" className="bg-blue-500/20 text-blue-700 border-blue-400">Issued to Technician</Badge>;
         case 'Returned':
             return <Badge variant="secondary" className="bg-green-500/20 text-green-700 border-green-400">Returned to Stock</Badge>;
+        case 'Rejected':
+            return <Badge variant="destructive">Rejected</Badge>;
         default:
             return <Badge>Unknown</Badge>;
     }
@@ -208,22 +212,36 @@ export default function MaterialsPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                         {assignment.status === 'Requested' && (
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Pending')}>
+                                                                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                                                                    Approve Request
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Rejected')} className="text-destructive">
+                                                                    <XCircle className="mr-2 h-4 w-4" />
+                                                                    Reject Request
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                         )}
                                                          {assignment.status === 'Pending' && (
                                                             <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Issued')}>
-                                                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                                                <CheckCircle className="mr-2 h-4 w-4 text-blue-500" />
                                                                 Approve Issuance
                                                             </DropdownMenuItem>
                                                         )}
                                                         {assignment.status === 'Issued' && (
                                                              <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Returned')}>
-                                                                <Undo2 className="mr-2 h-4 w-4 text-blue-500" />
+                                                                <Undo2 className="mr-2 h-4 w-4 text-green-500" />
                                                                 Confirm Return
                                                             </DropdownMenuItem>
                                                         )}
-                                                        <DropdownMenuItem className="text-destructive">
-                                                            <Ban className="mr-2 h-4 w-4" />
-                                                            Cancel Assignment
-                                                        </DropdownMenuItem>
+                                                        {assignment.status !== 'Requested' && (
+                                                            <DropdownMenuItem className="text-destructive">
+                                                                <Ban className="mr-2 h-4 w-4" />
+                                                                Cancel Assignment
+                                                            </DropdownMenuItem>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>

@@ -19,6 +19,9 @@ import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
 import FaultDetector from '../dashboard/fault-detector';
+import RequestMaterial from '../materials/request-material-form';
+import { mockAssignments } from '@/lib/data';
+import { Badge } from '../ui/badge';
 
 const menuItemsTop = [
     {href: '/', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
@@ -26,7 +29,7 @@ const menuItemsTop = [
     {href: '/inventory', icon: Network, label: 'Inventory', admin: true, tech: false},
     {href: '/tasks', icon: ListTodo, label: 'Tasks', admin: true, tech: true},
     {href: '/technicians', icon: HardHat, label: 'Technicians', admin: true, tech: false},
-    {href: '/materials', icon: Wrench, label: 'Materials', admin: true, tech: false},
+    {href: '/materials', icon: Wrench, label: 'Materials', admin: true, tech: true, notificationKey: 'materials'},
     {href: '/referrals', icon: UserPlus, label: 'Referrals', admin: true, tech: true},
     {href: '/reports', icon: BarChart, label: 'Reports', admin: true, tech: false},
 ];
@@ -48,6 +51,14 @@ export default function AppSidebar() {
     return false;
   }
 
+  const getNotificationCount = (key: string) => {
+    if (user?.role !== 'Admin') return 0;
+    if (key === 'materials') {
+      return mockAssignments.filter(a => a.status === 'Requested').length;
+    }
+    return 0;
+  }
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -63,8 +74,13 @@ export default function AppSidebar() {
               isNavItemVisible(item) && (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
-                    <item.icon />
-                    {item.label}
+                    <div className="flex items-center gap-2 w-full">
+                        <item.icon />
+                        <span>{item.label}</span>
+                         {item.notificationKey && getNotificationCount(item.notificationKey) > 0 && (
+                            <Badge className="ml-auto animate-pulse">{getNotificationCount(item.notificationKey)}</Badge>
+                        )}
+                    </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
@@ -75,6 +91,7 @@ export default function AppSidebar() {
       <SidebarFooter className="flex flex-col gap-2 p-4">
         {user?.role === 'Technician' && (
           <>
+            <RequestMaterial />
             <ReferCustomer />
           </>
         )}

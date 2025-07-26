@@ -85,7 +85,7 @@ export type MaterialAssignment = {
     materialId: string;
     technicianId: string;
     quantityAssigned: number;
-    status: 'Pending' | 'Issued' | 'Returned';
+    status: 'Requested' | 'Pending' | 'Issued' | 'Returned' | 'Rejected';
     timestamp: string;
 }
 
@@ -188,7 +188,7 @@ export let mockAssignments: MaterialAssignment[] = [
 export const mockTechnicianPerformance: TechnicianPerformance[] = mockTechnicians.map(tech => {
     const assignedTasks = mockTasks.filter(t => t.tech_id === tech.id);
     const completedTasks = assignedTasks.filter(t => t.status === 'Completed');
-    const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
+    const completionRate = assignedTasks.length > 0 ? (completedTasks.length / completedTasks.length) * 100 : 0;
     return {
         techId: tech.id,
         name: tech.name,
