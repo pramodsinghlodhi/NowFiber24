@@ -83,13 +83,15 @@ const getAlertIcon = () => {
 export default function MapView({ devices, technicians, alerts }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
+  const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
-    if (mapRef.current && !mapRef.current.hasChildNodes()) {
+    if (mapRef.current && !mapInstance.current) {
       mapInstance.current = L.map(mapRef.current).setView([34.0522, -118.2437], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(mapInstance.current);
+      layerGroupRef.current = L.layerGroup().addTo(mapInstance.current);
     }
     
     // Cleanup function to destroy the map instance
@@ -103,31 +105,14 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
 
 
   useEffect(() => {
-    if (mapInstance.current) {
-        // Clear existing markers
-        mapInstance.current.eachLayer((layer) => {
-            if (layer instanceof L.Marker) {
-                mapInstance.current?.removeLayer(layer);
-            }
-        });
-
-        // We need to keep the tile layer, so we add it back if it's gone
-        let hasTileLayer = false;
-        mapInstance.current.eachLayer((layer) => {
-            if (layer instanceof L.TileLayer) {
-                hasTileLayer = true;
-            }
-        });
-        if (!hasTileLayer) {
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(mapInstance.current);
-        }
+    if (layerGroupRef.current) {
+        // Clear existing markers from the layer group
+        layerGroupRef.current.clearLayers();
 
         // Add device markers
         devices.forEach(device => {
             L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
-                .addTo(mapInstance.current!)
+                .addTo(layerGroupRef.current!)
                 .bindPopup(`<div class="font-bold">${device.id} (${device.type})</div>
                             <div>Status: <span class="${cn(device.status === 'online' ? 'text-green-500' : 'text-destructive')}">${device.status}</span></div>
                             <p>IP: ${device.ip || 'N/A'}</p>`);
@@ -137,7 +122,7 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
         technicians.forEach(tech => {
             if (tech.onDuty) {
                 L.marker([tech.lat, tech.lng], { icon: getTechnicianIcon() })
-                    .addTo(mapInstance.current!)
+                    .addTo(layerGroupRef.current!)
                     .bindPopup(`<p class="font-bold">${tech.name}</p>
                             <p>Status: ${tech.onDuty ? 'On Duty' : 'Off Duty'}</p>`);
             }
@@ -146,7 +131,7 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
         // Add alert markers
         alerts.forEach(alert => {
             L.marker([alert.lat, alert.lng], { icon: getAlertIcon(), zIndexOffset: 1000 })
-                .addTo(mapInstance.current!)
+                .addTo(layerGroupRef.current!)
                 .bindTooltip(`<p class="font-bold">${alert.device_id}: ${alert.issue}</p>`, {
                     permanent: true,
                     direction: 'top',
