@@ -16,10 +16,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, CheckCircle, Undo2, Ban } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CheckCircle, Undo2, Ban, Trash, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import AssignMaterialForm from '@/components/materials/assign-material-form';
+import MaterialForm from '@/components/materials/material-form';
 
 const getStatusBadge = (status: MaterialAssignment['status']) => {
     switch(status) {
@@ -39,7 +40,10 @@ export default function MaterialsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [assignments, setAssignments] = useState<MaterialAssignment[]>(mockAssignments);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [materials, setMaterials] = useState<Material[]>(mockMaterials);
+  const [isAssignFormOpen, setIsAssignFormOpen] = useState(false);
+  const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -60,7 +64,7 @@ export default function MaterialsPage() {
     setAssignments(prev => [newAssignment, ...prev]);
     mockAssignments.unshift(newAssignment);
     toast({ title: "Assignment Created", description: "The material assignment is pending issuance." });
-    setIsFormOpen(false);
+    setIsAssignFormOpen(false);
   };
 
   const handleStatusChange = (assignmentId: number, status: MaterialAssignment['status']) => {
@@ -68,6 +72,39 @@ export default function MaterialsPage() {
      const assignmentIndex = mockAssignments.findIndex(a => a.id === assignmentId);
      if(assignmentIndex > -1) mockAssignments[assignmentIndex].status = status;
      toast({ title: "Status Updated", description: `Assignment status has been changed to ${status}.`})
+  }
+
+  const handleSaveMaterial = (material: Material) => {
+    const isEditing = !!selectedMaterial;
+    if (isEditing) {
+        setMaterials(prev => prev.map(m => m.id === material.id ? material : m));
+        const materialIndex = mockMaterials.findIndex(m => m.id === material.id);
+        if(materialIndex > -1) mockMaterials[materialIndex] = material;
+        toast({ title: "Material Updated", description: `${material.name}'s details have been updated.` });
+    } else {
+        setMaterials(prev => [...prev, material]);
+        mockMaterials.push(material);
+        toast({ title: "Material Added", description: `Material ${material.name} has been added to stock.` });
+    }
+    setIsMaterialFormOpen(false);
+    setSelectedMaterial(null);
+  };
+
+  const handleDeleteMaterial = (materialId: string) => {
+    setMaterials(prev => prev.filter(m => m.id !== materialId));
+    const materialIndex = mockMaterials.findIndex(m => m.id === materialId);
+    if(materialIndex > -1) mockMaterials.splice(materialIndex, 1);
+    toast({ title: "Material Deleted", description: "The material has been removed from stock.", variant: "destructive" });
+  };
+
+  const handleAddNewMaterial = () => {
+    setSelectedMaterial(null);
+    setIsMaterialFormOpen(true);
+  }
+
+  const handleEditMaterial = (material: Material) => {
+    setSelectedMaterial(material);
+    setIsMaterialFormOpen(true);
   }
 
 
@@ -88,20 +125,41 @@ export default function MaterialsPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-1 space-y-6">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Available Materials</CardTitle>
-                        <CardDescription>Materials and tools currently in stock.</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Available Materials</CardTitle>
+                            <CardDescription>Materials and tools currently in stock.</CardDescription>
+                        </div>
+                         <Button size="sm" variant="outline" onClick={handleAddNewMaterial}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {mockMaterials.map(material => (
+                            {materials.map(material => (
                                 <div key={material.id} className="flex items-center gap-4 border-b pb-4 last:border-0 last:pb-0">
                                     <Image src={material.imageUrl} alt={material.name} width={64} height={64} className="rounded-md" data-ai-hint="fiber optic cable"/>
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-semibold">{material.name}</p>
                                         <p className="text-sm text-muted-foreground">{material.description}</p>
                                         <p className="text-sm">In Stock: <span className="font-bold">{material.quantityInStock}</span></p>
                                     </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0 self-start">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleEditMaterial(material)}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteMaterial(material.id)}>
+                                                <Trash className="mr-2 h-4 w-4" /> Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             ))}
                         </div>
@@ -115,7 +173,7 @@ export default function MaterialsPage() {
                             <CardTitle>Material Assignments</CardTitle>
                             <CardDescription>Track materials issued to and returned by technicians.</CardDescription>
                         </div>
-                        <Button onClick={() => setIsFormOpen(true)}>
+                        <Button onClick={() => setIsAssignFormOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Assign Material
                         </Button>
@@ -181,9 +239,15 @@ export default function MaterialsPage() {
         </main>
       </SidebarInset>
       <AssignMaterialForm 
-        isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        isOpen={isAssignFormOpen}
+        onOpenChange={setIsAssignFormOpen}
         onSave={handleSaveAssignment}
+      />
+      <MaterialForm
+        isOpen={isMaterialFormOpen}
+        onOpenChange={setIsMaterialFormOpen}
+        onSave={handleSaveMaterial}
+        material={selectedMaterial}
       />
     </SidebarProvider>
   );
