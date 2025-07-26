@@ -135,10 +135,12 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
 
         // Add technician markers
         technicians.forEach(tech => {
-            L.marker([tech.lat, tech.lng], { icon: getTechnicianIcon() })
-                .addTo(mapInstance.current!)
-                .bindPopup(`<p class="font-bold">${tech.name}</p>
-                           <p>Status: ${tech.onDuty ? 'On Duty' : 'Off Duty'}</p>`);
+            if (tech.onDuty) {
+                L.marker([tech.lat, tech.lng], { icon: getTechnicianIcon() })
+                    .addTo(mapInstance.current!)
+                    .bindPopup(`<p class="font-bold">${tech.name}</p>
+                            <p>Status: ${tech.onDuty ? 'On Duty' : 'Off Duty'}</p>`);
+            }
         });
         
         // Add alert markers
@@ -166,5 +168,3 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
     </Card>
   );
 }
-
-    
