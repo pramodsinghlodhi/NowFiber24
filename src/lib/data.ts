@@ -31,6 +31,7 @@ export type Technician = {
   lng: number;
   onDuty: boolean;
   status: 'available' | 'on-break' | 'on-task';
+  path?: [number, number][];
 };
 
 export type Task = {
@@ -118,9 +119,9 @@ export const mockDevices: Device[] = [
 ];
 
 export let mockTechnicians: Technician[] = [
-  { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, onDuty: true, status: 'on-task' },
-  { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, onDuty: true, status: 'available' },
-  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, onDuty: true, status: 'on-break' },
+  { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, onDuty: true, status: 'on-task', path: [[34.062, -118.248]] },
+  { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, onDuty: true, status: 'available', path: [[34.045, -118.24]] },
+  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, onDuty: true, status: 'on-break', path: [[34.055, -118.258]] },
   { id: 'tech-004', name: 'Emily White', lat: 34.055, lng: -118.258, onDuty: false, status: 'available' },
 ];
 

@@ -44,7 +44,8 @@ export default function Home() {
             // Simulate slight movement
             const newLat = tech.lat + (Math.random() - 0.5) * 0.001;
             const newLng = tech.lng + (Math.random() - 0.5) * 0.001;
-            return { ...tech, lat: newLat, lng: newLng };
+            const newPath = [...(tech.path || []), [newLat, newLng]] as [number, number][];
+            return { ...tech, lat: newLat, lng: newLng, path: newPath };
           }
           return tech;
         })

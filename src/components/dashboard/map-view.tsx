@@ -86,7 +86,7 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const technicianMarkers = useRef<{ [key: string]: L.Marker }>({});
+  const technicianMarkers = useRef<{ [key: string]: { marker: L.Marker; path: L.Polyline | null } }>({});
 
 
   useEffect(() => {
@@ -127,7 +127,20 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
   useEffect(() => {
     if (mapInstance.current && layerGroupRef.current) {
         const lg = layerGroupRef.current;
-        lg.clearLayers(); // Clear previous markers
+        
+        // Temporarily store layers to avoid re-adding everything
+        const layersToRemove: L.Layer[] = [];
+        lg.eachLayer(layer => {
+            // Keep technician markers and paths for now, clear the rest
+            const isTechLayer = Object.values(technicianMarkers.current).some(
+                ({ marker, path }) => marker === layer || path === layer
+            );
+            if (!isTechLayer) {
+                layersToRemove.push(layer);
+            }
+        });
+        layersToRemove.forEach(layer => lg.removeLayer(layer));
+
 
         // Add device markers
         devices.forEach(device => {
@@ -155,11 +168,15 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
                 });
         });
 
-         // Initialize or update technician markers
+         // Initialize or update technician markers and paths
         technicians.filter(t => t.onDuty).forEach(tech => {
             const pos: [number, number] = [tech.lat, tech.lng];
             if (technicianMarkers.current[tech.id]) {
-                technicianMarkers.current[tech.id].setLatLng(pos);
+                const { marker, path } = technicianMarkers.current[tech.id];
+                marker.setLatLng(pos);
+                if (path && tech.path) {
+                    path.setLatLngs(tech.path);
+                }
             } else {
                 const marker = L.marker(pos, { icon: getTechnicianIcon() })
                     .addTo(lg)
@@ -169,14 +186,19 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
                             <p>Status: ${tech.status}</p>
                         </div>
                     `, { className: 'custom-popup' });
-                technicianMarkers.current[tech.id] = marker;
+
+                const path = tech.path ? L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7 }).addTo(lg) : null;
+                
+                technicianMarkers.current[tech.id] = { marker, path };
             }
         });
 
-        // Remove markers for off-duty technicians
+        // Remove markers and paths for off-duty technicians
         Object.keys(technicianMarkers.current).forEach(techId => {
             if (!technicians.some(t => t.id === techId && t.onDuty)) {
-                technicianMarkers.current[techId].remove();
+                const { marker, path } = technicianMarkers.current[techId];
+                marker.remove();
+                if (path) path.remove();
                 delete technicianMarkers.current[techId];
             }
         });
