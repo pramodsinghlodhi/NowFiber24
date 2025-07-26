@@ -14,7 +14,8 @@ import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useToast} from '@/hooks/use-toast';
 import {runAutoFaultDetection} from '@/app/actions';
-import {Loader2} from 'lucide-react';
+import {Loader2, Map, Bell, HardHat} from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function SettingsPage() {
   const {user} = useAuth();
@@ -91,7 +92,7 @@ export default function SettingsPage() {
       <SidebarInset>
         <Header />
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur-sm -mx-4 px-4 py-2 -mt-2 border-b mb-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
               <p className="text-muted-foreground">Manage application settings and integrations. (Admin only)</p>
@@ -102,72 +103,161 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Automated Monitoring</CardTitle>
-                <CardDescription>Configure the automated network health monitoring service.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="auto-monitoring" className="text-base">
-                      Enable Automated Fault Detection
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically run scans to detect and alert on offline devices.
-                    </p>
-                  </div>
-                  <Switch id="auto-monitoring" defaultChecked />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="monitoring-frequency">Monitoring Frequency</Label>
-                    <Select defaultValue="15">
-                      <SelectTrigger id="monitoring-frequency">
-                        <SelectValue placeholder="Select interval" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">Every 5 minutes</SelectItem>
-                        <SelectItem value="15">Every 15 minutes</SelectItem>
-                        <SelectItem value="30">Every 30 minutes</SelectItem>
-                        <SelectItem value="60">Every 60 minutes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Test Monitoring</Label>
-                    <Button variant="outline" className="w-full mt-2" onClick={handleTestMonitoring} disabled={isTesting}>
-                      {isTesting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Running Scan...
-                        </>
-                      ) : (
-                        'Run Full Scan Now'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-6">
+                <Card>
+                <CardHeader>
+                    <CardTitle>Automated Monitoring</CardTitle>
+                    <CardDescription>Configure the automated network health monitoring service.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="auto-monitoring" className="text-base">
+                        Enable Automated Fault Detection
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                        Automatically run scans to detect and alert on offline devices.
+                        </p>
+                    </div>
+                    <Switch id="auto-monitoring" defaultChecked />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="monitoring-frequency">Monitoring Frequency</Label>
+                        <Select defaultValue="15">
+                        <SelectTrigger id="monitoring-frequency">
+                            <SelectValue placeholder="Select interval" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="5">Every 5 minutes</SelectItem>
+                            <SelectItem value="15">Every 15 minutes</SelectItem>
+                            <SelectItem value="30">Every 30 minutes</SelectItem>
+                            <SelectItem value="60">Every 60 minutes</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label>Test Monitoring</Label>
+                        <Button variant="outline" className="w-full mt-2" onClick={handleTestMonitoring} disabled={isTesting}>
+                        {isTesting ? (
+                            <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Running Scan...
+                            </>
+                        ) : (
+                            'Run Full Scan Now'
+                        )}
+                        </Button>
+                    </div>
+                    </div>
+                </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>API Configuration</CardTitle>
-                <CardDescription>Manage API keys and endpoints for external services.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sms-api-key">SMS Service API Key</Label>
-                  <Input id="sms-api-key" placeholder="Enter your SMS provider API key" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="map-api-key">Advanced Mapping API Key</Label>
-                  <Input id="map-api-key" placeholder="Enter your mapping provider API key (optional)" />
-                </div>
-              </CardContent>
-            </Card>
+                <Card>
+                <CardHeader>
+                    <CardTitle className='flex items-center gap-2'><Bell/> Notification Preferences</CardTitle>
+                    <CardDescription>Manage how alerts are sent to technicians and administrators.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="sms-notifications" className="text-base">Enable SMS Notifications</Label>
+                            <p className="text-sm text-muted-foreground">Send alerts via SMS to assigned technicians.</p>
+                        </div>
+                        <Switch id="sms-notifications" defaultChecked />
+                    </div>
+                     <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="email-notifications" className="text-base">Enable Email Notifications</Label>
+                            <p className="text-sm text-muted-foreground">Send detailed alert emails to admins.</p>
+                        </div>
+                        <Switch id="email-notifications" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="alert-template">SMS Alert Template</Label>
+                        <Textarea id="alert-template" placeholder="e.g., [ALERT] Device {deviceId} offline. Please investigate." defaultValue="ALERT: Device {deviceId} at {location} is offline. Issue: {issue}. Assigned to you."/>
+                        <p className="text-xs text-muted-foreground">Use variables: {`{deviceId}`}, {`{deviceType}`}, {`{issue}`}, {`{location}`}.</p>
+                    </div>
+                </CardContent>
+                </Card>
+            </div>
+            
+            <div className='space-y-6'>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className='flex items-center gap-2'><HardHat/> Technician & Task Management</CardTitle>
+                        <CardDescription>Configure rules and requirements for field operations.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="geofence-radius">Geo-fence Radius (meters)</Label>
+                            <Input id="geofence-radius" type="number" defaultValue="100" placeholder="e.g., 100" />
+                            <p className="text-xs text-muted-foreground">Distance from job site a tech must be within to check-in.</p>
+                        </div>
+                        <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="proof-of-work" className="text-base">Require Photo for Task Completion</Label>
+                                <p className="text-sm text-muted-foreground">Technicians must upload a photo to mark a task as complete.</p>
+                            </div>
+                            <Switch id="proof-of-work" defaultChecked/>
+                        </div>
+                         <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="gps-tracking" className="text-base">Enable Real-time GPS Tracking</Label>
+                                <p className="text-sm text-muted-foreground">Track on-duty technician locations every 30 seconds.</p>
+                            </div>
+                            <Switch id="gps-tracking" defaultChecked/>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className='flex items-center gap-2'><Map/> Map Display Settings</CardTitle>
+                        <CardDescription>Customize the appearance of the GIS Network Visualizer.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                       <div className="space-y-2">
+                            <Label htmlFor="map-style">Default Map Style</Label>
+                            <Select defaultValue="streets">
+                            <SelectTrigger id="map-style">
+                                <SelectValue placeholder="Select map style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="streets">Streets</SelectItem>
+                                <SelectItem value="satellite">Satellite</SelectItem>
+                                <SelectItem value="terrain">Terrain</SelectItem>
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="show-fiber-paths" className="text-base">Show Fiber Paths</Label>
+                                <p className="text-sm text-muted-foreground">Display fiber optic cable routes on the map.</p>
+                            </div>
+                            <Switch id="show-fiber-paths" defaultChecked />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                <CardHeader>
+                    <CardTitle>API Configuration</CardTitle>
+                    <CardDescription>Manage API keys and endpoints for external services.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="sms-api-key">SMS Service API Key</Label>
+                    <Input id="sms-api-key" type="password" placeholder="Enter your SMS provider API key" />
+                    </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="map-api-key">Advanced Mapping API Key</Label>
+                    <Input id="map-api-key" type="password" placeholder="Enter your mapping provider API key (optional)" />
+                    </div>
+                </CardContent>
+                </Card>
+            </div>
           </div>
         </main>
       </SidebarInset>
