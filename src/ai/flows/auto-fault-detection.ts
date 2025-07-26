@@ -126,42 +126,33 @@ function toRadians(degrees: number): number {
   return degrees * Math.PI / 180;
 }
 
-const autoFaultDetectionFlow = ai.defineFlow({
+const autoFaultDetectionFlowPrompt = ai.definePrompt({
+    name: 'autoFaultDetectionFlowPrompt',
+    inputSchema: AutoFaultDetectionInputSchema,
+    outputSchema: AutoFaultDetectionOutputSchema,
+    tools: [pingDevice, createAlert, findClosestTechnician],
+    prompt: `You are a network operations AI. Your task is to detect and report faults in the network.
+
+    1. Ping the device with IP address {{{deviceIp}}} to check its reachability.
+    2. If the device is unreachable:
+        a. Find the closest available technician from the provided list of technicians to the device's location (latitude: {{{latitude}}}, longitude: {{{longitude}}}).
+        b. Create an alert for the unreachable device with ID {{{deviceId}}} and type {{{deviceType}}}.
+        c. Assign the closest technician to the alert.
+        d. Formulate an issue description indicating the device is unreachable and which technician (if any) was assigned.
+    3. If the device is reachable, formulate a message confirming its status.
+    
+    Return the result based on the actions taken.
+    `,
+});
+
+const autoFaultDetectionFlow = ai.defineFlow(
+  {
     name: 'autoFaultDetectionFlow',
     inputSchema: AutoFaultDetectionInputSchema,
     outputSchema: AutoFaultDetectionOutputSchema,
   },
-  async input => {
-    const isReachable = await pingDevice({ ipAddress: input.deviceIp });
-
-    if (!isReachable) {
-      const closestTechId = await findClosestTechnician({
-        latitude: input.latitude,
-        longitude: input.longitude,
-        technicians: input.assignedTechs,
-      });
-
-      const alertCreated = await createAlert({
-        deviceId: input.deviceId,
-        deviceType: input.deviceType,
-        latitude: input.latitude,
-        longitude: input.longitude,
-        issue: `Device ${input.deviceId} (${input.deviceType}) is unreachable.`,
-        assignedTechId: closestTechId,
-      });
-
-      return {
-        isReachable: false,
-        alertCreated: alertCreated,
-        assignedTechId: closestTechId,
-        issue: `Device ${input.deviceId} (${input.deviceType}) is unreachable. Alert created and assigned to tech ${closestTechId || 'None'}.`,
-      };
-    } else {
-      return {
-        isReachable: true,
-        alertCreated: false,
-        issue: `Device ${input.deviceId} (${input.deviceType}) is reachable.`
-      };
-    }
+  async (input) => {
+    const result = await autoFaultDetectionFlowPrompt(input);
+    return result.output!;
   }
 );

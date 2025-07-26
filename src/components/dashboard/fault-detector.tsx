@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import {useState} from 'react';
+import {Button} from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,17 +9,17 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Bot, Zap, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { runAutoFaultDetection } from "@/app/actions";
-import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+} from '@/components/ui/dialog';
+import {Bot, Zap, Loader2} from 'lucide-react';
+import {useToast} from '@/hooks/use-toast';
+import {runAutoFaultDetection} from '@/app/actions';
+import {Alert, AlertTitle, AlertDescription} from '../ui/alert';
 
 export default function FaultDetector() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const { toast } = useToast();
+  const {toast} = useToast();
 
   const handleDetection = async () => {
     setIsLoading(true);
@@ -29,21 +29,21 @@ export default function FaultDetector() {
       setResult(detectionResult);
       if (detectionResult.alertCreated) {
         toast({
-            title: "Fault Detected!",
-            description: detectionResult.issue,
-            variant: "destructive",
+          title: 'Fault Detected!',
+          description: detectionResult.issue,
+          variant: 'destructive',
         });
       } else {
-         toast({
-            title: "Network Scan Complete",
-            description: "All devices are reachable.",
+        toast({
+          title: 'Network Scan Complete',
+          description: 'All devices are reachable.',
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to run fault detection.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to run fault detection.',
+        variant: 'destructive',
       });
       console.error(error);
     } finally {
@@ -64,7 +64,7 @@ export default function FaultDetector() {
               <Zap className="text-primary" /> Automated Fault Detection
             </DialogTitle>
             <DialogDescription>
-              Trigger the AI to scan the network for unreachable devices. This will ping all critical devices and create alerts for any identified faults.
+              Trigger the AI to scan the network for unreachable devices. This will ping a device that is known to be offline and create an alert for any identified faults.
             </DialogDescription>
           </DialogHeader>
 
@@ -76,16 +76,16 @@ export default function FaultDetector() {
           )}
 
           {result && (
-            <Alert variant={result.alertCreated ? "destructive" : "default"} className="mt-4">
-              <AlertTitle>{result.alertCreated ? "Fault Found!" : "Scan Complete"}</AlertTitle>
-              <AlertDescription>
-                {result.issue || "All monitored devices are online and reachable."}
-              </AlertDescription>
+            <Alert variant={result.alertCreated ? 'destructive' : 'default'} className="mt-4">
+              <AlertTitle>{result.alertCreated ? 'Fault Found!' : 'Scan Complete'}</AlertTitle>
+              <AlertDescription>{result.issue || 'All monitored devices are online and reachable.'}</AlertDescription>
             </Alert>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleDetection} disabled={isLoading}>
               {isLoading ? (
                 <>

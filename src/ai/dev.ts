@@ -1,5 +1,7 @@
-import { config } from 'dotenv';
+'use server';
+
+import {config} from 'dotenv';
 config();
 
-import '@/ai/flows/analyze-materials-used.ts';
-import '@/ai/flows/auto-fault-detection.ts';
+import './flows/auto-fault-detection';
+import './flows/analyze-materials-used';

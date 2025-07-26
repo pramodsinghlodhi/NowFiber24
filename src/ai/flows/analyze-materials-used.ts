@@ -55,9 +55,7 @@ Photo: {{media url=photoDataUri}}
 Based on the image, identify the materials used, their quantities, and list any missing items compared to the materials issued. Provide any relevant notes or observations.
 
 Ensure that the output is well-formatted and easy to understand.
-
-Output the data in JSON format according to the following schema:
-${JSON.stringify(AnalyzeMaterialsUsedOutputSchema.shape, null, 2)}`,
+`,
 });
 
 const analyzeMaterialsUsedFlow = ai.defineFlow(
