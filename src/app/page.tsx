@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats } from '@/lib/data';
+import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats, Technician } from '@/lib/data';
 import StatsCard from '@/components/dashboard/stats-card';
 import AlertsList from '@/components/dashboard/alerts-list';
 import TasksList from '@/components/dashboard/tasks-list';
@@ -26,12 +26,31 @@ const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
 export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
+  const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
     }
   }, [user, router]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveTechnicians(prevTechnicians =>
+        prevTechnicians.map(tech => {
+          if (tech.onDuty) {
+            // Simulate slight movement
+            const newLat = tech.lat + (Math.random() - 0.5) * 0.001;
+            const newLng = tech.lng + (Math.random() - 0.5) * 0.001;
+            return { ...tech, lat: newLat, lng: newLng };
+          }
+          return tech;
+        })
+      );
+    }, 5000); // Update every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (!user) {
     return (
@@ -43,7 +62,6 @@ export default function Home() {
 
   const stats = mockStats;
   const devices = mockDevices;
-  const technicians = mockTechnicians;
   const alerts = mockAlerts;
   const tasks = mockTasks.filter(t => t.tech_id === user.id || user.role === 'Admin');
 
@@ -61,7 +79,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
             <div className="col-span-1 lg:col-span-4">
-              <MapView devices={devices} technicians={technicians} alerts={alerts} />
+              <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} />
             </div>
             <div className="col-span-1 flex flex-col gap-4 lg:col-span-3">
                 <AlertsList alerts={alerts.slice(0, 5)} />
