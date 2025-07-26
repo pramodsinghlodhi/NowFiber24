@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -11,7 +12,7 @@ import TasksList from '@/components/dashboard/tasks-list';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TasksPage() {
@@ -32,6 +33,8 @@ export default function TasksPage() {
         );
     }
     
+    const userTasks = user.role === 'Admin' ? mockTasks : mockTasks.filter(task => task.tech_id === user.id);
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -40,10 +43,13 @@ export default function TasksPage() {
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>All Tasks</CardTitle>
+                    <CardTitle>My Tasks</CardTitle>
+                    <CardDescription>
+                        {user.role === 'Admin' ? 'Viewing all tasks across the network.' : 'Here are your assigned tasks.'}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <TasksList tasks={mockTasks} />
+                    <TasksList tasks={userTasks} />
                 </CardContent>
             </Card>
         </main>

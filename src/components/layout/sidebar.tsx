@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -19,24 +20,23 @@ import {
   AlertTriangle,
   BarChart,
   Settings,
-  LogOut,
-  Bot,
 } from "lucide-react";
 import Logo from "@/components/icons/logo";
 import FaultDetector from "@/components/dashboard/fault-detector";
 import { useAuth } from '@/contexts/auth-context';
+import { Button } from '../ui/button';
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const menuItems = [
-    { href: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/tasks", icon: ListTodo, label: "Tasks" },
-    { href: "/technicians", icon: HardHat, label: "Technicians", roles: ['Admin'] },
-    { href: "/inventory", icon: Network, label: "Inventory", roles: ['Admin'] },
-    { href: "/alerts", icon: AlertTriangle, label: "Alerts" },
-    { href: "/reports", icon: BarChart, label: "Reports", roles: ['Admin'] },
+    { href: "/", icon: LayoutDashboard, label: "Dashboard", tooltip: "Dashboard" },
+    { href: "/tasks", icon: ListTodo, label: "Tasks", tooltip: "Tasks" },
+    { href: "/technicians", icon: HardHat, label: "Technicians", tooltip: "Technicians", roles: ['Admin'] },
+    { href: "/inventory", icon: Network, label: "Inventory", tooltip: "Inventory", roles: ['Admin'] },
+    { href: "/alerts", icon: AlertTriangle, label: "Alerts", tooltip: "Alerts" },
+    { href: "/reports", icon: BarChart, label: "Reports", tooltip: "Reports", roles: ['Admin'] },
   ];
 
   const hasAccess = (item: any) => {
@@ -52,11 +52,11 @@ export default function AppSidebar() {
           <h1 className="text-xl font-bold font-headline text-primary">FiberVision</h1>
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
+      <SidebarContent>
         <SidebarMenu>
           {menuItems.map((item) => hasAccess(item) && (
             <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton href={item.href} isActive={pathname === item.href}>
+              <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.tooltip}>
                 <item.icon />
                 {item.label}
               </SidebarMenuButton>
@@ -65,20 +65,19 @@ export default function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="flex flex-col gap-2 p-2">
         <FaultDetector />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton href="/settings" isActive={pathname === '/settings'}>
+            <SidebarMenuButton href="/settings" isActive={pathname === '/settings'} tooltip="Settings">
               <Settings />
               Settings
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/login">
-              <LogOut />
-              Logout
-            </SidebarMenuButton>
+           <SidebarMenuItem>
+            <Button variant="outline" className="w-full justify-start" onClick={logout}>
+              Log Out
+            </Button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

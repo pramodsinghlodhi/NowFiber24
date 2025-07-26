@@ -1,5 +1,9 @@
+
 "use client";
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   SidebarProvider,
   SidebarInset,
@@ -10,15 +14,12 @@ import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats } from '
 import StatsCard from '@/components/dashboard/stats-card';
 import AlertsList from '@/components/dashboard/alerts-list';
 import TasksList from '@/components/dashboard/tasks-list';
-import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   ssr: false,
-  loading: () => <Skeleton className="h-[400px] lg:h-[650px] w-full" />,
+  loading: () => <Skeleton className="h-[400px] w-full lg:h-[650px]" />,
 });
 
 
@@ -44,29 +45,27 @@ export default function Home() {
   const devices = mockDevices;
   const technicians = mockTechnicians;
   const alerts = mockAlerts;
-  const tasks = mockTasks;
+  const tasks = mockTasks.filter(t => t.tech_id === user.id || user.role === 'Admin');
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <Header />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <main className="flex-1 space-y-4 p-4 pt-6 md:p-8">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatsCard title="Online Devices" value={stats.onlineDevices} icon="wifi" />
             <StatsCard title="Active Alerts" value={stats.activeAlerts} icon="siren" variant="destructive" />
             <StatsCard title="Technicians On-Duty" value={stats.techniciansOnDuty} icon="users" />
             <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon="check-circle" />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
             <div className="col-span-1 lg:col-span-4">
               <MapView devices={devices} technicians={technicians} alerts={alerts} />
             </div>
-            <div className="col-span-1 lg:col-span-3">
-              <div className="flex flex-col gap-4">
-                <AlertsList alerts={alerts} />
-                <TasksList tasks={tasks} />
-              </div>
+            <div className="col-span-1 flex flex-col gap-4 lg:col-span-3">
+                <AlertsList alerts={alerts.slice(0, 5)} />
+                <TasksList tasks={tasks.slice(0, 4)} />
             </div>
           </div>
         </main>
