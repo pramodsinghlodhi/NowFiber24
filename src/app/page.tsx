@@ -1,15 +1,23 @@
+"use client";
+
 import {
   SidebarProvider,
-  Sidebar,
   SidebarInset,
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats } from '@/lib/data';
 import StatsCard from '@/components/dashboard/stats-card';
-import MapView from '@/components/dashboard/map-view';
 import AlertsList from '@/components/dashboard/alerts-list';
 import TasksList from '@/components/dashboard/tasks-list';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[400px] lg:h-[650px] w-full" />,
+});
+
 
 export default function Home() {
   const stats = mockStats;
