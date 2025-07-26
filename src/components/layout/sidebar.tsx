@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,31 +14,39 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion, UserPlus} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion, UserPlus, Wrench} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
 import FaultDetector from '../dashboard/fault-detector';
 
 const menuItemsTop = [
-    {href: '/', icon: LayoutDashboard, label: 'Dashboard'},
-    {href: '/alerts', icon: AlertTriangle, label: 'Alerts'},
-    {href: '/inventory', icon: Network, label: 'Inventory'},
-    {href: '/tasks', icon: ListTodo, label: 'Tasks'},
-    {href: '/technicians', icon: HardHat, label: 'Technicians'},
-    {href: '/referrals', icon: UserPlus, label: 'Referrals'},
-    {href: '/reports', icon: BarChart, label: 'Reports'},
+    {href: '/', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
+    {href: '/alerts', icon: AlertTriangle, label: 'Alerts', admin: true, tech: true},
+    {href: '/inventory', icon: Network, label: 'Inventory', admin: true, tech: false},
+    {href: '/tasks', icon: ListTodo, label: 'Tasks', admin: true, tech: true},
+    {href: '/technicians', icon: HardHat, label: 'Technicians', admin: true, tech: false},
+    {href: '/materials', icon: Wrench, label: 'Materials', admin: true, tech: false},
+    {href: '/referrals', icon: UserPlus, label: 'Referrals', admin: true, tech: true},
+    {href: '/reports', icon: BarChart, label: 'Reports', admin: true, tech: false},
 ];
 
 const menuItemsBottom = [
-  {href: '/settings', icon: Settings, label: 'Settings'},
-  {href: '/support', icon: ShieldQuestion, label: 'Support'},
+  {href: '/settings', icon: Settings, label: 'Settings', admin: true, tech: false},
+  {href: '/support', icon: ShieldQuestion, label: 'Support', admin: true, tech: true},
 ];
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const {user, logout} = useAuth();
   const router = useRouter();
+
+  const isNavItemVisible = (item: { admin: boolean, tech: boolean }) => {
+    if (!user) return false;
+    if (user.role === 'Admin' && item.admin) return true;
+    if (user.role === 'Technician' && item.tech) return true;
+    return false;
+  }
 
   return (
     <Sidebar>
@@ -51,9 +60,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           {menuItemsTop.map(
             (item) =>
-              // Conditionally render based on user role
-              (item.href !== '/inventory' && item.href !== '/technicians' && item.href !== '/reports' && item.href !== '/settings' && item.href !== '/referrals' || user?.role === 'Admin') && 
-              (item.href !== '/referrals' || user?.role !== 'Admin') && (
+              isNavItemVisible(item) && (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
                     <item.icon />
@@ -78,7 +85,7 @@ export default function AppSidebar() {
         )}
         <SidebarMenu>
             {menuItemsBottom.map((item) => (
-                (item.href !== '/settings' || user?.role === 'Admin') && (
+                isNavItemVisible(item) && (
                     <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
                             <item.icon />

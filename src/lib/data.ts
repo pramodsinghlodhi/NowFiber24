@@ -71,6 +71,23 @@ export type Stats = {
   tasksCompletedToday: number;
 }
 
+export type Material = {
+    id: string;
+    name: string;
+    description: string;
+    imageUrl: string;
+    quantityInStock: number;
+}
+
+export type MaterialAssignment = {
+    id: number;
+    materialId: string;
+    technicianId: string;
+    quantityAssigned: number;
+    status: 'Pending' | 'Issued' | 'Returned';
+    timestamp: string;
+}
+
 export const mockUsers: User[] = [
     { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin' },
     { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password' },
@@ -123,4 +140,17 @@ export const mockAlerts: Alert[] = [
 export let mockReferrals: Referral[] = [
     {id: 1, tech_id: 'tech-001', customer_name: 'Stark Industries', phone: '555-123-4567', address: '10880 Malibu Point', notes: 'Interested in gigabit enterprise plan.', status: 'Contacted', timestamp: '2024-05-22T14:00:00Z'},
     {id: 2, tech_id: 'tech-002', customer_name: 'Wayne Enterprises', phone: '555-987-6543', address: '1007 Mountain Drive', notes: 'Requires high-security connection for a new R&D facility.', status: 'Pending', timestamp: '2024-05-21T09:30:00Z'},
+];
+
+export const mockMaterials: Material[] = [
+    { id: 'fiber-24', name: '24-count Fiber Optic Cable', description: 'Per meter', imageUrl: 'https://placehold.co/100x100.png', quantityInStock: 500 },
+    { id: 'conn-sc-apc', name: 'SC/APC Connector', description: 'Single unit', imageUrl: 'https://placehold.co/100x100.png', quantityInStock: 250 },
+    { id: 'splice-sleeve', name: 'Splicing Sleeve', description: 'Pack of 12', imageUrl: 'https://placehold.co/100x100.png', quantityInStock: 100 },
+    { id: 'splicer-fujikura', name: 'Fujikura 90S+ Splicer', description: 'Field fusion splicer kit', imageUrl: 'https://placehold.co/100x100.png', quantityInStock: 5 },
+];
+
+export let mockAssignments: MaterialAssignment[] = [
+    { id: 1, materialId: 'splicer-fujikura', technicianId: 'tech-001', quantityAssigned: 1, status: 'Issued', timestamp: '2024-05-23T08:00:00Z'},
+    { id: 2, materialId: 'conn-sc-apc', technicianId: 'tech-001', quantityAssigned: 10, status: 'Issued', timestamp: '2024-05-23T08:00:00Z'},
+    { id: 3, materialId: 'fiber-24', technicianId: 'tech-002', quantityAssigned: 50, status: 'Pending', timestamp: '2024-05-24T09:00:00Z'},
 ];
