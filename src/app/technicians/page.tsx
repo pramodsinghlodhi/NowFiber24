@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -17,8 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 
@@ -44,6 +45,7 @@ export default function TechniciansPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [technicians, setTechnicians] = useState<Technician[]>(mockTechnicians);
+    const [users, setUsers] = useState<User[]>(mockUsers);
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -60,9 +62,13 @@ export default function TechniciansPage() {
 
     const handleDelete = (techId: string) => {
         setTechnicians(prev => prev.filter(t => t.id !== techId));
-        // Also remove from mockUsers to prevent login
-        const userIndex = mockUsers.findIndex(u => u.id === techId);
-        if(userIndex > -1) mockUsers.splice(userIndex, 1);
+        setUsers(prev => prev.filter(u => u.id !== techId));
+        
+        const techUserIndex = mockUsers.findIndex(u => u.id === techId);
+        if(techUserIndex > -1) mockUsers.splice(techUserIndex, 1);
+        
+        const techIndex = mockTechnicians.findIndex(t => t.id === techId);
+        if(techIndex > -1) mockTechnicians.splice(techIndex, 1);
 
         toast({
             title: `Deleted Technician ${techId}`,
@@ -75,21 +81,43 @@ export default function TechniciansPage() {
         const isEditing = !!selectedTechnician;
 
         if(isEditing) {
-            // Update technician
             setTechnicians(prev => prev.map(t => t.id === techData.id ? techData : t));
-            // Update user
+            const techIndex = mockTechnicians.findIndex(t => t.id === techData.id);
+            if(techIndex > -1) mockTechnicians[techIndex] = techData;
+
+            setUsers(prev => prev.map(u => u.id === userData.id ? userData : u));
             const userIndex = mockUsers.findIndex(u => u.id === userData.id);
             if(userIndex > -1) mockUsers[userIndex] = userData;
+
             toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
         } else {
-             // Add new technician
             setTechnicians(prev => [...prev, techData]);
-            // Add new user
+            mockTechnicians.push(techData);
+
+            setUsers(prev => [...prev, userData]);
             mockUsers.push(userData);
+
             toast({ title: "Technician Added", description: `${techData.name} has been added to the team.` });
         }
         setIsFormOpen(false);
         setSelectedTechnician(null);
+    }
+    
+    const handleToggleBlock = (techId: string) => {
+        const userToUpdate = users.find(u => u.id === techId);
+        if (!userToUpdate) return;
+        
+        const isBlocked = !userToUpdate.isBlocked;
+        
+        setUsers(prev => prev.map(u => u.id === techId ? { ...u, isBlocked } : u));
+        
+        const userIndex = mockUsers.findIndex(u => u.id === techId);
+        if(userIndex > -1) mockUsers[userIndex].isBlocked = isBlocked;
+
+        toast({
+            title: `Technician ${isBlocked ? 'Blocked' : 'Unblocked'}`,
+            description: `${userToUpdate.name}'s access has been ${isBlocked ? 'revoked' : 'restored'}.`,
+        });
     }
 
     const handleAddNew = () => {
@@ -139,10 +167,12 @@ export default function TechniciansPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {technicians.map((tech: Technician) => (
-                                <TableRow key={tech.id}>
+                            {technicians.map((tech: Technician) => {
+                                const techUser = users.find(u => u.id === tech.id);
+                                return (
+                                <TableRow key={tech.id} className={cn(techUser?.isBlocked && 'opacity-50')}>
                                     <TableCell className="font-medium flex items-center gap-3">
-                                        <Avatar className="h-9 w-9">
+                                        <Avatar className={cn("h-9 w-9", techUser?.isBlocked && 'grayscale')}>
                                             <AvatarImage src={`https://i.pravatar.cc/150?u=${tech.id}`} alt={tech.name} />
                                             <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
                                         </Avatar>
@@ -152,8 +182,8 @@ export default function TechniciansPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600')}>
-                                            {tech.isActive ? 'Active' : 'Inactive'}
+                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', techUser?.isBlocked && 'bg-gray-500')}>
+                                            {techUser?.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -175,6 +205,18 @@ export default function TechniciansPage() {
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     Edit
                                                 </DropdownMenuItem>
+                                                <DropdownMenuSeparator/>
+                                                {techUser?.isBlocked ? (
+                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserCheck className="mr-2 h-4 w-4" />
+                                                        Unblock Access
+                                                    </DropdownMenuItem>
+                                                ) : (
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserX className="mr-2 h-4 w-4" />
+                                                        Block Access
+                                                    </DropdownMenuItem>
+                                                )}
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
                                                     <Trash className="mr-2 h-4 w-4" />
                                                     Delete
@@ -183,7 +225,7 @@ export default function TechniciansPage() {
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 </CardContent>

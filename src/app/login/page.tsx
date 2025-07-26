@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -25,12 +26,12 @@ export default function LoginPage() {
 
     // Simulate API call
     setTimeout(() => {
-      const success = login(userId, password);
+      const { success, message } = login(userId, password);
       if (success) {
-        toast({ title: 'Login Successful', description: 'Welcome back!' });
+        toast({ title: 'Login Successful', description: message });
         router.push('/');
       } else {
-        toast({ title: 'Login Failed', description: 'Invalid credentials. Please try again.', variant: 'destructive' });
+        toast({ title: 'Login Failed', description: message, variant: 'destructive' });
         setIsLoading(false);
       }
     }, 500);

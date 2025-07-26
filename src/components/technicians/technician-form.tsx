@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -63,17 +64,23 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
 
     // Simulate saving
     setTimeout(() => {
+        const existingTechnician = isEditing ? mockTechnicians.find(t => t.id === id) : undefined;
         const newOrUpdatedTechnician: Technician = {
-            ...(technician || { lat: 34.0522, lng: -118.2437, isActive: false, status: 'available' }), // Provide defaults for new tech
             id,
             name,
+            lat: existingTechnician?.lat || 34.0522,
+            lng: existingTechnician?.lng || -118.2437,
+            isActive: existingTechnician?.isActive || false,
+            status: existingTechnician?.status || 'available',
         };
         
+        const existingUser = isEditing ? mockUsers.find(u => u.id === id) : undefined;
         const newOrUpdatedUser: User = {
             id,
             name,
             password,
             role: 'Technician',
+            isBlocked: existingUser?.isBlocked || false,
         };
 
         onSave(newOrUpdatedTechnician, newOrUpdatedUser);

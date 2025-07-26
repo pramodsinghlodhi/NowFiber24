@@ -22,6 +22,7 @@ export type User = {
     name: string;
     role: 'Admin' | 'Technician';
     password?: string;
+    isBlocked?: boolean;
 };
 
 export type Technician = {
@@ -113,11 +114,11 @@ export type TaskStatusDistribution = {
     fill: string;
 }
 
-export const mockUsers: User[] = [
-    { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin' },
-    { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password' },
-    { id: 'tech-002', name: 'Jane Smith', role: 'Technician', password: 'password' },
-    { id: 'tech-003', name: 'Mike Ross', role: 'Technician', password: 'password' },
+export let mockUsers: User[] = [
+    { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin', isBlocked: false },
+    { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password', isBlocked: false },
+    { id: 'tech-002', name: 'Jane Smith', role: 'Technician', password: 'password', isBlocked: false },
+    { id: 'tech-003', name: 'Mike Ross', role: 'Technician', password: 'password', isBlocked: true },
 ];
 
 export const mockStats: Stats = {
@@ -145,7 +146,7 @@ export const mockDevices: Device[] = [
 export let mockTechnicians: Technician[] = [
   { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, isActive: true, status: 'on-task', path: [[34.062, -118.248]] },
   { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, isActive: true, status: 'available', path: [[34.045, -118.24]] },
-  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, isActive: true, status: 'on-break', path: [[34.055, -118.258]] },
+  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, isActive: false, status: 'on-break', path: [[34.055, -118.258]] },
   { id: 'tech-004', name: 'Emily White', lat: 34.055, lng: -118.258, isActive: false, status: 'available' },
 ];
 

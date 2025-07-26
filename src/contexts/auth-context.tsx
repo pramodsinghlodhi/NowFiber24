@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
-  login: (id: string, password?: string) => boolean;
+  login: (id: string, password?: string) => { success: boolean, message: string };
   logout: () => void;
 }
 
@@ -34,14 +35,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [pathname, router]);
 
-  const login = (id: string, password?: string): boolean => {
+  const login = (id: string, password?: string): { success: boolean, message: string } => {
     const foundUser = mockUsers.find(u => u.id === id && u.password === password);
     if (foundUser) {
+      if (foundUser.isBlocked) {
+        return { success: false, message: 'Your account has been blocked. Please contact an administrator.' };
+      }
       setUser(foundUser);
       localStorage.setItem('user', JSON.stringify(foundUser));
-      return true;
+      return { success: true, message: 'Welcome back!' };
     }
-    return false;
+    return { success: false, message: 'Invalid credentials. Please try again.' };
   };
 
   const logout = () => {
