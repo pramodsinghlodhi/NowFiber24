@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef } from 'react';
@@ -84,16 +85,24 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
   const mapInstance = useRef<L.Map | null>(null);
 
   useEffect(() => {
-    if (mapRef.current && !mapInstance.current) {
-      // Initialize map
+    if (mapRef.current && !mapRef.current.hasChildNodes()) {
       mapInstance.current = L.map(mapRef.current).setView([34.0522, -118.2437], 13);
-
-      // Add tile layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(mapInstance.current);
     }
+    
+    // Cleanup function to destroy the map instance
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount and unmount
 
+
+  useEffect(() => {
     if (mapInstance.current) {
         // Clear existing markers
         mapInstance.current.eachLayer((layer) => {
@@ -101,6 +110,19 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
                 mapInstance.current?.removeLayer(layer);
             }
         });
+
+        // We need to keep the tile layer, so we add it back if it's gone
+        let hasTileLayer = false;
+        mapInstance.current.eachLayer((layer) => {
+            if (layer instanceof L.TileLayer) {
+                hasTileLayer = true;
+            }
+        });
+        if (!hasTileLayer) {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(mapInstance.current);
+        }
 
         // Add device markers
         devices.forEach(device => {
@@ -131,17 +153,6 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
                 });
         });
     }
-
-    // Cleanup function to destroy the map instance
-    return () => {
-        if (mapInstance.current) {
-            // Check if the container element still exists before trying to remove the map
-            if (mapRef.current && mapInstance.current.getContainer()) {
-                 mapInstance.current.remove();
-            }
-            mapInstance.current = null;
-        }
-    };
   }, [devices, technicians, alerts]);
 
   return (
@@ -155,3 +166,5 @@ export default function MapView({ devices, technicians, alerts }: MapViewProps) 
     </Card>
   );
 }
+
+    
