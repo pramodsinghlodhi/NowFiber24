@@ -12,14 +12,16 @@ import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats, Technician } from '@/lib/data';
 import StatsCard from '@/components/dashboard/stats-card';
+import TasksList from '@/components/dashboard/tasks-list';
+import AlertsList from '@/components/dashboard/alerts-list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
-import { Users, Wifi, Siren } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Users, Wifi, Siren, ListChecks } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   ssr: false,
-  loading: () => <Skeleton className="h-[400px] w-full lg:h-[calc(100vh-280px)] rounded-xl" />,
+  loading: () => <Skeleton className="h-[400px] w-full lg:h-[calc(100vh-280px)]" />,
 });
 
 
@@ -27,7 +29,6 @@ export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
   const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
-  const [mapStyle, setMapStyle] = useState('map');
 
   useEffect(() => {
     if (!user) {
@@ -72,21 +73,31 @@ export default function Home() {
       <SidebarInset>
         <Header />
         <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-          <h1 className="text-3xl font-bold font-headline">Fiber network manager</h1>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <StatsCard title="PDO Aggregator" value={stats.techniciansOnDuty} icon={Users} color="bg-yellow-100" iconColor="text-yellow-600" />
-            <StatsCard title="App Provider" value={stats.onlineDevices} icon={Wifi} color="bg-green-100" iconColor="text-green-600" />
-            <StatsCard title="Wi-Fi Hotspot" value={stats.activeAlerts} icon={Siren} color="bg-purple-100" iconColor="text-purple-600"/>
+          <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatsCard title="Technicians On-duty" value={stats.techniciansOnDuty} icon={Users} />
+            <StatsCard title="Online Devices" value={stats.onlineDevices} icon={Wifi} />
+            <StatsCard title="Active Alerts" value={stats.activeAlerts} icon={Siren} />
+            <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon={ListChecks} />
           </div>
-          <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold font-headline">Map</h2>
-                <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
-                    <Button variant={mapStyle === 'map' ? 'secondary' : 'ghost'} size="sm" onClick={() => setMapStyle('map')}>Map</Button>
-                    <Button variant={mapStyle === 'satellite' ? 'secondary' : 'ghost'} size="sm" onClick={() => setMapStyle('satellite')}>Satellite</Button>
-                </div>
-              </div>
-              <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} mapStyle={mapStyle}/>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+               <Card className="h-[400px] w-full lg:h-[calc(100vh-280px)]">
+                 <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} />
+               </Card>
+            </div>
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">My Tasks</CardTitle>
+                        <CardDescription>Tasks assigned to you or your team.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <TasksList tasks={tasks.filter(t => t.status !== 'Completed').slice(0, 5)} />
+                    </CardContent>
+                </Card>
+              <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />
+            </div>
           </div>
         </main>
       </SidebarInset>

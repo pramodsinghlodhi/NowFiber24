@@ -6,22 +6,17 @@ type StatsCardProps = {
   title: string;
   value: string | number;
   icon: React.ElementType<LucideProps>;
-  color: string;
-  iconColor: string;
 };
 
-export default function StatsCard({ title, value, icon: Icon, color, iconColor }: StatsCardProps) {
-  
+export default function StatsCard({ title, value, icon: Icon }: StatsCardProps) {
   return (
-    <Card className={cn("rounded-2xl border-none shadow-sm", color)}>
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
-      <CardContent className="flex items-center justify-between">
-        <div className="text-3xl font-bold">{value}</div>
-        <div className={cn("p-3 rounded-full bg-black/5", )}>
-            <Icon className={cn("h-6 w-6", iconColor)} />
-        </div>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
       </CardContent>
     </Card>
   );

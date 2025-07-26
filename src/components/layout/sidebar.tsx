@@ -1,25 +1,36 @@
 'use client';
 
+import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
   SidebarSeparator,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion, Briefcase} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ExternalLink, ShieldQuestion} from 'lucide-react';
+import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import ReferCustomer from '../dashboard/refer-customer';
+import FaultDetector from '../dashboard/fault-detector';
 
 const menuItemsTop = [
     {href: '/', icon: LayoutDashboard, label: 'Dashboard'},
-    {href: '/alerts', icon: AlertTriangle, label: 'PODA Portal'},
-    {href: '/inventory', icon: Network, label: 'App Provider Portal'},
-    {href: '/tasks', icon: ListTodo, label: 'DOT Registration'},
-    {href: '/reports', icon: BarChart, label: 'PN-WANI Guideline'},
+    {href: '/alerts', icon: AlertTriangle, label: 'Alerts'},
+    {href: '/inventory', icon: Network, label: 'Inventory'},
+    {href: '/tasks', icon: ListTodo, label: 'Tasks'},
+    {href: '/technicians', icon: HardHat, label: 'Technicians'},
+    {href: '/reports', icon: BarChart, label: 'Reports'},
+];
+
+const menuItemsBottom = [
+  {href: '/settings', icon: Settings, label: 'Settings'},
+  {href: '/support', icon: ShieldQuestion, label: 'Support'},
 ];
 
 export default function AppSidebar() {
@@ -27,54 +38,60 @@ export default function AppSidebar() {
   const {user, logout} = useAuth();
   const router = useRouter();
 
-  const getInitials = (name: string) => {
-    if (!name) return "";
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[1][0]}`;
-    }
-    return names[0].substring(0, 2).toUpperCase();
-  };
-
   return (
     <Sidebar>
-      <SidebarContent className="p-4">
+      <SidebarHeader>
+        <Link href="/" className="flex items-center gap-2">
+          <Logo className="w-8 h-8 text-primary" />
+          <span className="text-xl font-semibold font-headline">FiberVision</span>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
         <SidebarMenu>
-            <SidebarMenuItem className='mb-4'>
-                <SidebarMenuButton href="/" tooltip="POD Portal" isActive={pathname === '/'} variant="default" className='bg-primary/10 text-primary hover:bg-primary/20 data-[active=true]:bg-primary data-[active=true]:text-primary-foreground'>
-                    <Briefcase />
-                    POD Portal
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-
           {menuItemsTop.map(
             (item) =>
+              // Conditionally render based on user role
+              (item.href !== '/inventory' && item.href !== '/technicians' && item.href !== '/reports' && item.href !== '/settings' || user?.role === 'Admin') && (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label} className="text-gray-600 hover:bg-gray-100 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-semibold">
+                  <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
                     <item.icon />
                     {item.label}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              )
           )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />
       <SidebarFooter className="flex flex-col gap-2 p-4">
-        {user && (
-             <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                    <AvatarImage src={`https://i.pravatar.cc/150?u=${user.id}`} alt={user.name} />
-                    <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 overflow-hidden">
-                    <p className="font-semibold truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.id}@untitled.com</p>
-                </div>
-                <button onClick={logout}>
-                    <LogOut className="h-5 w-5 text-gray-500 hover:text-destructive" />
-                </button>
-            </div>
+        {user?.role === 'Technician' && (
+          <>
+            <ReferCustomer />
+          </>
         )}
+         {user?.role === 'Admin' && (
+          <>
+            <FaultDetector />
+          </>
+        )}
+        <SidebarMenu>
+            {menuItemsBottom.map((item) => (
+                (item.href !== '/settings' || user?.role === 'Admin') && (
+                    <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
+                            <item.icon />
+                            {item.label}
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )
+            ))}
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={logout} tooltip="Logout">
+                    <LogOut />
+                    Logout
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

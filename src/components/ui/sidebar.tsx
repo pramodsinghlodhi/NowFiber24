@@ -19,7 +19,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { LayoutDashboard, ListTodo, AlertTriangle, Network, BarChart } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -66,24 +65,36 @@ const SidebarProvider = React.forwardRef<
       onOpenChange: setOpenProp,
       className,
       style,
-      children,
       ...props
     },
     ref
   ) => {
-    const [isMobile, setIsMobile] = React.useState(false);
-    const [openMobile, setOpenMobile] = React.useState(false)
-
+    const [isMobile, setIsMobile] = React.useState(false)
     React.useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-        }
-        checkMobile()
-        window.addEventListener("resize", checkMobile)
-        return () => window.removeEventListener("resize", checkMobile)
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      }
+      checkMobile()
+      window.addEventListener("resize", checkMobile)
+      return () => window.removeEventListener("resize", checkMobile)
     }, [])
 
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(() => {
+      try {
+        const value = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+          ?.split("=")[1]
+        if (value) {
+          return value === "true"
+        }
+      } catch (error) {
+        return defaultOpen
+      }
+      return defaultOpen
+    })
+    const [openMobile, setOpenMobile] = React.useState(false)
+
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -134,15 +145,6 @@ const SidebarProvider = React.forwardRef<
       [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
     )
 
-    const menuItems = [
-      {href: '/', icon: LayoutDashboard, label: 'Dashboard'},
-      {href: '/alerts', icon: AlertTriangle, label: 'PODA Portal'},
-      {href: '/inventory', icon: Network, label: 'App Provider Portal'},
-      {href: '/tasks', icon: ListTodo, label: 'DOT Registration'},
-      {href: '/reports', icon: BarChart, label: 'PN-WANI Guideline'},
-    ];
-
-
     return (
       <SidebarContext.Provider value={contextValue}>
         <TooltipProvider delayDuration={0}>
@@ -160,41 +162,13 @@ const SidebarProvider = React.forwardRef<
             )}
             ref={ref}
             {...props}
-          >
-            {children}
-            {isMobile && <MobileBottomNav menuItems={menuItems} />}
-          </div>
+          />
         </TooltipProvider>
       </SidebarContext.Provider>
     )
   }
 )
 SidebarProvider.displayName = "SidebarProvider"
-
-
-const MobileBottomNav = ({ menuItems }: { menuItems: any[] }) => {
-  const pathname = usePathname();
-  return (
-    <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 md:hidden">
-      <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
-        {menuItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group",
-              pathname === item.href ? "text-primary" : "text-gray-500"
-            )}
-          >
-            <item.icon className="w-5 h-5 mb-1" />
-            <span className="text-[10px] leading-tight">{item.label}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 
 const Sidebar = React.forwardRef<
   HTMLDivElement,
@@ -307,7 +281,6 @@ const SidebarTrigger = React.forwardRef<
   )
 })
 SidebarTrigger.displayName = "SidebarTrigger"
-
 
 const SidebarInset = React.forwardRef<
   HTMLDivElement,
@@ -439,8 +412,8 @@ const sidebarMenuButtonVariants = cva(
 )
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLAnchorElement,
-  React.ComponentProps<typeof Link> & {
+  HTMLAnchorElement | HTMLButtonElement,
+  (React.ComponentProps<typeof Link> | React.ComponentProps<typeof Button>) & {
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariants>
@@ -457,25 +430,28 @@ const SidebarMenuButton = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state } = useSidebar()
+    const { state } = useSidebar()
+
+    const asChild = "href" in props
+    const Comp = asChild ? Link : Button
 
     const button = (
-      <Link
-        ref={ref}
+      <Comp
+        ref={ref as any}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
+        {...(props as any)}
       >
         {children}
-      </Link>
+      </Comp>
     )
 
-    if (state === 'expanded' || isMobile) {
+    if (state === "expanded") {
       return button
     }
-    
+
     if (typeof tooltip === "string") {
       tooltip = {
         children: tooltip,

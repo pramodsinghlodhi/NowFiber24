@@ -66,11 +66,34 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-background/80 px-4 backdrop-blur-lg sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
-      <SidebarTrigger className="sm:hidden" />
-      <div className="flex-1">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <div className="hidden md:block">
+        <h1 className="text-2xl font-semibold font-headline">{getPageTitle()}</h1>
       </div>
-      <div className="flex items-center gap-2">
+      <SidebarTrigger className="md:hidden" />
+      <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+        <div className="ml-auto flex-1 sm:flex-initial">
+          <div className="relative">
+            {user?.role === 'Technician' && (
+                <div className="flex items-center gap-2">
+                     <Button variant={isClockedIn ? 'destructive' : 'default'} onClick={handleClockInOut}>
+                        <Timer className="mr-2 h-4 w-4" />
+                        {isClockedIn ? 'Clock Out' : 'Clock In'}
+                    </Button>
+                     {isClockedIn && (
+                        <Button variant={isOnBreak ? 'secondary' : 'outline'} onClick={handleToggleBreak}>
+                            <Coffee className="mr-2 h-4 w-4" />
+                            {isOnBreak ? 'End Break' : 'Take a Break'}
+                        </Button>
+                    )}
+                </div>
+            )}
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <Bell className="h-5 w-5" />
+          <span className="sr-only">Toggle notifications</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
