@@ -206,7 +206,7 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
   }, [devices, technicians, alerts, mapStyle]);
 
   return (
-    <div className="h-full w-full bg-muted rounded-xl shadow-inner relative" style={{ zIndex: -1 }}>
+    <div className="h-full w-full bg-muted rounded-xl shadow-inner relative">
          <div ref={mapRef} className="h-full w-full rounded-xl"></div>
     </div>
   );
