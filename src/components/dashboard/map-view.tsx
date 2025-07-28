@@ -32,8 +32,16 @@ const getDeviceIcon = (device: Infrastructure) => {
   const iconSize: [number, number] = [32, 32];
   const commonClasses = "p-1.5 rounded-full text-white shadow-lg flex items-center justify-center";
 
-  const statusColor = device.status === 'online' ? 'bg-green-500' : 
-                      device.status === 'offline' ? 'bg-destructive' : 'bg-yellow-500';
+  let statusColor = 'bg-gray-400';
+  if (device.status === 'online') statusColor = 'bg-green-500';
+  else if (device.status === 'offline') statusColor = 'bg-destructive';
+  else if (device.status === 'maintenance') statusColor = 'bg-yellow-500';
+  
+  // Highlight devices with open ports
+  if (device.attributes?.openPorts && device.attributes.openPorts > 0) {
+    statusColor = 'bg-blue-500 animate-pulse';
+  }
+
 
   let iconSvg: string;
 
@@ -107,6 +115,13 @@ const createPopupContent = (device: Infrastructure) => {
             ${device.connectionDate ? `<p class="text-xs text-muted-foreground">Date: <strong>${new Date(device.connectionDate).toLocaleDateString()}</strong></p>` : ''}
         </div>
     ` : '';
+    
+    const openEndpointHtml = (device.attributes?.openPorts && device.attributes?.openPorts > 0) ? `
+        <div class="mt-2 pt-2 border-t border-blue-300">
+             <p class="text-xs text-blue-600 font-bold">Open for new connection!</p>
+             <p class="text-xs text-muted-foreground">Available Ports: <strong>${device.attributes.openPorts}</strong></p>
+        </div>
+    ` : '';
 
     return `
         <div class="p-2">
@@ -117,6 +132,7 @@ const createPopupContent = (device: Infrastructure) => {
             ${attributesHtml ? `<div class="mt-2 pt-2 border-t">${attributesHtml}</div>` : ''}
             ${planHtml}
             ${connectionInfoHtml}
+            ${openEndpointHtml}
         </div>
     `;
 };

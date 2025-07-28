@@ -35,6 +35,7 @@ export type Infrastructure = {
     couplerRatio?: '1:2' | '1:4' | '1:8' | '1:16' | '1:32' | '1:64';
     powerLevel?: string;
     port?: number;
+    openPorts?: number;
   }
 };
 
@@ -177,7 +178,7 @@ export const mockInfrastructure: Infrastructure[] = [
   { id: 'DC-LA1', projectId: 'ftth001', type: 'Datacenter', name: 'Datacenter LA1', lat: 34.0522, lng: -118.2437, ip: '192.168.1.1', status: 'online', attributes: { assetLabel: 'LA1-DC-01' } },
   { id: 'CSW-LA1-01', projectId: 'ftth001', type: 'Core Switch', name: 'Core Switch LA1-01', lat: 34.0525, lng: -118.2440, ip: '192.168.1.2', status: 'online', attributes: { assetLabel: 'LA1-CSW-01' } },
   { id: 'OLT-01', projectId: 'ftth001', type: 'OLT', name: 'OLT-01', lat: 34.0530, lng: -118.2450, ip: '192.168.2.1', status: 'online', attributes: { assetLabel: 'LA1-OLT-01', powerLevel: '-10 dBm' } },
-  { id: 'SPL-01', projectId: 'ftth001', type: 'splitter', name: 'Splice Box J-101', lat: 34.0555, lng: -118.2480, status: 'installed', connectedBy: 'tech-002', connectionDate: '2025-07-20', attributes: { assetLabel: 'SB-J-101', couplerRatio: '1:8' } },
+  { id: 'SPL-01', projectId: 'ftth001', type: 'splitter', name: 'Splice Box J-101', lat: 34.0555, lng: -118.2480, status: 'installed', connectedBy: 'tech-002', connectionDate: '2025-07-20', attributes: { assetLabel: 'SB-J-101', couplerRatio: '1:8', openPorts: 3 } },
   { id: 'ONU-101', projectId: 'ftth001', type: 'ONU', name: 'ONU-101', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online', connectedBy: 'tech-001', connectionDate: '2025-07-21', attributes: { assetLabel: 'CID-23884', powerLevel: '-22 dBm' } },
   { id: 'ONU-102', projectId: 'ftth001', type: 'ONU', name: 'ONU-102', lat: 34.058, lng: -118.245, ip: '10.0.1.102', status: 'offline', attributes: { assetLabel: 'CID-24109', powerLevel: '-inf' } },
   { id: 'SW-01', projectId: 'ftth001', type: 'switch', name: 'Switch LA1-55', lat: 34.05, lng: -118.24, ip: '192.168.1.10', status: 'online', attributes: { assetLabel: 'LA1-SW-55' } },
@@ -195,6 +196,9 @@ export const mockConnections: Connection[] = [
     { id: 'conn-3', projectId: 'ftth001', from: 'SPL-01', to: 'ONU-102', status: 'active' },
     { id: 'conn-4', projectId: 'ftth001', from: 'SPL-01', to: 'ONU-103', status: 'active' },
     { id: 'conn-5', projectId: 'ftth001', from: 'OLT-01', to: 'SW-01', status: 'active' },
+    { id: 'conn-pole-1', projectId: 'ftth001', from: 'OLT-01', to: 'Pole-23', status: 'active' },
+    { id: 'conn-pole-2', projectId: 'ftth001', from: 'Pole-23', to: 'Pole-24', status: 'active' },
+    { id: 'conn-pole-3', projectId: 'ftth001', from: 'Pole-24', to: 'ONU-105', status: 'active' },
 ];
 
 export const mockPlans: Plan[] = [
