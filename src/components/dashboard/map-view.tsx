@@ -26,11 +26,14 @@ type MapViewProps = {
   alerts: Alert[];
   connections: Connection[];
   mapStyle?: string;
+  tracedPath?: Infrastructure[];
 };
 
-const getDeviceIcon = (device: Infrastructure) => {
-  const iconSize: [number, number] = [32, 32];
+const getDeviceIcon = (device: Infrastructure, isTraced: boolean) => {
+  const iconSize: [number, number] = isTraced ? [40,40] : [32, 32];
   const commonClasses = "p-1.5 rounded-full text-white shadow-lg flex items-center justify-center";
+  const tracedClasses = isTraced ? "border-4 border-yellow-400" : "";
+
 
   let statusColor = 'bg-gray-400';
   if (device.status === 'online') statusColor = 'bg-green-500';
@@ -66,7 +69,7 @@ const getDeviceIcon = (device: Infrastructure) => {
   }
   
   return L.divIcon({
-    html: `<div class="${cn(commonClasses, statusColor)}">${iconSvg}</div>`,
+    html: `<div class="${cn(commonClasses, statusColor, tracedClasses)}">${iconSvg}</div>`,
     className: 'bg-transparent border-0',
     iconSize: iconSize,
     iconAnchor: [iconSize[0] / 2, iconSize[1]],
@@ -93,7 +96,7 @@ const getAlertIcon = () => {
     });
 }
 
-const createPopupContent = (device: Infrastructure) => {
+const createPopupContent = (device: Infrastructure, isTraced: boolean) => {
     let attributesHtml = '';
     if (device.attributes) {
         attributesHtml = Object.entries(device.attributes)
@@ -122,6 +125,14 @@ const createPopupContent = (device: Infrastructure) => {
              <p class="text-xs text-muted-foreground">Available Ports: <strong>${device.attributes.openPorts}</strong></p>
         </div>
     ` : '';
+    
+    const traceInfoHtml = isTraced ? `
+        <div class="mt-2 pt-2 border-t border-yellow-300 bg-yellow-50 -mx-2 px-2">
+             <p class="text-xs text-yellow-700 font-bold">Tube: ${device.attributes?.tubeColor}</p>
+             <p class="text-xs text-yellow-700 font-bold">Core: ${device.attributes?.fiberColor}</p>
+        </div>
+    ` : '';
+
 
     return `
         <div class="p-2">
@@ -133,12 +144,13 @@ const createPopupContent = (device: Infrastructure) => {
             ${planHtml}
             ${connectionInfoHtml}
             ${openEndpointHtml}
+            ${traceInfoHtml}
         </div>
     `;
 };
 
 
-export default function MapView({ devices, technicians, alerts, connections, mapStyle = 'map' }: MapViewProps) {
+export default function MapView({ devices, technicians, alerts, connections, mapStyle = 'map', tracedPath = [] }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -185,20 +197,33 @@ export default function MapView({ devices, technicians, alerts, connections, map
         const lg = layerGroupRef.current;
         lg.clearLayers(); // Clear all layers before redrawing
 
-        // Draw connections first
+        const tracedDeviceIds = new Set(tracedPath.map(d => d.deviceId));
+
+        // Draw traced path first
+        if (tracedPath.length > 1) {
+            const latlngs = tracedPath.map(d => [d.lat, d.lng] as [number, number]);
+            L.polyline(latlngs, { color: '#FBBF24', weight: 6, opacity: 1 }).addTo(lg);
+        }
+
+
+        // Draw connections
         connections.forEach(connection => {
             const fromDevice = devices.find(d => d.id === connection.from);
             const toDevice = devices.find(d => d.id === connection.to);
             if (fromDevice && toDevice) {
-                const latlngs: [number, number][] = [[fromDevice.lat, fromDevice.lng], [toDevice.lat, toDevice.lng]];
-                L.polyline(latlngs, { color: '#009688', weight: 2, opacity: 0.8 }).addTo(lg);
+                const isTraced = tracedDeviceIds.has(fromDevice.id) && tracedDeviceIds.has(toDevice.id);
+                 if (!isTraced) {
+                    const latlngs: [number, number][] = [[fromDevice.lat, fromDevice.lng], [toDevice.lat, toDevice.lng]];
+                    L.polyline(latlngs, { color: '#009688', weight: 2, opacity: 0.8 }).addTo(lg);
+                }
             }
         });
 
         devices.forEach(device => {
-            L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
+            const isTraced = tracedDeviceIds.has(device.id);
+            L.marker([device.lat, device.lng], { icon: getDeviceIcon(device, isTraced), zIndexOffset: isTraced ? 1000 : 0 })
                 .addTo(lg)
-                .bindPopup(createPopupContent(device), { className: 'custom-popup' });
+                .bindPopup(createPopupContent(device, isTraced), { className: 'custom-popup' });
         });
 
         alerts.forEach(alert => {
@@ -222,8 +247,13 @@ export default function MapView({ devices, technicians, alerts, connections, map
                 L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7, dashArray: '5, 10' }).addTo(lg);
             }
         });
+
+         if (tracedPath.length > 0 && mapInstance.current) {
+            const bounds = L.latLngBounds(tracedPath.map(d => [d.lat, d.lng]));
+            mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
+        }
     }
-  }, [devices, technicians, alerts, connections, mapStyle]);
+  }, [devices, technicians, alerts, connections, mapStyle, tracedPath]);
 
   return (
     <div className="h-full w-full bg-card rounded-xl shadow-inner border">

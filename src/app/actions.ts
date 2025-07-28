@@ -3,6 +3,7 @@
 
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
+import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {mockInfrastructure, mockTechnicians} from '@/lib/data';
 
 export async function runAutoFaultDetection() {
@@ -44,4 +45,9 @@ export async function analyzeMaterials(photoDataUri: string) {
   });
 
   return result;
+}
+
+export async function runTraceRoute(input: TraceRouteInput) {
+    const result = await traceRoute(input);
+    return result;
 }

@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map, Route} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
@@ -25,6 +25,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
+import TraceRoute from '../dashboard/trace-route';
 
 const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
   ssr: false,
@@ -134,6 +135,7 @@ export default function AppSidebar() {
          {user?.role === 'Admin' && (
           <>
             <FaultDetector />
+            <TraceRoute />
           </>
         )}
         <SidebarMenu>

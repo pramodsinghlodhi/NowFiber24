@@ -179,15 +179,15 @@ export const mockInfrastructure: Infrastructure[] = [
   { id: 'CSW-LA1-01', projectId: 'ftth001', type: 'Core Switch', name: 'Core Switch LA1-01', lat: 34.0525, lng: -118.2440, ip: '192.168.1.2', status: 'online', attributes: { assetLabel: 'LA1-CSW-01' } },
   { id: 'OLT-01', projectId: 'ftth001', type: 'OLT', name: 'OLT-01', lat: 34.0530, lng: -118.2450, ip: '192.168.2.1', status: 'online', attributes: { assetLabel: 'LA1-OLT-01', powerLevel: '-10 dBm' } },
   { id: 'SPL-01', projectId: 'ftth001', type: 'splitter', name: 'Splice Box J-101', lat: 34.0555, lng: -118.2480, status: 'installed', connectedBy: 'tech-002', connectionDate: '2025-07-20', attributes: { assetLabel: 'SB-J-101', couplerRatio: '1:8', openPorts: 3 } },
-  { id: 'ONU-101', projectId: 'ftth001', type: 'ONU', name: 'ONU-101', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online', connectedBy: 'tech-001', connectionDate: '2025-07-21', attributes: { assetLabel: 'CID-23884', powerLevel: '-22 dBm' } },
-  { id: 'ONU-102', projectId: 'ftth001', type: 'ONU', name: 'ONU-102', lat: 34.058, lng: -118.245, ip: '10.0.1.102', status: 'offline', attributes: { assetLabel: 'CID-24109', powerLevel: '-inf' } },
+  { id: 'ONU-101', projectId: 'ftth001', type: 'ONU', name: 'ONU-101', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online', connectedBy: 'tech-001', connectionDate: '2025-07-21', attributes: { assetLabel: 'CID-23884', powerLevel: '-22 dBm', tubeColor: 'Blue', fiberColor: 'Blue' } },
+  { id: 'ONU-102', projectId: 'ftth001', type: 'ONU', name: 'ONU-102', lat: 34.058, lng: -118.245, ip: '10.0.1.102', status: 'offline', attributes: { assetLabel: 'CID-24109', powerLevel: '-inf', tubeColor: 'Blue', fiberColor: 'Orange' } },
   { id: 'SW-01', projectId: 'ftth001', type: 'switch', name: 'Switch LA1-55', lat: 34.05, lng: -118.24, ip: '192.168.1.10', status: 'online', attributes: { assetLabel: 'LA1-SW-55' } },
   { id: 'ONU-103', projectId: 'ftth001', type: 'ONU', name: 'ONU-103', lat: 34.06, lng: -118.255, ip: '10.0.1.103', status: 'maintenance', attributes: { assetLabel: 'CID-25001' } },
   { id: 'ONU-104', projectId: 'ftth001', type: 'ONU', name: 'ONU-104', lat: 34.048, lng: -118.238, ip: '10.0.1.104', status: 'offline', attributes: { assetLabel: 'CID-25134' } },
   { id: 'Pole-23', projectId: 'ftth001', type: 'Pole', name: 'Pole P-5829A', lat: 34.053, lng: -118.248, status: 'installed', attributes: { assetLabel: 'P-5829A' } },
   { id: 'Pole-24', projectId: 'ftth001', type: 'Pole', name: 'Pole P-5830B', lat: 34.059, lng: -118.252, status: 'installed', attributes: { assetLabel: 'P-5830B' } },
   { id: 'ONU-105', projectId: 'ftth001', type: 'ONU', name: 'ONU-105', lat: 34.0515, lng: -118.257, ip: '10.0.1.105', status: 'offline', attributes: { assetLabel: 'CID-25210' } },
-  { id: 'FIBER-01', projectId: 'ftth001', type: 'fiber', name: 'Backbone Fiber', lat: 34.054, lng: -118.246, status: 'installed', quantity: 2000, attributes: { fiberCapacity: '96F' }},
+  { id: 'FIBER-01', projectId: 'ftth001', type: 'fiber', name: 'Backbone Fiber', lat: 34.054, lng: -118.246, status: 'installed', quantity: 2000, attributes: { fiberCapacity: '96F', tubeColor: 'Blue', fiberColor: 'Blue' }},
 ];
 
 export const mockConnections: Connection[] = [

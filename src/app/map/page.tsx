@@ -18,6 +18,7 @@ import { Map as MapIcon, Satellite, Filter as FilterIcon } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useSearchParams } from 'next/navigation';
 
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
@@ -37,16 +38,32 @@ const initialFilters = {
 export default function MapPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
   const [mapStyle, setMapStyle] = useState('map');
   const [filters, setFilters] = useState<Record<string, boolean>>(initialFilters);
-
+  const [tracedPath, setTracedPath] = useState<Infrastructure[]>([]);
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
+      return;
     }
-  }, [user, router]);
+
+    const pathParam = searchParams.get('path');
+    if (pathParam) {
+      try {
+        const decodedPath = JSON.parse(decodeURIComponent(pathParam));
+        setTracedPath(decodedPath);
+      } catch (error) {
+        console.error("Failed to parse traced path:", error);
+        setTracedPath([]);
+      }
+    } else {
+      setTracedPath([]);
+    }
+
+  }, [user, router, searchParams]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -98,7 +115,7 @@ export default function MapPage() {
         <Header />
         <main className="flex-grow flex-shrink flex-basis-0 flex-col h-[calc(100vh-4rem)]">
           <div className="relative h-full w-full">
-             <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} />
+             <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} tracedPath={tracedPath}/>
              <div className="absolute top-4 left-4 z-[500] flex gap-2">
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -107,7 +124,7 @@ export default function MapPage() {
                             Filter
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
+                    <DropdownMenuContent className="w-56 z-[100]">
                         <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuCheckboxItem
