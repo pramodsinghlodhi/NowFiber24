@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {Bot, Wrench, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
