@@ -82,7 +82,7 @@ export default function AppSidebar() {
       <SidebarHeader>
         <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
           <Logo className="w-8 h-8 text-primary" />
-          <span className="text-xl font-semibold font-headline">FiberVision</span>
+          <span className="text-xl font-semibold font-headline">Fiber24</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
