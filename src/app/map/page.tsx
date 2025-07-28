@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -10,13 +10,14 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockConnections, Technician } from '@/lib/data';
+import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockConnections, Technician, Infrastructure } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
-import { Map as MapIcon, Satellite } from 'lucide-react';
+import { Map as MapIcon, Satellite, Filter as FilterIcon } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
@@ -24,12 +25,22 @@ const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   loading: () => <Skeleton className="h-full w-full rounded-xl" />,
 });
 
+const allDeviceTypes = Array.from(new Set(mockInfrastructure.map(d => d.type)));
+
+const initialFilters = {
+    technicians: true,
+    alerts: true,
+    connections: true,
+    ...allDeviceTypes.reduce((acc, type) => ({ ...acc, [type]: true }), {})
+};
 
 export default function MapPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
   const [mapStyle, setMapStyle] = useState('map');
+  const [filters, setFilters] = useState<Record<string, boolean>>(initialFilters);
+
 
   useEffect(() => {
     if (!user) {
@@ -56,6 +67,22 @@ export default function MapPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleFilterChange = (key: string, value: boolean) => {
+    setFilters(prev => ({
+        ...prev,
+        [key]: value
+    }));
+  }
+
+  const filteredData = useMemo(() => {
+    const filteredDevices = mockInfrastructure.filter(device => filters[device.type]);
+    const filteredTechnicians = filters.technicians ? liveTechnicians : [];
+    const filteredAlerts = filters.alerts ? mockAlerts : [];
+    const filteredConnections = filters.connections ? mockConnections : [];
+    return { filteredDevices, filteredTechnicians, filteredAlerts, filteredConnections };
+  }, [filters, liveTechnicians]);
+
+
   if (!user) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -71,7 +98,52 @@ export default function MapPage() {
         <Header />
         <main className="flex-grow flex-shrink flex-basis-0 flex-col h-[calc(100vh-4rem)]">
           <div className="relative h-full w-full">
-             <MapView devices={mockInfrastructure} technicians={liveTechnicians} alerts={mockAlerts} connections={mockConnections} mapStyle={mapStyle} />
+             <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} />
+             <div className="absolute top-4 left-4 z-[500] flex gap-2">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" className="shadow-md">
+                            <FilterIcon className="mr-2 h-4 w-4" />
+                            Filter
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                        <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem
+                            checked={filters.technicians}
+                            onCheckedChange={(value) => handleFilterChange('technicians', value)}
+                        >
+                            Technicians
+                        </DropdownMenuCheckboxItem>
+                         <DropdownMenuCheckboxItem
+                            checked={filters.alerts}
+                            onCheckedChange={(value) => handleFilterChange('alerts', value)}
+                        >
+                            Alerts
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={filters.connections}
+                            onCheckedChange={(value) => handleFilterChange('connections', value)}
+                        >
+                            Fiber Lines
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Device Types</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {allDeviceTypes.map(type => (
+                             <DropdownMenuCheckboxItem
+                                key={type}
+                                checked={filters[type]}
+                                onCheckedChange={(value) => handleFilterChange(type, value)}
+                                className="capitalize"
+                            >
+                                {type.replace(/_/g, ' ')}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+             </div>
              <div className="absolute bottom-4 right-4 z-[500]">
                 <ToggleGroup type="single" value={mapStyle} onValueChange={(value) => { if(value) setMapStyle(value)}} className="bg-background rounded-lg shadow-md border p-1">
                     <ToggleGroupItem value="map" aria-label="Map view">
