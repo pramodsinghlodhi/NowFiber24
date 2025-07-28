@@ -75,7 +75,7 @@ export default function TechnicianReportPage() {
         <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20 border-2">
-              <AvatarImage src={`https://i.pravatar.cc/150?u=${technician.id}`} alt={technician.name} />
+              <AvatarImage src={technician.avatarUrl} alt={technician.name} />
               <AvatarFallback>{technician.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
             <div>

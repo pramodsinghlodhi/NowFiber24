@@ -173,7 +173,7 @@ export default function TechniciansPage() {
                                 <TableRow key={tech.id} className={cn(techUser?.isBlocked && 'opacity-50')}>
                                     <TableCell className="font-medium flex items-center gap-3">
                                         <Avatar className={cn("h-9 w-9", techUser?.isBlocked && 'grayscale')}>
-                                            <AvatarImage src={`https://i.pravatar.cc/150?u=${tech.id}`} alt={tech.name} />
+                                            <AvatarImage src={tech.avatarUrl} alt={tech.name} />
                                             <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
                                         </Avatar>
                                         <div className='flex flex-col'>

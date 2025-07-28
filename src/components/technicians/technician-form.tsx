@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Technician, User, mockUsers, mockTechnicians } from '@/lib/data';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 interface TechnicianFormProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   const [password, setPassword] = useState('');
   const [contact, setContact] = useState('');
   const [role, setRole] = useState<Technician['role']>('Field Engineer');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -43,6 +45,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
       setId(technician.id);
       setRole(technician.role);
       setContact(technician.contact);
+      setAvatarUrl(technician.avatarUrl || '');
       const user = mockUsers.find(u => u.id === technician.id);
       setPassword(user?.password || '');
     } else {
@@ -52,6 +55,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
       setPassword('');
       setContact('');
       setRole('Field Engineer');
+      setAvatarUrl(`https://i.pravatar.cc/150?u=`);
     }
   }, [technician, isOpen]);
 
@@ -77,6 +81,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             name,
             role,
             contact,
+            avatarUrl,
             lat: existingTechnician?.lat || 34.0522,
             lng: existingTechnician?.lng || -118.2437,
             isActive: existingTechnician?.isActive || false,
@@ -90,12 +95,22 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             password,
             role: 'Technician',
             contact,
+            avatarUrl,
             isBlocked: existingUser?.isBlocked || false,
         };
 
         onSave(newOrUpdatedTechnician, newOrUpdatedUser);
         setIsLoading(false);
     }, 500);
+  };
+  
+  const getInitials = (name: string) => {
+    if (!name) return "";
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[1][0]}`;
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -110,6 +125,16 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                    <AvatarImage src={avatarUrl} alt={name} />
+                    <AvatarFallback>{getInitials(name)}</AvatarFallback>
+                </Avatar>
+                <div className="w-full space-y-2">
+                    <Label htmlFor="avatarUrl">Avatar URL</Label>
+                    <Input id="avatarUrl" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." />
+                </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., John Smith" required />

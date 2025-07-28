@@ -66,6 +66,7 @@ export type User = {
     password?: string;
     isBlocked?: boolean;
     contact?: string;
+    avatarUrl?: string;
 };
 
 export type Technician = {
@@ -79,6 +80,7 @@ export type Technician = {
   status: 'available' | 'on-break' | 'on-task'; // Represents current activity
   tasksAssigned?: string[]; // Array of infrastructure IDs
   path?: [number, number][];
+  avatarUrl?: string;
 };
 
 export type Task = {
@@ -161,10 +163,10 @@ export type TaskStatusDistribution = {
 }
 
 export let mockUsers: User[] = [
-    { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin', isBlocked: false },
-    { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password', isBlocked: false, contact: '+919876543210' },
-    { id: 'tech-002', name: 'Jane Smith', role: 'Technician', password: 'password', isBlocked: false, contact: '+919876543211' },
-    { id: 'tech-003', name: 'Mike Ross', role: 'Technician', password: 'password', isBlocked: true, contact: '+919876543212' },
+    { id: 'admin', name: 'Admin User', role: 'Admin', password: 'admin', isBlocked: false, avatarUrl: `https://i.pravatar.cc/150?u=admin` },
+    { id: 'tech-001', name: 'John Doe', role: 'Technician', password: 'password', isBlocked: false, contact: '+919876543210', avatarUrl: `https://i.pravatar.cc/150?u=tech-001` },
+    { id: 'tech-002', name: 'Jane Smith', role: 'Technician', password: 'password', isBlocked: false, contact: '+919876543211', avatarUrl: `https://i.pravatar.cc/150?u=tech-002` },
+    { id: 'tech-003', name: 'Mike Ross', role: 'Technician', password: 'password', isBlocked: true, contact: '+919876543212', avatarUrl: `https://i.pravatar.cc/150?u=tech-003` },
 ];
 
 export const mockStats: Stats = {
@@ -208,10 +210,10 @@ export const mockPlans: Plan[] = [
 
 
 export let mockTechnicians: Technician[] = [
-  { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, role: 'Field Engineer', contact: '+11234567890', isActive: true, status: 'on-task', path: [[34.062, -118.248]] },
-  { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, role: 'Field Engineer', contact: '+11234567891', isActive: true, status: 'available', path: [[34.045, -118.24]] },
-  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, role: 'Splicing Technician', contact: '+11234567892', isActive: false, status: 'on-break', path: [[34.055, -118.258]] },
-  { id: 'tech-004', name: 'Emily White', lat: 34.055, lng: -118.258, role: 'Field Engineer', contact: '+11234567893', isActive: false, status: 'available' },
+  { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, role: 'Field Engineer', contact: '+11234567890', isActive: true, status: 'on-task', path: [[34.062, -118.248]], avatarUrl: `https://i.pravatar.cc/150?u=tech-001` },
+  { id: 'tech-002', name: 'Jane Smith', lat: 34.045, lng: -118.24, role: 'Field Engineer', contact: '+11234567891', isActive: true, status: 'available', path: [[34.045, -118.24]], avatarUrl: `https://i.pravatar.cc/150?u=tech-002` },
+  { id: 'tech-003', name: 'Mike Ross', lat: 34.055, lng: -118.258, role: 'Splicing Technician', contact: '+11234567892', isActive: false, status: 'on-break', path: [[34.055, -118.258]], avatarUrl: `https://i.pravatar.cc/150?u=tech-003` },
+  { id: 'tech-004', name: 'Emily White', lat: 34.055, lng: -118.258, role: 'Field Engineer', contact: '+11234567893', isActive: false, status: 'available', avatarUrl: `https://i.pravatar.cc/150?u=tech-004` },
 ];
 
 export const mockTasks: Task[] = [

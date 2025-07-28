@@ -59,7 +59,7 @@ export default function Header() {
     if (names.length > 1) {
       return `${names[0][0]}${names[1][0]}`;
     }
-    return names[0].substring(0, 2).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
   };
 
   const getPageTitle = () => {
@@ -184,7 +184,7 @@ export default function Header() {
               <Avatar className="h-10 w-10 border">
                 {user && (
                     <>
-                        <AvatarImage src={`https://i.pravatar.cc/150?u=${user.id}`} alt={user.name} />
+                        <AvatarImage src={user.avatarUrl} alt={user.name} />
                         <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                     </>
                 )}
