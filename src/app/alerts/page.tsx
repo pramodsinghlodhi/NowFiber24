@@ -10,7 +10,7 @@ import {
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
-import { mockAlerts, Alert as AlertType, mockDevices, Device } from '@/lib/data';
+import { mockAlerts, Alert as AlertType, mockInfrastructure, Infrastructure } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +51,7 @@ export default function AlertsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -61,7 +61,7 @@ export default function AlertsPage() {
 
   useEffect(() => {
     if (selectedAlert) {
-      const device = mockDevices.find(d => d.id === selectedAlert.device_id) || null;
+      const device = mockInfrastructure.find(d => d.id === selectedAlert.device_id) || null;
       setSelectedDevice(device);
     } else {
       setSelectedDevice(null);
@@ -137,7 +137,7 @@ export default function AlertsPage() {
               </div>
               <div className="space-y-2">
                 <h4 className="font-semibold">Device</h4>
-                <p>{selectedDevice ? `${selectedDevice.id} (${selectedDevice.type})` : selectedAlert.device_id}</p>
+                <p>{selectedDevice ? `${selectedDevice.name} (${selectedDevice.id})` : selectedAlert.device_id}</p>
                 {selectedDevice && <p className="text-sm text-muted-foreground">IP: {selectedDevice.ip}</p>}
               </div>
                <div className="space-y-2">

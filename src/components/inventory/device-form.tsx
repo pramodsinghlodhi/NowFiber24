@@ -14,25 +14,26 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Device, mockDevices } from '@/lib/data';
+import { Infrastructure, mockInfrastructure } from '@/lib/data';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface DeviceFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (device: Device) => void;
-  device: Device | null;
+  onSave: (device: Infrastructure) => void;
+  device: Infrastructure | null;
 }
 
 export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: DeviceFormProps) {
   const [id, setId] = useState('');
-  const [type, setType] = useState<Device['type']>('ONU');
+  const [name, setName] = useState('');
+  const [type, setType] = useState<Infrastructure['type']>('ONU');
   const [ip, setIp] = useState('');
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
-  const [status, setStatus] = useState<Device['status']>('online');
-  const [attributes, setAttributes] = useState<Device['attributes']>({});
+  const [status, setStatus] = useState<Infrastructure['status']>('online');
+  const [attributes, setAttributes] = useState<Infrastructure['attributes']>({});
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -41,6 +42,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
   useEffect(() => {
     if (device) {
       setId(device.id);
+      setName(device.name);
       setType(device.type);
       setIp(device.ip || '');
       setLat(device.lat);
@@ -50,6 +52,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
     } else {
       // Reset form for new entry
       setId('');
+      setName('');
       setType('ONU');
       setIp('');
       setLat(34.0522);
@@ -61,12 +64,12 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !type || !lat || !lng) {
+    if (!id || !type || !lat || !lng || !name) {
         toast({ title: 'Missing Fields', description: 'Please fill out all required fields.', variant: 'destructive'});
         return;
     }
 
-    if (!isEditing && mockDevices.some(d => d.id === id)) {
+    if (!isEditing && mockInfrastructure.some(d => d.id === id)) {
         toast({ title: 'ID already exists', description: 'This device ID is already in use. Please choose another.', variant: 'destructive'});
         return;
     }
@@ -75,8 +78,10 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
 
     // Simulate saving
     setTimeout(() => {
-        const newOrUpdatedDevice: Device = {
+        const newOrUpdatedDevice: Infrastructure = {
             id,
+            projectId: 'ftth001', // Default project for now
+            name,
             type,
             ip,
             lat,
@@ -90,7 +95,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
     }, 500);
   };
 
-  const handleAttributeChange = (key: keyof NonNullable<Device['attributes']>, value: string) => {
+  const handleAttributeChange = (key: keyof NonNullable<Infrastructure['attributes']>, value: string) => {
     setAttributes(prev => ({...prev, [key]: value}));
   }
 
@@ -100,15 +105,21 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Device' : 'Add New Device'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? `Update details for ${device?.id}.` : 'Enter the details for the new network device.'}
+            {isEditing ? `Update details for ${device?.name}.` : 'Enter the details for the new network device.'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-            <div className="space-y-2">
-              <Label htmlFor="id">Device ID</Label>
-              <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="id">Device ID</Label>
+                <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing} />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="name">Device Name</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Customer ONU" required />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -119,11 +130,15 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                             <SelectItem value="Datacenter">Datacenter</SelectItem>
                             <SelectItem value="Core Switch">Core Switch</SelectItem>
                             <SelectItem value="OLT">OLT</SelectItem>
-                            <SelectItem value="Switch">Switch</SelectItem>
+                            <SelectItem value="switch">Switch</SelectItem>
                             <SelectItem value="Splice Box">Splice Box</SelectItem>
                             <SelectItem value="ONU">ONU</SelectItem>
                             <SelectItem value="Pole">Pole</SelectItem>
-                             <SelectItem value="Customer Premise">Customer Premise</SelectItem>
+                            <SelectItem value="Customer Premise">Customer Premise</SelectItem>
+                            <SelectItem value="fiber">Fiber Cable</SelectItem>
+                            <SelectItem value="splitter">Splitter</SelectItem>
+                            <SelectItem value="joint_box">Joint Box</SelectItem>
+                            <SelectItem value="router">Router</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -135,7 +150,8 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                             <SelectItem value="online">Online</SelectItem>
                             <SelectItem value="offline">Offline</SelectItem>
                             <SelectItem value="maintenance">Maintenance</SelectItem>
-                             <SelectItem value="planned">Planned</SelectItem>
+                            <SelectItem value="planned">Planned</SelectItem>
+                            <SelectItem value="installed">Installed</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

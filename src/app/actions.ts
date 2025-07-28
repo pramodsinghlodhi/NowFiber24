@@ -3,18 +3,18 @@
 
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
-import {mockDevices, mockTechnicians} from '@/lib/data';
+import {mockInfrastructure, mockTechnicians} from '@/lib/data';
 
 export async function runAutoFaultDetection() {
   // In a real application, you would fetch this data from your database.
-  const techniciansWithLocation = mockTechnicians.filter(t => t.onDuty).map(t => ({
+  const techniciansWithLocation = mockTechnicians.filter(t => t.isActive).map(t => ({
     techId: t.id,
     latitude: t.lat,
     longitude: t.lng,
   }));
 
   // Find a single faulty device for the manual trigger, to prevent memory overload.
-  const faultyDevice = mockDevices.find(d => d.status === 'offline');
+  const faultyDevice = mockInfrastructure.find(d => d.status === 'offline');
 
   if (!faultyDevice) {
     return [{isReachable: true, alertCreated: false, issue: 'No offline devices found to test.'}];
@@ -22,7 +22,7 @@ export async function runAutoFaultDetection() {
 
    const result = await autoFaultDetection({
     deviceId: faultyDevice.id,
-    deviceIp: faultyDevice.ip,
+    deviceIp: faultyDevice.ip || 'N/A',
     deviceType: faultyDevice.type,
     latitude: faultyDevice.lat,
     longitude: faultyDevice.lng,

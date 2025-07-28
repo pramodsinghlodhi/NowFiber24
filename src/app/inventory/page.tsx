@@ -10,7 +10,7 @@ import {
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
-import { mockDevices, Device } from '@/lib/data';
+import { mockInfrastructure, Infrastructure } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import DeviceForm from '@/components/inventory/device-form';
 
 
-const getStatusIndicator = (status: 'online' | 'offline' | 'maintenance') => {
+const getStatusIndicator = (status: Infrastructure['status']) => {
     switch (status) {
       case 'online':
         return <Badge variant="secondary" className="bg-green-500/20 text-green-700 border-green-400"><Circle className="mr-2 h-2 w-2 fill-green-500 text-green-500" />Online</Badge>;
@@ -30,8 +30,10 @@ const getStatusIndicator = (status: 'online' | 'offline' | 'maintenance') => {
         return <Badge variant="destructive"><Circle className="mr-2 h-2 w-2 fill-white" />Offline</Badge>;
       case 'maintenance':
         return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 border-yellow-400"><Circle className="mr-2 h-2 w-2 fill-yellow-500 text-yellow-500" />Maintenance</Badge>;
+      case 'installed':
+        return <Badge variant="secondary"><Circle className="mr-2 h-2 w-2" />Installed</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -39,8 +41,8 @@ export default function InventoryPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [devices, setDevices] = useState<Device[]>(mockDevices);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [devices, setDevices] = useState<Infrastructure[]>(mockInfrastructure);
+  const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
 
@@ -56,8 +58,8 @@ export default function InventoryPage() {
 
   const handleDelete = (deviceId: string) => {
     setDevices(prev => prev.filter(d => d.id !== deviceId));
-    const deviceIndex = mockDevices.findIndex(d => d.id === deviceId);
-    if(deviceIndex > -1) mockDevices.splice(deviceIndex, 1);
+    const deviceIndex = mockInfrastructure.findIndex(d => d.id === deviceId);
+    if(deviceIndex > -1) mockInfrastructure.splice(deviceIndex, 1);
 
     toast({
         title: `Deleted Device ${deviceId}`,
@@ -66,16 +68,16 @@ export default function InventoryPage() {
     })
   }
 
-  const handleSave = (deviceData: Device) => {
+  const handleSave = (deviceData: Infrastructure) => {
     const isEditing = !!selectedDevice;
     if (isEditing) {
         setDevices(prev => prev.map(d => d.id === deviceData.id ? deviceData : d));
-        const deviceIndex = mockDevices.findIndex(d => d.id === deviceData.id);
-        if(deviceIndex > -1) mockDevices[deviceIndex] = deviceData;
+        const deviceIndex = mockInfrastructure.findIndex(d => d.id === deviceData.id);
+        if(deviceIndex > -1) mockInfrastructure[deviceIndex] = deviceData;
         toast({ title: "Device Updated", description: `${deviceData.id}'s details have been updated.` });
     } else {
         setDevices(prev => [...prev, deviceData]);
-        mockDevices.push(deviceData);
+        mockInfrastructure.push(deviceData);
         toast({ title: "Device Added", description: `Device ${deviceData.id} has been added to the inventory.` });
     }
     setIsFormOpen(false);
@@ -87,7 +89,7 @@ export default function InventoryPage() {
     setIsFormOpen(true);
   }
 
-  const handleEdit = (device: Device) => {
+  const handleEdit = (device: Infrastructure) => {
     setSelectedDevice(device);
     setIsFormOpen(true);
   }
@@ -122,6 +124,7 @@ export default function InventoryPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Device ID</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>IP Address</TableHead>
                     <TableHead>Location</TableHead>
@@ -130,9 +133,10 @@ export default function InventoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {devices.map((device: Device) => (
+                  {devices.map((device: Infrastructure) => (
                     <TableRow key={device.id}>
                       <TableCell className="font-medium">{device.id}</TableCell>
+                      <TableCell>{device.name}</TableCell>
                       <TableCell>{device.type}</TableCell>
                       <TableCell>{device.ip || "N/A"}</TableCell>
                       <TableCell>{device.lat.toFixed(4)}, {device.lng.toFixed(4)}</TableCell>

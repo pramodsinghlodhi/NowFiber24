@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 import { cn } from "@/lib/utils";
-import { Device, Technician, Alert } from "@/lib/data";
+import { Infrastructure, Technician, Alert } from "@/lib/data";
 
 // This is a workaround for a common issue with Leaflet and Next.js
 // It manually sets the paths for the default marker icons.
@@ -21,13 +21,13 @@ if (typeof window !== 'undefined') {
 
 
 type MapViewProps = {
-  devices: Device[];
+  devices: Infrastructure[];
   technicians: Technician[];
   alerts: Alert[];
   mapStyle?: string;
 };
 
-const getDeviceIcon = (device: Device) => {
+const getDeviceIcon = (device: Infrastructure) => {
   const iconSize: [number, number] = [32, 32];
   const commonClasses = "p-1.5 rounded-full text-white shadow-lg flex items-center justify-center";
 
@@ -40,7 +40,7 @@ const getDeviceIcon = (device: Device) => {
     case 'OLT':
       iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="14" width="18" height="7" rx="2" ry="2" /><line x1="6" y1="17" x2="6.01" y2="17" /><line x1="10" y1="17" x2="10.01" y2="17" /><path d="M4 14V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6" /></svg>`;
       break;
-    case 'Switch':
+    case 'switch':
       iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2m20 0-3-3m3 3-3 3M2 12l3 3M2 12l3 3"/><path d="M17 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-5 10a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>`;
       break;
     case 'Pole':
@@ -148,7 +148,7 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
                 .addTo(lg)
                 .bindPopup(`
                     <div class="p-2">
-                        <h3 class="font-bold">${device.id}</h3>
+                        <h3 class="font-bold">${device.name} (${device.id})</h3>
                         <p>${device.type}</p>
                         <p class="capitalize text-sm ${device.status === 'online' ? 'text-green-600' : 'text-red-600'}">${device.status}</p>
                         ${device.ip ? `<p class="text-xs text-gray-500">${device.ip}</p>` : ''}

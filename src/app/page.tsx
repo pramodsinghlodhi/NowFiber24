@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockAlerts, mockTasks, mockDevices, mockTechnicians, mockStats, Technician } from '@/lib/data';
+import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockStats, Technician, Infrastructure } from '@/lib/data';
 import StatsCard from '@/components/dashboard/stats-card';
 import TasksList from '@/components/dashboard/tasks-list';
 import AlertsList from '@/components/dashboard/alerts-list';
@@ -64,7 +64,7 @@ export default function Home() {
   }
 
   const stats = mockStats;
-  const devices = mockDevices;
+  const devices = mockInfrastructure;
   const alerts = mockAlerts;
   const tasks = mockTasks.filter(t => t.tech_id === user.id || user.role === 'Admin');
 

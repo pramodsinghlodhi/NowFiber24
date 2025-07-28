@@ -15,8 +15,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Technician, User, mockUsers } from '@/lib/data';
+import { Technician, User, mockUsers, mockTechnicians } from '@/lib/data';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface TechnicianFormProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   const [name, setName] = useState('');
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
+  const [contact, setContact] = useState('');
+  const [role, setRole] = useState<Technician['role']>('Field Engineer');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -38,6 +41,8 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     if (technician) {
       setName(technician.name);
       setId(technician.id);
+      setRole(technician.role);
+      setContact(technician.contact);
       const user = mockUsers.find(u => u.id === technician.id);
       setPassword(user?.password || '');
     } else {
@@ -45,12 +50,14 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
       setName('');
       setId('');
       setPassword('');
+      setContact('');
+      setRole('Field Engineer');
     }
   }, [technician, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !id || !password) {
+    if (!name || !id || !password || !contact) {
         toast({ title: 'Missing Fields', description: 'Please fill out all required fields.', variant: 'destructive'});
         return;
     }
@@ -68,6 +75,8 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         const newOrUpdatedTechnician: Technician = {
             id,
             name,
+            role,
+            contact,
             lat: existingTechnician?.lat || 34.0522,
             lng: existingTechnician?.lng || -118.2437,
             isActive: existingTechnician?.isActive || false,
@@ -80,6 +89,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             name,
             password,
             role: 'Technician',
+            contact,
             isBlocked: existingUser?.isBlocked || false,
         };
 
@@ -104,13 +114,31 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., John Smith" required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="id">Technician ID (Login ID)</Label>
-              <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., tech-004" required disabled={isEditing} />
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="id">Technician ID (Login ID)</Label>
+                    <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., tech-004" required disabled={isEditing} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="contact">Contact Number</Label>
+                    <Input id="contact" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="e.g., +11234567890" required />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={role} onValueChange={(value) => setRole(value as any)} required>
+                        <SelectTrigger id="role"><SelectValue placeholder="Select role" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Field Engineer">Field Engineer</SelectItem>
+                            <SelectItem value="Splicing Technician">Splicing Technician</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
           </div>
           <DialogFooter>
