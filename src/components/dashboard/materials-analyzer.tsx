@@ -1,3 +1,4 @@
+
 'use client';
 
 import {useState, useRef} from 'react';
@@ -11,13 +12,14 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {Bot, Wrench, Upload, Loader2} from 'lucide-react';
+import {Bot, Wrench, Upload, Loader2, AlertTriangle} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import Image from 'next/image';
 import {analyzeMaterials} from '@/app/actions';
 import {Task} from '@/lib/data';
 import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
 import {Badge} from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 const toDataURL = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -126,9 +128,27 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
           {result && (
             <div className="space-y-4">
               <Alert>
-                <AlertTitle className="font-bold">Analysis Results</AlertTitle>
+                <AlertTitle className="font-bold">Analysis Notes</AlertTitle>
                 <AlertDescription>{result.notes || 'Analysis complete.'}</AlertDescription>
               </Alert>
+              
+              {result.unauthorizedItems?.length > 0 && (
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="font-bold">Unauthorized Materials Detected!</AlertTitle>
+                    <AlertDescription>
+                        The following non-standard items were identified:
+                         <ul className="list-disc list-inside mt-2 space-y-1">
+                            {result.unauthorizedItems.map((item: any, index: number) => (
+                                <li key={index}>
+                                    <strong>{item.item}:</strong> {item.reason}
+                                </li>
+                            ))}
+                        </ul>
+                    </AlertDescription>
+                </Alert>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-semibold mb-2">Materials Used:</h4>
@@ -141,11 +161,11 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2">Missing Items:</h4>
+                  <h4 className="font-semibold mb-2">Missing Items from Issued List:</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {result.missingItems?.length > 0 ? (
                       result.missingItems.map((item: string, index: number) => (
-                        <li key={index} className="text-destructive">
+                        <li key={index}>
                           {item}
                         </li>
                       ))

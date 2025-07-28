@@ -1,7 +1,8 @@
+
 'use server';
 
 /**
- * @fileOverview This flow analyzes images of materials used in a job to identify the items and quantities.
+ * @fileOverview This flow analyzes images of materials used in a job to identify the items, quantities, and flag any non-standard or unauthorized materials.
  *
  * - analyzeMaterialsUsed - A function that handles the analysis of materials used in a job.
  * - AnalyzeMaterialsUsedInput - The input type for the analyzeMaterialsUsed function.
@@ -32,6 +33,12 @@ const AnalyzeMaterialsUsedOutputSchema = z.object({
   missingItems: z.array(
     z.string().describe('List of materials issued but not found in the image.')
   ).describe('The list of materials that were issued but are not accounted for in the image.'),
+  unauthorizedItems: z.array(
+    z.object({
+        item: z.string().describe('The name of the unauthorized material detected.'),
+        reason: z.string().describe('The reason why this material is considered unauthorized.')
+    })
+  ).describe('A list of any detected materials that are non-standard, from a different company, or not on the issued list.'),
   notes: z.string().describe('Any notes or observations about the materials or their usage.'),
 });
 export type AnalyzeMaterialsUsedOutput = z.infer<typeof AnalyzeMaterialsUsedOutputSchema>;
@@ -44,17 +51,25 @@ const analyzeMaterialsUsedPrompt = ai.definePrompt({
   name: 'analyzeMaterialsUsedPrompt',
   input: {schema: AnalyzeMaterialsUsedInputSchema},
   output: {schema: AnalyzeMaterialsUsedOutputSchema},
-  prompt: `You are an AI assistant specialized in analyzing images of materials used in field engineering tasks.
+  prompt: `You are an AI Quality Control Specialist for a fiber optics ISP. Your primary role is to analyze images of materials used by field technicians to ensure compliance with company standards.
 
-You will be provided with a photo of materials, details of the task, and a list of materials that were originally issued for the task. Your goal is to identify the materials present in the photo, determine their quantities, and identify any missing materials.
+You will be provided with a photo of materials, details of the task, and a list of materials that were officially issued for the task.
+
+Your instructions are:
+1.  Identify all materials and their quantities visible in the photo. Populate the 'materialsUsed' field.
+2.  Compare the identified materials with the 'materialsIssued' list. Populate the 'missingItems' field with any materials from the issued list that are not visible in the photo.
+3.  Critically examine the materials in the photo for any signs of non-compliance. This includes:
+    - Items that are not on the 'materialsIssued' list.
+    - Items that appear to be from a different brand or of a different specification than the company standard (e.g., wrong type of fiber cable, non-standard connectors, different colored wiring or tubes).
+    - Any other visual anomalies that suggest a deviation from standard procedure.
+4. For each non-compliant item you detect, add it to the 'unauthorizedItems' field with a clear 'reason' for why it's being flagged (e.g., "Unrecognized brand", "Item not on issued list", "Incorrect cable type detected").
+5. Provide overall notes and observations in the 'notes' field.
 
 Task Details: {{{taskDetails}}}
 Materials Issued: {{{materialsIssued}}}
 Photo: {{media url=photoDataUri}}
 
-Based on the image, identify the materials used, their quantities, and list any missing items compared to the materials issued. Provide any relevant notes or observations.
-
-Ensure that the output is well-formatted and easy to understand.
+Analyze the photo with a high degree of scrutiny to ensure 100% compliance and perfect installation quality.
 `,
 });
 
