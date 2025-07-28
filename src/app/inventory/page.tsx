@@ -51,12 +51,13 @@ export default function InventoryPage() {
       router.push('/login');
       return;
     }
-    if (user.role !== 'Admin') {
-      router.push('/');
-    }
   }, [user, router]);
 
   const handleDelete = (deviceId: string) => {
+    if (user?.role !== 'Admin') {
+        toast({ title: 'Permission Denied', description: 'You do not have permission to delete devices.', variant: 'destructive' });
+        return;
+    }
     setDevices(prev => prev.filter(d => d.id !== deviceId));
     const deviceIndex = mockInfrastructure.findIndex(d => d.id === deviceId);
     if(deviceIndex > -1) mockInfrastructure.splice(deviceIndex, 1);
@@ -76,6 +77,10 @@ export default function InventoryPage() {
         if(deviceIndex > -1) mockInfrastructure[deviceIndex] = deviceData;
         toast({ title: "Device Updated", description: `${deviceData.id}'s details have been updated.` });
     } else {
+        if (user?.role !== 'Admin') {
+            toast({ title: 'Permission Denied', description: 'You do not have permission to add new devices.', variant: 'destructive' });
+            return;
+        }
         setDevices(prev => [...prev, deviceData]);
         mockInfrastructure.push(deviceData);
         toast({ title: "Device Added", description: `Device ${deviceData.id} has been added to the inventory.` });
@@ -85,6 +90,10 @@ export default function InventoryPage() {
   }
 
   const handleAddNew = () => {
+    if (user?.role !== 'Admin') {
+        toast({ title: 'Permission Denied', description: 'Only admins can add new devices.', variant: 'destructive' });
+        return;
+    }
     setSelectedDevice(null);
     setIsFormOpen(true);
   }
@@ -94,7 +103,7 @@ export default function InventoryPage() {
     setIsFormOpen(true);
   }
 
-  if (!user || user.role !== 'Admin') {
+  if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <p>Unauthorized. Redirecting...</p>
@@ -114,10 +123,12 @@ export default function InventoryPage() {
                     <CardTitle>Network Inventory</CardTitle>
                     <CardDescription>Manage all network devices and equipment.</CardDescription>
                 </div>
-                <Button onClick={handleAddNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Device
-                </Button>
+                {user.role === 'Admin' && (
+                    <Button onClick={handleAddNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Device
+                    </Button>
+                )}
             </CardHeader>
             <CardContent>
               <Table>
@@ -156,10 +167,12 @@ export default function InventoryPage() {
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(device.id)}>
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Delete
-                                </DropdownMenuItem>
+                                {user.role === 'Admin' && (
+                                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(device.id)}>
+                                        <Trash className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Infrastructure, mockInfrastructure } from '@/lib/data';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useAuth } from '@/contexts/auth-context';
 
 interface DeviceFormProps {
   isOpen: boolean;
@@ -25,7 +26,12 @@ interface DeviceFormProps {
   device: Infrastructure | null;
 }
 
+const fiberTubeColors = ['Blue', 'Orange', 'Green', 'Brown', 'Slate', 'White', 'Red', 'Black', 'Yellow', 'Violet', 'Rose', 'Aqua'];
+const fiberCoreColors = ['Blue', 'Orange', 'Green', 'Brown', 'Slate', 'White', 'Red', 'Black', 'Yellow', 'Violet', 'Rose', 'Aqua'];
+
+
 export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: DeviceFormProps) {
+  const { user } = useAuth();
   const [id, setId] = useState('');
   const [name, setName] = useState('');
   const [type, setType] = useState<Infrastructure['type']>('ONU');
@@ -38,6 +44,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
   const { toast } = useToast();
 
   const isEditing = !!device;
+  const isTechnician = user?.role === 'Technician';
 
   useEffect(() => {
     if (device) {
@@ -88,6 +95,8 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
             lng,
             status,
             attributes,
+            connectedBy: isEditing ? device?.connectedBy : user?.name,
+            connectionDate: isEditing ? device?.connectionDate : new Date().toISOString(),
         };
 
         onSave(newOrUpdatedDevice);
@@ -95,7 +104,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
     }, 500);
   };
 
-  const handleAttributeChange = (key: keyof NonNullable<Infrastructure['attributes']>, value: string) => {
+  const handleAttributeChange = (key: keyof NonNullable<Infrastructure['attributes']>, value: string | number) => {
     setAttributes(prev => ({...prev, [key]: value}));
   }
 
@@ -114,17 +123,17 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="id">Device ID</Label>
-                <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing} />
+                <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing || isTechnician} />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="name">Device Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Customer ONU" required />
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Customer ONU" required disabled={isTechnician}/>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="type">Device Type</Label>
-                    <Select value={type} onValueChange={(value) => setType(value as any)} required>
+                    <Select value={type} onValueChange={(value) => setType(value as any)} required disabled={isTechnician}>
                         <SelectTrigger id="type"><SelectValue placeholder="Select type" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Datacenter">Datacenter</SelectItem>
@@ -158,16 +167,16 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
             </div>
             <div className="space-y-2">
                 <Label htmlFor="ip">IP Address</Label>
-                <Input id="ip" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="e.g., 10.0.1.106" />
+                <Input id="ip" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="e.g., 10.0.1.106" disabled={isTechnician}/>
             </div>
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="lat">Latitude</Label>
-                    <Input id="lat" type="number" value={lat} onChange={(e) => setLat(parseFloat(e.target.value))} placeholder="e.g., 34.0522" required />
+                    <Input id="lat" type="number" value={lat} onChange={(e) => setLat(parseFloat(e.target.value))} placeholder="e.g., 34.0522" required disabled={isTechnician}/>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="lng">Longitude</Label>
-                    <Input id="lng" type="number" value={lng} onChange={(e) => setLng(parseFloat(e.target.value))} placeholder="e.g., -118.2437" required />
+                    <Input id="lng" type="number" value={lng} onChange={(e) => setLng(parseFloat(e.target.value))} placeholder="e.g., -118.2437" required disabled={isTechnician}/>
                 </div>
             </div>
 
@@ -180,6 +189,35 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                  <div className="space-y-2">
                     <Label htmlFor="powerLevel">Power Level (dBm)</Label>
                     <Input id="powerLevel" value={attributes?.powerLevel || ''} onChange={(e) => handleAttributeChange('powerLevel', e.target.value)} placeholder="e.g., -24.5 dBm" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="tubeColor">Tube Color</Label>
+                        <Select value={attributes?.tubeColor || ''} onValueChange={(v) => handleAttributeChange('tubeColor', v)}>
+                            <SelectTrigger id="tubeColor"><SelectValue placeholder="Select tube color" /></SelectTrigger>
+                            <SelectContent>
+                                {fiberTubeColors.map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="fiberColor">Fiber Color</Label>
+                        <Select value={attributes?.fiberColor || ''} onValueChange={(v) => handleAttributeChange('fiberColor', v)}>
+                            <SelectTrigger id="fiberColor"><SelectValue placeholder="Select fiber color" /></SelectTrigger>
+                            <SelectContent>
+                                {fiberCoreColors.map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="fiberCapacity">Fiber Capacity</Label>
+                    <Select value={attributes?.fiberCapacity || ''} onValueChange={(v) => handleAttributeChange('fiberCapacity', v)}>
+                        <SelectTrigger id="fiberCapacity"><SelectValue placeholder="Select capacity" /></SelectTrigger>
+                        <SelectContent>
+                            {['2F', '4F', '8F', '12F', '24F', '48F', '96F'].map(cap => <SelectItem key={cap} value={cap}>{cap}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
           </div>
