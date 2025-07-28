@@ -104,5 +104,6 @@ body {
 }
 
 .custom-tooltip {
-    @apply bg-card text-card-foreground border-none shadow-lg rounded-md px-2 py-1;
+    @apply bg-card/80 text-card-foreground border-none shadow-lg rounded-md px-2 py-1 backdrop-blur-sm;
+    z-index: 1000 !important;
 }

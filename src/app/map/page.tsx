@@ -112,19 +112,19 @@ export default function MapPage() {
                         <DropdownMenuSeparator />
                         <DropdownMenuCheckboxItem
                             checked={filters.technicians}
-                            onCheckedChange={(value) => handleFilterChange('technicians', value)}
+                            onCheckedChange={(value) => handleFilterChange('technicians', !!value)}
                         >
                             Technicians
                         </DropdownMenuCheckboxItem>
                          <DropdownMenuCheckboxItem
                             checked={filters.alerts}
-                            onCheckedChange={(value) => handleFilterChange('alerts', value)}
+                            onCheckedChange={(value) => handleFilterChange('alerts', !!value)}
                         >
                             Alerts
                         </DropdownMenuCheckboxItem>
                         <DropdownMenuCheckboxItem
                             checked={filters.connections}
-                            onCheckedChange={(value) => handleFilterChange('connections', value)}
+                            onCheckedChange={(value) => handleFilterChange('connections', !!value)}
                         >
                             Fiber Lines
                         </DropdownMenuCheckboxItem>
@@ -134,8 +134,8 @@ export default function MapPage() {
                         {allDeviceTypes.map(type => (
                              <DropdownMenuCheckboxItem
                                 key={type}
-                                checked={filters[type]}
-                                onCheckedChange={(value) => handleFilterChange(type, value)}
+                                checked={!!filters[type]}
+                                onCheckedChange={(value) => handleFilterChange(type, !!value)}
                                 className="capitalize"
                             >
                                 {type.replace(/_/g, ' ')}
