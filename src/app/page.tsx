@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   ssr: false,
-  loading: () => <Skeleton className="h-full w-full" />,
+  loading: () => <Skeleton className="h-full w-full rounded-xl" />,
 });
 
 
@@ -82,9 +82,9 @@ export default function Home() {
             <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon={ListChecks} />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full">
+            <div className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full">
                <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} />
-            </Card>
+            </div>
             <div className="space-y-6">
                 <Card>
                     <CardHeader>
