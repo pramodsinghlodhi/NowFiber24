@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
@@ -34,6 +34,7 @@ const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
 
 const menuItemsTop = [
     {href: '/', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
+    {href: '/map', icon: Map, label: 'Fullscreen Map', admin: true, tech: true},
     {href: '/alerts', icon: AlertTriangle, label: 'Alerts', admin: true, tech: true},
     {href: '/inventory', icon: Network, label: 'Inventory', admin: true, tech: false},
     {href: '/tasks', icon: ListTodo, label: 'Tasks', admin: true, tech: true},
