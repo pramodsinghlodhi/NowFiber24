@@ -19,9 +19,17 @@ import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
 import FaultDetector from '../dashboard/fault-detector';
 import RequestMaterial from '../materials/request-material-form';
-import { mockAssignments } from '@/lib/data';
+import { mockAssignments, mockAlerts } from '@/lib/data';
 import { Badge } from '../ui/badge';
 import { useSidebar } from '@/components/ui/sidebar';
+import dynamic from 'next/dynamic';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+
+const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
+  ssr: false,
+  loading: () => <div className="h-[150px] w-full bg-muted rounded-md animate-pulse" />,
+});
 
 
 const menuItemsTop = [
@@ -43,7 +51,8 @@ const menuItemsBottom = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const {user, logout} = useAuth();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state } = useSidebar();
+  const router = useRouter();
 
   const handleLinkClick = () => {
     setOpenMobile(false);
@@ -64,6 +73,9 @@ export default function AppSidebar() {
     return 0;
   }
 
+  const criticalAlerts = mockAlerts.filter(a => a.severity === 'Critical');
+  const latestCriticalAlert = criticalAlerts.length > 0 ? criticalAlerts[0] : null;
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -73,6 +85,20 @@ export default function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
+        {state === 'expanded' && latestCriticalAlert && (
+             <Card className="mb-2 bg-destructive/10 border-destructive/30">
+                <CardHeader className="p-3">
+                    <CardTitle className="text-sm font-semibold">Latest Critical Alert</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <MiniMap center={[latestCriticalAlert.lat, latestCriticalAlert.lng]}/>
+                    <div className="p-3">
+                        <CardDescription>{latestCriticalAlert.issue}</CardDescription>
+                        <Button variant="destructive" size="sm" className="w-full mt-2" onClick={() => router.push('/alerts')}>View {criticalAlerts.length} Alerts</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
         <SidebarMenu>
           {menuItemsTop.map(
             (item) =>

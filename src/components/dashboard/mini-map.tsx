@@ -20,7 +20,7 @@ if (typeof window !== 'undefined') {
 
 const getAlertIcon = () => {
     return L.divIcon({
-        html: `<div class="relative flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-siren h-8 w-8 text-destructive"><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 18 5"/><path d="M2 12h1"/><path d="M12 2v1"/><path d="m4.929 4.929.707.707"/><path d="M12 12v6"/></svg></div>`,
+        html: `<div class="relative flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-siren h-8 w-8 text-destructive animate-pulse"><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 18 5"/><path d="M2 12h1"/><path d="M12 2v1"/><path d="m4.929 4.929.707.707"/><path d="M12 12v6"/></svg></div>`,
         className: 'bg-transparent border-0',
         iconSize: [32, 32],
         iconAnchor: [16, 16],
@@ -39,21 +39,17 @@ export default function MiniMap({ center }: MiniMapProps) {
         scrollWheelZoom: false,
         dragging: false,
         zoomControl: false,
+        attributionControl: false,
       });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
       }).addTo(mapInstance.current);
 
        L.marker(center, { icon: getAlertIcon() }).addTo(mapInstance.current);
+    } else if (mapInstance.current) {
+        mapInstance.current.setView(center, 15);
     }
 
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
-    };
   }, [center]);
 
-  return <div ref={mapRef} className="h-[200px] w-full rounded-md" />;
+  return <div ref={mapRef} className="h-[150px] w-full" />;
 }
