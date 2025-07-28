@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 import { cn } from "@/lib/utils";
-import { Infrastructure, Technician, Alert } from "@/lib/data";
+import { Infrastructure, Technician, Alert, Connection } from "@/lib/data";
 
 // This is a workaround for a common issue with Leaflet and Next.js
 // It manually sets the paths for the default marker icons.
@@ -24,6 +24,7 @@ type MapViewProps = {
   devices: Infrastructure[];
   technicians: Technician[];
   alerts: Alert[];
+  connections: Connection[];
   mapStyle?: string;
 };
 
@@ -80,8 +81,27 @@ const getAlertIcon = () => {
     });
 }
 
+const createPopupContent = (device: Infrastructure) => {
+    let attributesHtml = '';
+    if (device.attributes) {
+        attributesHtml = Object.entries(device.attributes)
+            .map(([key, value]) => value ? `<p class="text-xs text-muted-foreground capitalize">${key.replace(/([A-Z])/g, ' $1')}: <strong>${value}</strong></p>` : '')
+            .join('');
+    }
 
-export default function MapView({ devices, technicians, alerts, mapStyle = 'map' }: MapViewProps) {
+    return `
+        <div class="p-2">
+            <h3 class="font-bold">${device.name} (${device.id})</h3>
+            <p>${device.type}</p>
+            <p class="capitalize text-sm ${device.status === 'online' ? 'text-green-600' : 'text-red-600'}">${device.status}</p>
+            ${device.ip ? `<p class="text-xs text-gray-500">${device.ip}</p>` : ''}
+            ${attributesHtml ? `<div class="mt-2 pt-2 border-t">${attributesHtml}</div>` : ''}
+        </div>
+    `;
+};
+
+
+export default function MapView({ devices, technicians, alerts, connections, mapStyle = 'map' }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
@@ -94,10 +114,9 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
       mapInstance.current = L.map(mapRef.current, {
           center: [34.05, -118.25], // Centered on LA
           zoom: 12,
-          zoomControl: false, // Disable default zoom control
+          zoomControl: false,
       });
       
-      // Add custom zoom control to the top right
       L.control.zoom({ position: 'topright' }).addTo(mapInstance.current);
 
       layerGroupRef.current = L.layerGroup().addTo(mapInstance.current);
@@ -127,38 +146,26 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
   useEffect(() => {
     if (mapInstance.current && layerGroupRef.current) {
         const lg = layerGroupRef.current;
-        
-        // Temporarily store layers to avoid re-adding everything
-        const layersToRemove: L.Layer[] = [];
-        lg.eachLayer(layer => {
-            // Keep technician markers and paths for now, clear the rest
-            const isTechLayer = Object.values(technicianMarkers.current).some(
-                ({ marker, path }) => marker === layer || path === layer
-            );
-            if (!isTechLayer) {
-                layersToRemove.push(layer);
+        lg.clearLayers(); // Clear all layers before redrawing
+
+        // Draw connections first
+        connections.forEach(connection => {
+            const fromDevice = devices.find(d => d.id === connection.from);
+            const toDevice = devices.find(d => d.id === connection.to);
+            if (fromDevice && toDevice) {
+                const latlngs: [number, number][] = [[fromDevice.lat, fromDevice.lng], [toDevice.lat, toDevice.lng]];
+                L.polyline(latlngs, { color: '#009688', weight: 2, opacity: 0.8 }).addTo(lg);
             }
         });
-        layersToRemove.forEach(layer => lg.removeLayer(layer));
 
-
-        // Add device markers
         devices.forEach(device => {
-            const marker = L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
+            L.marker([device.lat, device.lng], { icon: getDeviceIcon(device) })
                 .addTo(lg)
-                .bindPopup(`
-                    <div class="p-2">
-                        <h3 class="font-bold">${device.name} (${device.id})</h3>
-                        <p>${device.type}</p>
-                        <p class="capitalize text-sm ${device.status === 'online' ? 'text-green-600' : 'text-red-600'}">${device.status}</p>
-                        ${device.ip ? `<p class="text-xs text-gray-500">${device.ip}</p>` : ''}
-                    </div>
-                `, { className: 'custom-popup' });
+                .bindPopup(createPopupContent(device), { className: 'custom-popup' });
         });
 
-        // Add alert markers with permanent tooltips
         alerts.forEach(alert => {
-            const alertMarker = L.marker([alert.lat, alert.lng], { icon: getAlertIcon() })
+            L.marker([alert.lat, alert.lng], { icon: getAlertIcon() })
                 .addTo(lg)
                 .bindTooltip(`${alert.device_id}: ${alert.issue}`, {
                     permanent: true,
@@ -168,42 +175,18 @@ export default function MapView({ devices, technicians, alerts, mapStyle = 'map'
                 });
         });
 
-         // Initialize or update technician markers and paths
         technicians.filter(t => t.isActive).forEach(tech => {
             const pos: [number, number] = [tech.lat, tech.lng];
-            if (technicianMarkers.current[tech.id]) {
-                const { marker, path } = technicianMarkers.current[tech.id];
-                marker.setLatLng(pos);
-                if (path && tech.path) {
-                    path.setLatLngs(tech.path);
-                }
-            } else {
-                const marker = L.marker(pos, { icon: getTechnicianIcon() })
-                    .addTo(lg)
-                    .bindPopup(`
-                        <div class="p-2">
-                            <h3 class="font-bold">${tech.name}</h3>
-                            <p>Status: ${tech.status}</p>
-                        </div>
-                    `, { className: 'custom-popup' });
-
-                const path = tech.path ? L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7 }).addTo(lg) : null;
-                
-                technicianMarkers.current[tech.id] = { marker, path };
-            }
-        });
-
-        // Remove markers and paths for off-duty technicians
-        Object.keys(technicianMarkers.current).forEach(techId => {
-            if (!technicians.some(t => t.id === techId && t.isActive)) {
-                const { marker, path } = technicianMarkers.current[techId];
-                marker.remove();
-                if (path) path.remove();
-                delete technicianMarkers.current[techId];
+            const marker = L.marker(pos, { icon: getTechnicianIcon() })
+                .addTo(lg)
+                .bindPopup(`<div class="p-2 font-semibold">${tech.name}</div>`, { className: 'custom-popup' });
+            
+            if (tech.path && tech.path.length > 1) {
+                L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7, dashArray: '5, 10' }).addTo(lg);
             }
         });
     }
-  }, [devices, technicians, alerts, mapStyle]);
+  }, [devices, technicians, alerts, connections, mapStyle]);
 
   return (
     <div className="h-full w-full bg-card rounded-xl shadow-inner border">

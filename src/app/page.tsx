@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockStats, Technician, Infrastructure } from '@/lib/data';
+import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockStats, mockConnections, Technician, Infrastructure, Connection } from '@/lib/data';
 import StatsCard from '@/components/dashboard/stats-card';
 import TasksList from '@/components/dashboard/tasks-list';
 import AlertsList from '@/components/dashboard/alerts-list';
@@ -45,7 +45,7 @@ export default function Home() {
             const newLat = tech.lat + (Math.random() - 0.5) * 0.001;
             const newLng = tech.lng + (Math.random() - 0.5) * 0.001;
             const newPath = [...(tech.path || []), [newLat, newLng]] as [number, number][];
-            return { ...tech, lat: newLat, lng: newLng, path: newPath };
+            return { ...tech, lat: newLat, lng: newLng, path: newPath.slice(-10) }; // Keep last 10 points
           }
           return tech;
         })
@@ -67,6 +67,7 @@ export default function Home() {
   const devices = mockInfrastructure;
   const alerts = mockAlerts;
   const tasks = mockTasks.filter(t => t.tech_id === user.id || user.role === 'Admin');
+  const connections = mockConnections;
 
   return (
     <SidebarProvider>
@@ -82,8 +83,8 @@ export default function Home() {
             <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon={ListChecks} />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full">
-               <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} />
+            <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full p-0 overflow-hidden">
+               <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} connections={connections} />
             </Card>
             <div className="space-y-6">
                 <Card>

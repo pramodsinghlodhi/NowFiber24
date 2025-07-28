@@ -42,8 +42,6 @@ export type Connection = {
   projectId: string;
   from: string; // ID of an infrastructure item
   to: string; // ID of an infrastructure item
-  connectedBy: string; // techId
-  connectionDate: string;
   status: 'active' | 'inactive';
   remarks?: string;
 };
@@ -187,6 +185,14 @@ export const mockInfrastructure: Infrastructure[] = [
   { id: 'Pole-23', projectId: 'ftth001', type: 'Pole', name: 'Pole P-5829A', lat: 34.053, lng: -118.248, status: 'installed', attributes: { assetLabel: 'P-5829A' } },
   { id: 'Pole-24', projectId: 'ftth001', type: 'Pole', name: 'Pole P-5830B', lat: 34.059, lng: -118.252, status: 'installed', attributes: { assetLabel: 'P-5830B' } },
   { id: 'ONU-105', projectId: 'ftth001', type: 'ONU', name: 'ONU-105', lat: 34.0515, lng: -118.257, ip: '10.0.1.105', status: 'offline', attributes: { assetLabel: 'CID-25210' } },
+];
+
+export const mockConnections: Connection[] = [
+    { id: 'conn-1', projectId: 'ftth001', from: 'OLT-01', to: 'SPL-01', status: 'active' },
+    { id: 'conn-2', projectId: 'ftth001', from: 'SPL-01', to: 'ONU-101', status: 'active' },
+    { id: 'conn-3', projectId: 'ftth001', from: 'SPL-01', to: 'ONU-102', status: 'active' },
+    { id: 'conn-4', projectId: 'ftth001', from: 'SPL-01', to: 'ONU-103', status: 'active' },
+    { id: 'conn-5', projectId: 'ftth001', from: 'OLT-01', to: 'SW-01', status: 'active' },
 ];
 
 export let mockTechnicians: Technician[] = [
