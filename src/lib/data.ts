@@ -16,7 +16,7 @@ export type Project = {
 export type Infrastructure = {
   id: string;
   projectId: string;
-  type: 'fiber' | 'core' | 'cable' | 'tube' | 'power' | 'splitter' | 'joint_box' | 'switch' | 'router' | 'ONT' | 'OLT' | 'Pole' | 'Splice Box' | 'Datacenter' | 'Core Switch' | 'ONU' | 'Customer Premise';
+  type: 'fiber' | 'core' | 'cable' | 'tube' | 'power' | 'splitter' | 'joint_box' | 'switch' | 'router' | 'ONT' | 'OLT' | 'Pole' | 'Splice Box' | 'Datacenter' | 'Core Switch' | 'ONU' | 'Customer Premise' | 'hub';
   name: string;
   lat: number;
   lng: number;
@@ -34,6 +34,7 @@ export type Infrastructure = {
     fiberColor?: string;
     couplerRatio?: '1:2' | '1:4' | '1:8' | '1:16' | '1:32' | '1:64';
     powerLevel?: string;
+    port?: number;
   }
 };
 
@@ -176,8 +177,8 @@ export const mockInfrastructure: Infrastructure[] = [
   { id: 'DC-LA1', projectId: 'ftth001', type: 'Datacenter', name: 'Datacenter LA1', lat: 34.0522, lng: -118.2437, ip: '192.168.1.1', status: 'online', attributes: { assetLabel: 'LA1-DC-01' } },
   { id: 'CSW-LA1-01', projectId: 'ftth001', type: 'Core Switch', name: 'Core Switch LA1-01', lat: 34.0525, lng: -118.2440, ip: '192.168.1.2', status: 'online', attributes: { assetLabel: 'LA1-CSW-01' } },
   { id: 'OLT-01', projectId: 'ftth001', type: 'OLT', name: 'OLT-01', lat: 34.0530, lng: -118.2450, ip: '192.168.2.1', status: 'online', attributes: { assetLabel: 'LA1-OLT-01', powerLevel: '-10 dBm' } },
-  { id: 'SPL-01', projectId: 'ftth001', type: 'Splice Box', name: 'Splice Box J-101', lat: 34.0555, lng: -118.2480, status: 'installed', attributes: { assetLabel: 'SB-J-101', couplerRatio: '1:8' } },
-  { id: 'ONU-101', projectId: 'ftth001', type: 'ONU', name: 'ONU-101', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online', attributes: { assetLabel: 'CID-23884', powerLevel: '-22 dBm' } },
+  { id: 'SPL-01', projectId: 'ftth001', type: 'splitter', name: 'Splice Box J-101', lat: 34.0555, lng: -118.2480, status: 'installed', connectedBy: 'tech-002', connectionDate: '2025-07-20', attributes: { assetLabel: 'SB-J-101', couplerRatio: '1:8' } },
+  { id: 'ONU-101', projectId: 'ftth001', type: 'ONU', name: 'ONU-101', lat: 34.055, lng: -118.25, ip: '10.0.1.101', status: 'online', connectedBy: 'tech-001', connectionDate: '2025-07-21', attributes: { assetLabel: 'CID-23884', powerLevel: '-22 dBm' } },
   { id: 'ONU-102', projectId: 'ftth001', type: 'ONU', name: 'ONU-102', lat: 34.058, lng: -118.245, ip: '10.0.1.102', status: 'offline', attributes: { assetLabel: 'CID-24109', powerLevel: '-inf' } },
   { id: 'SW-01', projectId: 'ftth001', type: 'switch', name: 'Switch LA1-55', lat: 34.05, lng: -118.24, ip: '192.168.1.10', status: 'online', attributes: { assetLabel: 'LA1-SW-55' } },
   { id: 'ONU-103', projectId: 'ftth001', type: 'ONU', name: 'ONU-103', lat: 34.06, lng: -118.255, ip: '10.0.1.103', status: 'maintenance', attributes: { assetLabel: 'CID-25001' } },
@@ -185,6 +186,7 @@ export const mockInfrastructure: Infrastructure[] = [
   { id: 'Pole-23', projectId: 'ftth001', type: 'Pole', name: 'Pole P-5829A', lat: 34.053, lng: -118.248, status: 'installed', attributes: { assetLabel: 'P-5829A' } },
   { id: 'Pole-24', projectId: 'ftth001', type: 'Pole', name: 'Pole P-5830B', lat: 34.059, lng: -118.252, status: 'installed', attributes: { assetLabel: 'P-5830B' } },
   { id: 'ONU-105', projectId: 'ftth001', type: 'ONU', name: 'ONU-105', lat: 34.0515, lng: -118.257, ip: '10.0.1.105', status: 'offline', attributes: { assetLabel: 'CID-25210' } },
+  { id: 'FIBER-01', projectId: 'ftth001', type: 'fiber', name: 'Backbone Fiber', lat: 34.054, lng: -118.246, status: 'installed', quantity: 2000, attributes: { fiberCapacity: '96F' }},
 ];
 
 export const mockConnections: Connection[] = [
@@ -194,6 +196,12 @@ export const mockConnections: Connection[] = [
     { id: 'conn-4', projectId: 'ftth001', from: 'SPL-01', to: 'ONU-103', status: 'active' },
     { id: 'conn-5', projectId: 'ftth001', from: 'OLT-01', to: 'SW-01', status: 'active' },
 ];
+
+export const mockPlans: Plan[] = [
+  { planId: 'plan-101', projectId: 'ftth001', customerId: 'CUST-001', planName: 'Fiber 200 Mbps', activationDate: '2025-07-21', expiryDate: '2026-07-21', status: 'active', assignedONT: 'ONU-101' },
+  { planId: 'plan-103', projectId: 'ftth001', customerId: 'CUST-003', planName: 'Fiber 1 Gbps', activationDate: '2025-06-15', expiryDate: '2026-06-15', status: 'active', assignedONT: 'ONU-103' },
+];
+
 
 export let mockTechnicians: Technician[] = [
   { id: 'tech-001', name: 'John Doe', lat: 34.062, lng: -118.248, role: 'Field Engineer', contact: '+11234567890', isActive: true, status: 'on-task', path: [[34.062, -118.248]] },

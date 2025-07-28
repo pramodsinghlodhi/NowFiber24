@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 import { cn } from "@/lib/utils";
-import { Infrastructure, Technician, Alert, Connection } from "@/lib/data";
+import { Infrastructure, Technician, Alert, Connection, mockPlans } from "@/lib/data";
 
 // This is a workaround for a common issue with Leaflet and Next.js
 // It manually sets the paths for the default marker icons.
@@ -47,6 +47,10 @@ const getDeviceIcon = (device: Infrastructure) => {
     case 'Pole':
       iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M12 2l4 4"/><path d="M12 2l-4 4"/><path d="M12 22l4-4"/><path d="M12 22l-4-4"/></svg>`;
       break;
+    case 'splitter':
+      iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-git-fork"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></svg>`;
+      break;
+    case 'router':
     case 'ONU':
     default:
        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-router h-5 w-5"><path d="M2 9.5a2.5 2.5 0 0 1 2.5-2.5h15A2.5 2.5 0 0 1 22 9.5v5a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 14.5Z"/><path d="M6 12h.01"/><path d="M10 12h.01"/><path d="M14 12h.01"/></svg>`
@@ -89,6 +93,21 @@ const createPopupContent = (device: Infrastructure) => {
             .join('');
     }
 
+    const plan = mockPlans.find(p => p.assignedONT === device.id);
+    const planHtml = plan ? `
+        <div class="mt-2 pt-2 border-t">
+            <p class="text-xs text-muted-foreground">Customer: <strong>${plan.customerId}</strong></p>
+            <p class="text-xs text-muted-foreground">Plan: <strong>${plan.planName}</strong></p>
+        </div>
+    ` : '';
+    
+    const connectionInfoHtml = device.connectedBy ? `
+        <div class="mt-2 pt-2 border-t">
+            <p class="text-xs text-muted-foreground">Connected by: <strong>${device.connectedBy}</strong></p>
+            ${device.connectionDate ? `<p class="text-xs text-muted-foreground">Date: <strong>${new Date(device.connectionDate).toLocaleDateString()}</strong></p>` : ''}
+        </div>
+    ` : '';
+
     return `
         <div class="p-2">
             <h3 class="font-bold">${device.name} (${device.id})</h3>
@@ -96,6 +115,8 @@ const createPopupContent = (device: Infrastructure) => {
             <p class="capitalize text-sm ${device.status === 'online' ? 'text-green-600' : 'text-red-600'}">${device.status}</p>
             ${device.ip ? `<p class="text-xs text-gray-500">${device.ip}</p>` : ''}
             ${attributesHtml ? `<div class="mt-2 pt-2 border-t">${attributesHtml}</div>` : ''}
+            ${planHtml}
+            ${connectionInfoHtml}
         </div>
     `;
 };
