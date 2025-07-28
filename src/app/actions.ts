@@ -1,3 +1,4 @@
+
 'use server';
 
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
@@ -13,10 +14,10 @@ export async function runAutoFaultDetection() {
   }));
 
   // Find a single faulty device for the manual trigger, to prevent memory overload.
-  const faultyDevice = mockDevices.find(d => d.status === 'offline' && (d.type === 'ONU' || d.type === 'Switch'));
+  const faultyDevice = mockDevices.find(d => d.status === 'offline');
 
   if (!faultyDevice) {
-    return [{isReachable: true, alertCreated: false, issue: 'No offline ONUs or Switches found to test.'}];
+    return [{isReachable: true, alertCreated: false, issue: 'No offline devices found to test.'}];
   }
 
    const result = await autoFaultDetection({

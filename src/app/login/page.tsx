@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/icons/logo';
-import { mockUsers } from '@/lib/data';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
