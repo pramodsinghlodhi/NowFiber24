@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -119,7 +120,7 @@ const createPopupContent = (device: Infrastructure, isTraced: boolean) => {
         </div>
     ` : '';
     
-    const openEndpointHtml = (device.attributes?.openPorts && device.attributes?.openPorts > 0) ? `
+    const openEndpointHtml = (device.attributes?.openPorts && device.attributes.openPorts > 0) ? `
         <div class="mt-2 pt-2 border-t border-blue-300">
              <p class="text-xs text-blue-600 font-bold">Open for new connection!</p>
              <p class="text-xs text-muted-foreground">Available Ports: <strong>${device.attributes.openPorts}</strong></p>
@@ -162,7 +163,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const technicianMarkers = useRef<{ [key: string]: { marker: L.Marker; path: L.Polyline | null } }>({});
+  const router = useRouter();
 
 
   useEffect(() => {
@@ -177,7 +178,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
 
       layerGroupRef.current = L.layerGroup().addTo(mapInstance.current);
     }
-  }, []);
+  }, [mapRef]);
 
   useEffect(() => {
     if (mapInstance.current) {
@@ -204,7 +205,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
         const lg = layerGroupRef.current;
         lg.clearLayers(); // Clear all layers before redrawing
 
-        const tracedDeviceIds = new Set(tracedPath.map(d => d.deviceId));
+        const tracedDeviceIds = new Set(tracedPath.map(d => d.id));
 
         // Draw traced path first
         if (tracedPath.length > 1) {
@@ -221,8 +222,25 @@ export default function MapView({ devices, technicians, alerts, connections, map
                 const isTraced = tracedDeviceIds.has(fromDevice.id) && tracedDeviceIds.has(toDevice.id);
                  if (!isTraced) {
                     const latlngs: [number, number][] = [[fromDevice.lat, fromDevice.lng], [toDevice.lat, toDevice.lng]];
-                    L.polyline(latlngs, { color: '#009688', weight: 2, opacity: 0.8 }).addTo(lg);
-                }
+                    const polyline = L.polyline(latlngs, { color: '#009688', weight: 2, opacity: 0.8 }).addTo(lg);
+                    
+                    polyline.on('click', () => {
+                        const traceUrl = `/map?traceStart=${connection.from}&traceEnd=${connection.to}`;
+                        const popupContent = `
+                            <div class="p-2">
+                                <p class="font-bold">Connection</p>
+                                <p class="text-xs">From: ${fromDevice.name}</p>
+                                <p class="text-xs">To: ${toDevice.name}</p>
+                                <a href="${traceUrl}" class="text-primary text-xs font-bold mt-2 block">Trace this fiber</a>
+                            </div>
+                        `;
+
+                        L.popup()
+                            .setLatLng(polyline.getCenter())
+                            .setContent(popupContent)
+                            .openOn(mapInstance.current!);
+                    });
+                 }
             }
         });
 
@@ -260,7 +278,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
             mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
         }
     }
-  }, [devices, technicians, alerts, connections, mapStyle, tracedPath]);
+  }, [devices, technicians, alerts, connections, mapStyle, tracedPath, router]);
 
   return (
     <div className="h-full w-full bg-card rounded-xl shadow-inner border">

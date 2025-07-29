@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {
@@ -21,14 +21,25 @@ import {Label} from '../ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '../ui/select';
 import {mockInfrastructure} from '@/lib/data';
 
-export default function TraceRoute() {
+interface TraceRouteProps {
+    startDevice?: string;
+    endDevice?: string;
+    onTraceComplete?: () => void;
+}
+
+export default function TraceRoute({ startDevice, endDevice, onTraceComplete }: TraceRouteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [startDeviceId, setStartDeviceId] = useState('');
-  const [endDeviceId, setEndDeviceId] = useState('');
+  const [startDeviceId, setStartDeviceId] = useState(startDevice || '');
+  const [endDeviceId, setEndDeviceId] = useState(endDevice || '');
   const {toast} = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    if (startDevice) setStartDeviceId(startDevice);
+    if (endDevice) setEndDeviceId(endDevice);
+  }, [startDevice, endDevice]);
 
   const handleTrace = async () => {
     if (!startDeviceId || !endDeviceId) {
@@ -48,6 +59,7 @@ export default function TraceRoute() {
         const pathData = encodeURIComponent(JSON.stringify(traceResult.path));
         router.push(`/map?path=${pathData}`);
         setIsOpen(false);
+        onTraceComplete?.();
       } else {
          toast({
           title: 'Trace Failed',

@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   SidebarProvider,
@@ -14,11 +14,12 @@ import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockConnect
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
-import { Map as MapIcon, Satellite, Filter as FilterIcon } from 'lucide-react';
+import { Map as MapIcon, Satellite, Filter as FilterIcon, Route, Loader2 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { useSearchParams } from 'next/navigation';
+import { runTraceRoute } from '../actions';
+import { useToast } from '@/hooks/use-toast';
 
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
@@ -35,14 +36,16 @@ const initialFilters = {
     ...allDeviceTypes.reduce((acc, type) => ({ ...acc, [type]: true }), {})
 };
 
-export default function MapPage() {
+function MapContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
   const [mapStyle, setMapStyle] = useState('map');
   const [filters, setFilters] = useState<Record<string, boolean>>(initialFilters);
   const [tracedPath, setTracedPath] = useState<Infrastructure[]>([]);
+  const [isTracing, setIsTracing] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -51,6 +54,9 @@ export default function MapPage() {
     }
 
     const pathParam = searchParams.get('path');
+    const traceStart = searchParams.get('traceStart');
+    const traceEnd = searchParams.get('traceEnd');
+
     if (pathParam) {
       try {
         const decodedPath = JSON.parse(decodeURIComponent(pathParam));
@@ -59,11 +65,48 @@ export default function MapPage() {
         console.error("Failed to parse traced path:", error);
         setTracedPath([]);
       }
-    } else {
+    } else if (traceStart && traceEnd) {
+        handleTrace(traceStart, traceEnd);
+    }
+     else {
       setTracedPath([]);
     }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, router, searchParams]);
+
+  const handleTrace = async (startDeviceId: string, endDeviceId: string) => {
+    setIsTracing(true);
+    try {
+        const traceResult = await runTraceRoute({ startDeviceId, endDeviceId });
+        if (traceResult.path.length > 0) {
+            setTracedPath(traceResult.path);
+            toast({
+                title: 'Trace Complete!',
+                description: `Path found with ${traceResult.path.length} hops.`,
+            });
+            const pathData = encodeURIComponent(JSON.stringify(traceResult.path));
+            // Update URL without reloading the page
+            router.replace(`/map?path=${pathData}`, { scroll: false });
+        } else {
+            toast({
+                title: 'Trace Failed',
+                description: traceResult.notes,
+                variant: 'destructive',
+            });
+        }
+    } catch (error) {
+        toast({
+            title: 'Error',
+            description: 'Failed to run trace route.',
+            variant: 'destructive',
+        });
+        console.error(error);
+    } finally {
+        setIsTracing(false);
+    }
+  };
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -116,7 +159,7 @@ export default function MapPage() {
         <main className="flex-grow flex-shrink flex-basis-0 flex-col h-[calc(100vh-4rem)]">
           <div className="relative h-full w-full">
              <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} tracedPath={tracedPath}/>
-             <div className="absolute top-4 left-4 z-[500] flex gap-2">
+             <div className="absolute top-4 left-4 z-[1000] flex gap-2">
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="secondary" className="shadow-md">
@@ -124,7 +167,7 @@ export default function MapPage() {
                             Filter
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 z-[100]">
+                    <DropdownMenuContent className="w-56 z-[1001]">
                         <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuCheckboxItem
@@ -160,8 +203,23 @@ export default function MapPage() {
                         ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
+                {tracedPath.length > 0 && (
+                    <Button variant="secondary" className="shadow-md" onClick={() => {
+                        setTracedPath([]);
+                        router.replace('/map', { scroll: false });
+                    }}>
+                        <Route className="mr-2 h-4 w-4" />
+                        Clear Trace
+                    </Button>
+                )}
+                 {isTracing && (
+                    <Button variant="secondary" disabled className="shadow-md">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Tracing...
+                    </Button>
+                )}
              </div>
-             <div className="absolute bottom-4 right-4 z-[500]">
+             <div className="absolute bottom-4 right-4 z-[1000]">
                 <ToggleGroup type="single" value={mapStyle} onValueChange={(value) => { if(value) setMapStyle(value)}} className="bg-background rounded-lg shadow-md border p-1">
                     <ToggleGroupItem value="map" aria-label="Map view">
                         <MapIcon className="h-4 w-4" />
@@ -176,4 +234,12 @@ export default function MapPage() {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+export default function MapPage() {
+    return (
+        <Suspense fallback={<Skeleton className="h-screen w-full" />}>
+            <MapContent />
+        </Suspense>
+    );
 }
