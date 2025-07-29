@@ -42,6 +42,8 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
   const [attributes, setAttributes] = useState<Infrastructure['attributes']>({});
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [quantity, setQuantity] = useState<number | undefined>(undefined);
+
 
   const isEditing = !!device;
   const isTechnician = user?.role === 'Technician';
@@ -56,6 +58,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
       setLng(device.lng);
       setStatus(device.status);
       setAttributes(device.attributes || {});
+      setQuantity(device.quantity);
     } else {
       // Reset form for new entry
       setId('');
@@ -66,6 +69,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
       setLng(-118.2437);
       setStatus('online');
       setAttributes({});
+      setQuantity(undefined);
     }
   }, [device, isOpen]);
 
@@ -94,6 +98,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
             lat,
             lng,
             status,
+            quantity,
             attributes,
             connectedBy: isEditing ? device?.connectedBy : user?.name,
             connectionDate: isEditing ? device?.connectionDate : new Date().toISOString(),
@@ -165,6 +170,12 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                     </Select>
                 </div>
             </div>
+             {type === 'fiber' && (
+                <div className="space-y-2">
+                    <Label htmlFor="quantity">Length (meters)</Label>
+                    <Input id="quantity" type="number" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value))} placeholder="e.g., 2000" />
+                </div>
+             )}
             <div className="space-y-2">
                 <Label htmlFor="ip">IP Address</Label>
                 <Input id="ip" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="e.g., 10.0.1.106" disabled={isTechnician}/>

@@ -133,6 +133,12 @@ const createPopupContent = (device: Infrastructure, isTraced: boolean) => {
         </div>
     ` : '';
 
+    const fiberInfoHtml = device.type === 'fiber' ? `
+        <div class="mt-2 pt-2 border-t">
+            ${device.quantity ? `<p class="text-xs text-muted-foreground">Length: <strong>${device.quantity}m</strong></p>` : ''}
+            ${device.attributes?.fiberCapacity ? `<p class="text-xs text-muted-foreground">Capacity: <strong>${device.attributes.fiberCapacity}</strong></p>` : ''}
+        </div>
+    ` : '';
 
     return `
         <div class="p-2">
@@ -145,6 +151,7 @@ const createPopupContent = (device: Infrastructure, isTraced: boolean) => {
             ${connectionInfoHtml}
             ${openEndpointHtml}
             ${traceInfoHtml}
+            ${fiberInfoHtml}
         </div>
     `;
 };
