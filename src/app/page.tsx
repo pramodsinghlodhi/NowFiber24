@@ -83,8 +83,10 @@ export default function Home() {
             <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon={ListChecks} />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full p-0 overflow-hidden">
-               <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} connections={connections} />
+            <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full flex flex-col p-0 overflow-hidden">
+                <div className="flex-grow">
+                    <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} connections={connections} />
+                </div>
             </Card>
             <div className="space-y-6">
                 <Card>
