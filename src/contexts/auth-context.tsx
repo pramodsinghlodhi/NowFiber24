@@ -6,13 +6,13 @@ import { useRouter, usePathname } from 'next/navigation';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { User, mockUsers } from '@/lib/data'; // Keep mockUsers for initial user data seeding
+import { User, mockUsers } from '@/lib/data'; 
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseAuthUser | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean, message: string }>;
+  login: (userId: string, password?: string) => Promise<{ success: boolean, message: string }>;
   logout: () => void;
   loading: boolean;
 }
@@ -59,18 +59,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [loading, user, pathname, router]);
 
-  const login = async (email: string, password?: string): Promise<{ success: boolean, message: string }> => {
+  const login = async (userId: string, password?: string): Promise<{ success: boolean, message: string }> => {
     if (!password) {
         return { success: false, message: 'Password is required.' };
     }
     
+    // Construct email from userId
+    const email = `${userId}@fibervision.com`;
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // onAuthStateChanged will handle setting the user
       return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-           const mockUser = mockUsers.find(u => `${u.id}@fibervision.com` === email && u.password === password)
+           const mockUser = mockUsers.find(u => u.id === userId && u.password === password)
            if (mockUser) {
                 return { success: false, message: `User '${email}' not found in Firebase. Please create this user in the Firebase console.` };
            }
