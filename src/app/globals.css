@@ -91,15 +91,39 @@ body {
 }
 
 .leaflet-pane {
-    z-index: 10;
+    z-index: 10 !important;
 }
+
+.leaflet-tile-pane {
+    z-index: 10 !important;
+}
+
+.leaflet-overlay-pane {
+    z-index: 20 !important;
+}
+
+.leaflet-shadow-pane {
+    z-index: 30 !important;
+}
+
+.leaflet-marker-pane {
+    z-index: 40 !important;
+}
+
+.leaflet-tooltip-pane {
+    z-index: 50 !important;
+}
+
+.leaflet-popup-pane {
+    z-index: 60 !important;
+}
+
 .leaflet-top, .leaflet-bottom {
-    z-index: 400; /* Default is 1000, lower it so shadcn components can be on top */
+    z-index: 70 !important; /* This should be above popups/tooltips but below dialogs */
 }
 
 .leaflet-popup-content-wrapper {
     @apply bg-card text-card-foreground rounded-lg shadow-lg;
-    z-index: 900;
 }
 
 .leaflet-popup-content {
@@ -113,5 +137,4 @@ body {
 
 .custom-tooltip {
     @apply bg-card/80 text-card-foreground border-none shadow-lg rounded-md px-2 py-1 backdrop-blur-sm;
-    z-index: 950 !important;
 }

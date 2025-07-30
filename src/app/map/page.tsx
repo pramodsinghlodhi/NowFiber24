@@ -159,7 +159,7 @@ function MapContent() {
         <main className="flex-grow flex-shrink flex-basis-0 flex-col h-[calc(100vh-4rem)]">
           <div className="relative h-full w-full">
              <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} tracedPath={tracedPath}/>
-             <div className="absolute top-4 left-4 z-[500] flex gap-2">
+             <div className="absolute top-4 left-4 z-[100] flex gap-2">
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="secondary" className="shadow-md">
@@ -167,7 +167,7 @@ function MapContent() {
                             Filter
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 z-[501]">
+                    <DropdownMenuContent className="w-56">
                         <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuCheckboxItem
@@ -219,7 +219,7 @@ function MapContent() {
                     </Button>
                 )}
              </div>
-             <div className="absolute bottom-4 right-4 z-[500]">
+             <div className="absolute bottom-4 right-4 z-[100]">
                 <ToggleGroup type="single" value={mapStyle} onValueChange={(value) => { if(value) setMapStyle(value)}} className="bg-background rounded-lg shadow-md border p-1">
                     <ToggleGroupItem value="map" aria-label="Map view">
                         <MapIcon className="h-4 w-4" />
