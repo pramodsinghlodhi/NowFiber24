@@ -35,6 +35,44 @@ Fiber24 is a comprehensive, AI-powered platform designed for Internet Service Pr
 
 ---
 
+## Project Structure
+
+Here is an overview of the key files and directories in the project:
+
+```
+/
+├── public/                 # Static assets (images, fonts, etc.)
+├── src/
+│   ├── app/                # Next.js App Router: all pages and layouts
+│   │   ├── (admin)/        # Route group for admin-only pages
+│   │   ├── (technician)/   # Route group for technician-only pages
+│   │   ├── api/            # API routes (if needed)
+│   │   ├── layout.tsx      # Root layout for the entire application
+│   │   ├── page.tsx        # The main dashboard page
+│   │   └── login/          # The login page
+│   ├── ai/                 # All Genkit AI-related code
+│   │   ├── flows/          # Genkit flows that define AI tasks
+│   │   └── genkit.ts       # Genkit configuration and initialization
+│   ├── components/         # Reusable React components
+│   │   ├── dashboard/      # Components specific to the dashboard
+│   │   ├── layout/         # Layout components (Header, Sidebar)
+│   │   └── ui/             # ShadCN UI components
+│   ├── contexts/           # React contexts for state management
+│   │   └── auth-context.tsx  # Handles user authentication state
+│   ├── hooks/              # Custom React hooks
+│   │   └── use-toast.ts    # Hook for displaying toast notifications
+│   ├── lib/                # Libraries, helpers, and configuration
+│   │   ├── data.ts         # Mock data for development (to be replaced by Firebase)
+│   │   ├── firebase.ts     # Firebase initialization and configuration
+│   │   └── utils.ts        # Utility functions (e.g., cn for styling)
+│   └── styles/             # Global styles and Tailwind CSS configuration
+│       └── globals.css     # Main stylesheet with Tailwind directives and theme variables
+├── .env                    # Environment variables (e.g., API keys)
+├── next.config.mjs         # Next.js configuration
+├── package.json            # Project dependencies and scripts
+└── README.md               # This file
+```
+
 ## Project Setup Guide
 
 Follow these steps to set up and run the project on your local machine and prepare it for deployment.
@@ -60,10 +98,12 @@ This application is powered by Firebase. You must configure it correctly for the
 
 **C. Configure the Application:**
 1. In the project's root directory, open the file `src/lib/firebase.ts`.
-2. **Replace the existing `firebaseConfig` object with the one you copied** from the Firebase console.
-3. The file should look like this:
+2. **Replace the existing `firebaseConfig` object with the one you copied** from the Firebase console. The file should look like this:
 
 ```typescript
+// src/lib/firebase.ts
+// This file initializes the connection to your Firebase project.
+// The configuration object below is essential for the app to communicate with Firebase services.
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -79,10 +119,10 @@ const firebaseConfig = {
   measurementId: "G-..."
 };
 
-// Initialize Firebase
+// Initialize Firebase App
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+const auth = getAuth(app); // Firebase Authentication instance
+const db = getFirestore(app); // Firestore Database instance
 
 export { app, auth, db };
 ```
@@ -94,21 +134,19 @@ export { app, auth, db };
 **E. Create User Accounts:**
 The application will not work without user accounts. You need to create them in Firebase Authentication.
 1. Go to the **Authentication** -> **Users** tab in the Firebase Console.
-2. Click **"Add user"** to create the following accounts:
+2. Click **"Add user"** to create the following accounts. The email is derived from the User ID.
     - **Admin User**:
         - **Email**: `admin@fibervision.com`
         - **Password**: `admin`
     - **Technician User**:
         - **Email**: `tech-001@fibervision.com`
         - **Password**: `password`
-3. The application derives the User ID from the email address (e.g., `admin@fibervision.com` becomes `admin`).
 
 **F. Set up Firestore Data (Optional but Recommended):**
-To see data in the app, you need to add documents to your Firestore database that match the structure in `src/lib/data.ts`. The most important collection is `users`.
+To see data in the app beyond authentication, you need to add documents to your Firestore database. The most important collection is `users`.
 1.  Go to the **Firestore Database** -> **Data** tab.
 2.  Create a collection named `users`.
-3.  Add a document with the **Document ID** set to `admin`. Add fields that match the `User` type in `src/lib/data.ts` (e.g., `name`, `role`, `avatarUrl`).
-4.  Repeat for `tech-001`.
+3.  Add a document with the **Document ID** set to match the user's UID from the Authentication tab. Add fields that match the `User` type in `src/lib/data.ts` (e.g., `name`, `role`, `avatarUrl`).
 
 ### 3. Local Development
 
@@ -124,8 +162,11 @@ To see data in the app, you need to add documents to your Firestore database tha
     ```
 
 3.  **Set up environment variables:**
-    Create a new file named `.env` in the root of your project and add your Gemini API key for the AI features to work.
+    Create a new file named `.env` in the root of your project. This file is for secret keys and should not be committed to version control. Add your Gemini API key for the AI features to work.
     ```env
+    # .env
+    # This key is required for the Genkit AI flows to function.
+    # Get your key from Google AI Studio.
     GEMINI_API_KEY=your_google_ai_studio_api_key
     ```
     
