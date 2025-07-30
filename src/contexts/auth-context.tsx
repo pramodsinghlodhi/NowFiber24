@@ -68,10 +68,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // onAuthStateChanged will handle setting the user
       return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
-       if (error.code === 'auth/user-not-found' && mockUser) {
-            return { success: false, message: "This user is not yet in Firebase. Please contact your admin to sync the users." };
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+          if (mockUser) {
+             return { success: false, message: `The user '${email}' is not yet in Firebase. Please create this user in the Firebase Authentication console with the email '${loginEmail}' and the password you entered.` };
+          }
+           return { success: false, message: 'Invalid credentials. Please try again.' };
        }
-      return { success: false, message: 'Invalid credentials. Please try again.' };
+      return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
   };
 
