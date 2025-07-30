@@ -18,7 +18,7 @@ export default function MobileNav() {
     const pathname = usePathname();
     const { user } = useAuth();
 
-    if (!user) {
+    if (!user || user.role !== 'Technician') {
         return null;
     }
     
