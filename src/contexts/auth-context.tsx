@@ -2,60 +2,90 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { mockUsers, User } from '@/lib/data';
 import { useRouter, usePathname } from 'next/navigation';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { User, mockUsers } from '@/lib/data'; // Keep mockUsers for initial user data seeding
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AuthContextType {
   user: User | null;
-  login: (id: string, password?: string) => { success: boolean, message: string };
+  firebaseUser: FirebaseAuthUser | null;
+  login: (email: string, password?: string) => Promise<{ success: boolean, message: string }>;
   logout: () => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        } else if (pathname !== '/login') {
-            router.push('/login');
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser) {
+        // Fetch user profile from Firestore
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setUser({ id: userDoc.id, ...userDoc.data() } as User);
+        } else {
+          // Fallback or handle missing profile
+          setUser(null);
         }
-    } catch (error) {
-        console.error("Could not parse user from localStorage", error);
-        localStorage.removeItem('user');
-        if (pathname !== '/login') {
-            router.push('/login');
-        }
-    }
-  }, [pathname, router]);
-
-  const login = (id: string, password?: string): { success: boolean, message: string } => {
-    const foundUser = mockUsers.find(u => u.id === id && u.password === password);
-    if (foundUser) {
-      if (foundUser.isBlocked) {
-        return { success: false, message: 'Your account has been blocked. Please contact an administrator.' };
+      } else {
+        setUser(null);
       }
-      setUser(foundUser);
-      localStorage.setItem('user', JSON.stringify(foundUser));
-      return { success: true, message: 'Welcome back!' };
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+    useEffect(() => {
+    if (!loading && !user && pathname !== '/login') {
+      router.push('/login');
     }
-    return { success: false, message: 'Invalid credentials. Please try again.' };
+  }, [loading, user, pathname, router]);
+
+  const login = async (email: string, password?: string): Promise<{ success: boolean, message: string }> => {
+    if (!password) {
+        return { success: false, message: 'Password is required.' };
+    }
+    
+    // In a real app, email should be used. Here we map id to an email.
+    const mockUser = mockUsers.find(u => u.id === email);
+    const loginEmail = `${email}@fibervision.com`;
+
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, password);
+      // onAuthStateChanged will handle setting the user
+      return { success: true, message: 'Welcome back!' };
+    } catch (error: any) {
+       if (error.code === 'auth/user-not-found' && mockUser) {
+            return { success: false, message: "This user is not yet in Firebase. Please contact your admin to sync the users." };
+       }
+      return { success: false, message: 'Invalid credentials. Please try again.' };
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await signOut(auth);
     router.push('/login');
   };
+  
+   if (loading) {
+    return <div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>;
+  }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

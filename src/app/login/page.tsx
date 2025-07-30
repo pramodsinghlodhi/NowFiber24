@@ -19,21 +19,18 @@ export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const { success, message } = login(userId, password);
-      if (success) {
-        toast({ title: 'Login Successful', description: message });
-        router.push('/');
-      } else {
-        toast({ title: 'Login Failed', description: message, variant: 'destructive' });
-        setIsLoading(false);
-      }
-    }, 500);
+    const { success, message } = await login(userId, password);
+    if (success) {
+      toast({ title: 'Login Successful', description: message });
+      router.push('/');
+    } else {
+      toast({ title: 'Login Failed', description: message, variant: 'destructive' });
+      setIsLoading(false);
+    }
   };
 
   return (
