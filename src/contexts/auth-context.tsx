@@ -70,6 +70,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+           const mockUser = mockUsers.find(u => `${u.id}@fibervision.com` === email && u.password === password)
+           if (mockUser) {
+                return { success: false, message: `User '${email}' not found in Firebase. Please create this user in the Firebase console.` };
+           }
            return { success: false, message: 'Invalid credentials. Please try again.' };
        }
       return { success: false, message: 'An unexpected error occurred. Please try again.' };
