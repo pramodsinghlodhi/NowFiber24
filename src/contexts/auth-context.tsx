@@ -36,8 +36,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userDoc.exists()) {
           setUser({ id: userDoc.id, ...userDoc.data() } as User);
         } else {
-          // Fallback or handle missing profile
-          setUser(null);
+          // Fallback for mock users during transition
+          const mockUser = mockUsers.find(u => u.id === fbUser.email?.split('@')[0]);
+          if (mockUser) {
+            setUser(mockUser);
+          } else {
+            setUser(null);
+          }
         }
       } else {
         setUser(null);
@@ -59,19 +64,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: 'Password is required.' };
     }
     
-    // In a real app, email should be used. Here we map id to an email.
-    const mockUser = mockUsers.find(u => u.id === email);
-    const loginEmail = `${email}@fibervision.com`;
-
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, password);
+      await signInWithEmailAndPassword(auth, email, password);
       // onAuthStateChanged will handle setting the user
       return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
-       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-          if (mockUser) {
-             return { success: false, message: `The user '${email}' is not yet in Firebase. Please create this user in the Firebase Authentication console with the email '${loginEmail}' and the password you entered.` };
-          }
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
            return { success: false, message: 'Invalid credentials. Please try again.' };
        }
       return { success: false, message: 'An unexpected error occurred. Please try again.' };

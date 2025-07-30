@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/icons/logo';
 
 export default function LoginPage() {
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    const { success, message } = await login(userId, password);
+    const { success, message } = await login(email, password);
     if (success) {
       toast({ title: 'Login Successful', description: message });
       router.push('/');
@@ -45,20 +45,20 @@ export default function LoginPage() {
             Enter your credentials to access the dashboard.
             <br />
             <span className="text-xs text-muted-foreground">
-                (Try: admin/admin or tech-001/password)
+                (Try: admin@fibervision.com / admin)
             </span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="userId">User ID</Label>
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
-                    id="userId"
-                    type="text"
-                    placeholder="e.g., admin or tech-001"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="e.g., admin@fibervision.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     />
                 </div>
