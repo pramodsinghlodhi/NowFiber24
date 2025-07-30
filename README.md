@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 # Fiber24 - FTTH Network Management & Field Engineering Platform
 
 Fiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics.
+=======
+# Metatag Solution by PramodSingh Lodhi
+
+This is a NextJS starter in Metatag Solution.
+>>>>>>> 3226408c358008eb08b26a949e7ffc6bf99f90c9
 
 ## Features
 
