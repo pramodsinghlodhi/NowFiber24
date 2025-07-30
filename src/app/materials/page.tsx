@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, CheckCircle, Undo2, Ban, Trash, Edit, Check, XCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CheckCircle, Undo2, Ban, Trash, Edit, Check, XCircle, HardHat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import AssignMaterialForm from '@/components/materials/assign-material-form';
@@ -183,7 +183,31 @@ export default function MaterialsPage() {
                         </Button>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                         {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                        {assignments.map(assignment => {
+                            const material = mockMaterials.find(m => m.id === assignment.materialId);
+                            const technician = mockTechnicians.find(t => t.id === assignment.technicianId);
+                            return (
+                                <Card key={assignment.id} className="p-4 space-y-3">
+                                    <div>
+                                        <p className="font-semibold">{material?.name || 'Unknown'}</p>
+                                        <p className="text-sm text-muted-foreground">Quantity: {assignment.quantityAssigned}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm pt-2 border-t">
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <HardHat size={14}/>
+                                            <span>{technician?.name || 'Unknown'}</span>
+                                        </div>
+                                        {getStatusBadge(assignment.status)}
+                                    </div>
+                                </Card>
+                            )
+                        })}
+                        </div>
+                        
+                        {/* Desktop View */}
+                        <Table className="hidden md:table">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Material</TableHead>

@@ -88,7 +88,29 @@ export default function AlertsPage() {
               <CardDescription>View and manage all network alerts.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
+              {/* Mobile View */}
+               <div className="md:hidden space-y-4">
+                 {mockAlerts.map((alert: AlertType) => (
+                    <Card key={alert.id} className={cn('p-4', getSeverityClass(alert.severity))}>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-semibold">{alert.device_id}</p>
+                                <p className="text-sm text-muted-foreground">{alert.issue}</p>
+                            </div>
+                            <Badge variant={getSeverityBadge(alert.severity)} className={cn(alert.severity === 'High' && 'bg-orange-500 text-white')}>
+                              {alert.severity}
+                            </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-2">
+                           {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)} className="w-full mt-4">View Details</Button>
+                    </Card>
+                 ))}
+               </div>
+
+              {/* Desktop View */}
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Severity</TableHead>

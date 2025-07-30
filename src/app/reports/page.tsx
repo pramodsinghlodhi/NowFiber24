@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useMemo } from 'react';
@@ -71,7 +72,22 @@ export default function ReportsPage() {
                         <CardDescription>Overview of task completion rates for each technician.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                            {mockTechnicianPerformance.map(tech => (
+                                <Card key={tech.techId} className="p-4">
+                                    <p className="font-semibold">{tech.name}</p>
+                                    <div className="flex justify-between items-center text-sm text-muted-foreground mt-1">
+                                        <span>{tech.completedTasks} / {tech.assignedTasks} Tasks</span>
+                                        <span>{tech.completionRate}%</span>
+                                    </div>
+                                    <Progress value={tech.completionRate} className="h-2 mt-2" />
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Desktop View */}
+                        <Table className="hidden md:table">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Technician</TableHead>

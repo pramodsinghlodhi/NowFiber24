@@ -156,7 +156,70 @@ export default function TechniciansPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    <Table>
+                    {/* Mobile View */}
+                    <div className="md:hidden space-y-4">
+                        {technicians.map((tech) => {
+                             const techUser = users.find(u => u.id === tech.id);
+                             return (
+                                <Card key={tech.id} className={cn("p-4", techUser?.isBlocked && 'opacity-50 bg-muted')}>
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                             <Avatar className={cn("h-12 w-12", techUser?.isBlocked && 'grayscale')}>
+                                                <AvatarImage src={tech.avatarUrl} alt={tech.name} />
+                                                <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-semibold">{tech.name}</p>
+                                                <p className="text-xs text-muted-foreground">{tech.id}</p>
+                                            </div>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
+                                                    <BarChart2 className="mr-2 h-4 w-4" />
+                                                    View Report
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator/>
+                                                {techUser?.isBlocked ? (
+                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserCheck className="mr-2 h-4 w-4" />
+                                                        Unblock Access
+                                                    </DropdownMenuItem>
+                                                ) : (
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserX className="mr-2 h-4 w-4" />
+                                                        Block Access
+                                                    </DropdownMenuItem>
+                                                )}
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-3 mt-3 border-t">
+                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', techUser?.isBlocked && 'bg-gray-500')}>
+                                            {techUser?.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
+                                        </Badge>
+                                        {getStatusBadge(tech)}
+                                    </div>
+                                </Card>
+                             )
+                        })}
+                    </div>
+                    {/* Desktop View */}
+                    <Table className="hidden md:table">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>

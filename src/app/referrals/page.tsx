@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, HardHat, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -81,7 +81,44 @@ export default function ReferralsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
+              {/* Mobile View */}
+                <div className="md:hidden space-y-4">
+                    {filteredReferrals.map((referral: Referral) => (
+                        <Card key={referral.id} className="p-4 space-y-3">
+                             <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-semibold">{referral.customer_name}</p>
+                                    <p className="text-sm text-muted-foreground">{format(new Date(referral.timestamp), 'MMM dd, yyyy')}</p>
+                                </div>
+                                {getStatusBadge(referral.status)}
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
+                                <p className="flex items-center gap-2"><Phone size={14}/> {referral.phone}</p>
+                                <p className="flex items-center gap-2"><MapPin size={14}/> {referral.address}</p>
+                                {user.role === 'Admin' && (
+                                     <p className="flex items-center gap-2"><HardHat size={14}/> {mockTechnicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</p>
+                                )}
+                            </div>
+                            {user.role === 'Admin' && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="w-full mt-2">
+                                            Update Status
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-full">
+                                        <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Contacted')}>Mark as Contacted</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Closed')}>Mark as Closed</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Pending')}>Mark as Pending</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </Card>
+                    ))}
+                </div>
+
+              {/* Desktop View */}
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
@@ -134,4 +171,5 @@ export default function ReferralsPage() {
     </SidebarProvider>
   );
 }
+
 

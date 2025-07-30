@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Circle, MoreHorizontal, PlusCircle, Trash, Edit } from 'lucide-react';
+import { Circle, MoreHorizontal, PlusCircle, Trash, Edit, MapPin, Tag, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -90,10 +90,6 @@ export default function InventoryPage() {
   }
 
   const handleAddNew = () => {
-    if (user?.role !== 'Admin') {
-        toast({ title: 'Permission Denied', description: 'Only admins can add new devices.', variant: 'destructive' });
-        return;
-    }
     setSelectedDevice(null);
     setIsFormOpen(true);
   }
@@ -123,15 +119,39 @@ export default function InventoryPage() {
                     <CardTitle>Network Inventory</CardTitle>
                     <CardDescription>Manage all network devices and equipment.</CardDescription>
                 </div>
-                {user.role === 'Admin' && (
-                    <Button onClick={handleAddNew}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Device
-                    </Button>
-                )}
+                <Button onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Device
+                </Button>
             </CardHeader>
             <CardContent>
-              <Table>
+              {/* Mobile View */}
+              <div className="md:hidden space-y-4">
+                {devices.map((device) => (
+                    <Card key={device.id} className="p-4 space-y-2">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-semibold">{device.name}</p>
+                                <p className="text-sm text-muted-foreground">{device.id} | {device.type}</p>
+                            </div>
+                             {getStatusIndicator(device.status)}
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
+                            <p className="flex items-center gap-2"><MapPin size={14}/> {device.lat.toFixed(4)}, {device.lng.toFixed(4)}</p>
+                            <p className="flex items-center gap-2"><Wifi size={14}/> {device.ip || "N/A"}</p>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                             <Button variant="outline" size="sm" onClick={() => handleEdit(device)}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
+                             {user?.role === 'Admin' && (
+                                <Button variant="destructive" size="sm" onClick={() => handleDelete(device.id)}><Trash className="mr-2 h-4 w-4" /> Delete</Button>
+                             )}
+                        </div>
+                    </Card>
+                ))}
+              </div>
+
+              {/* Desktop View */}
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Device ID</TableHead>

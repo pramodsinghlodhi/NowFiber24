@@ -100,23 +100,21 @@ export default function Header() {
       </div>
       <SidebarTrigger className="md:hidden" />
       <div className="flex w-full items-center gap-2 md:ml-auto">
-        <div className="ml-auto flex-1 sm:flex-initial">
-          <div className="relative">
-            {user?.role === 'Technician' && (
-                <div className="flex items-center gap-2">
-                     <Button variant={isClockedIn ? 'destructive' : 'default'} size="sm" onClick={handleClockInOut}>
-                        <Timer />
-                        <span>{isClockedIn ? 'Clock Out' : 'Clock In'}</span>
-                    </Button>
-                     {isClockedIn && (
-                        <Button variant={isOnBreak ? 'secondary' : 'outline'} size="sm" onClick={handleToggleBreak}>
-                            <Coffee />
-                            <span>{isOnBreak ? 'End Break' : 'Take a Break'}</span>
-                        </Button>
-                    )}
-                </div>
-            )}
-          </div>
+        <div className="flex-1 md:flex-grow-0 ml-auto">
+          {user?.role === 'Technician' && (
+              <div className="flex items-center gap-2">
+                    <Button variant={isClockedIn ? 'destructive' : 'default'} size="sm" onClick={handleClockInOut}>
+                      <Timer className="mr-0 md:mr-2" />
+                      <span className="hidden md:inline">{isClockedIn ? 'Clock Out' : 'Clock In'}</span>
+                  </Button>
+                    {isClockedIn && (
+                      <Button variant={isOnBreak ? 'secondary' : 'outline'} size="sm" onClick={handleToggleBreak}>
+                          <Coffee className="mr-0 md:mr-2"/>
+                          <span className="hidden md:inline">{isOnBreak ? 'End Break' : 'Take a Break'}</span>
+                      </Button>
+                  )}
+              </div>
+          )}
         </div>
          <DropdownMenu>
             <DropdownMenuTrigger asChild>
