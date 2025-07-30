@@ -34,39 +34,22 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [result, setResult] = useState<any>(null);
   const {toast} = useToast();
 
   useEffect(() => {
-    if (isOpen && hasCameraPermission) {
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(s => {
-                setStream(s);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = s;
-                }
-            })
-            .catch(error => {
-                console.error('Error accessing camera:', error);
-                setHasCameraPermission(false);
-                 toast({
-                    variant: 'destructive',
-                    title: 'Camera Access Denied',
-                    description: 'Please enable camera permissions in your browser settings to use this feature.',
-                });
-            });
-    } else if (!isOpen && stream) {
+    // Stop stream when component unmounts or dialog closes
+    return () => {
+      if (stream) {
         stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, hasCameraPermission]);
+      }
+    };
+  }, [stream]);
 
   const getCameraPermission = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -74,11 +57,11 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
         return;
     }
     try {
-       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+       const s = await navigator.mediaDevices.getUserMedia({ video: true });
        setHasCameraPermission(true);
-       setStream(stream);
+       setStream(s);
        if (videoRef.current) {
-           videoRef.current.srcObject = stream;
+           videoRef.current.srcObject = s;
        }
     } catch (err) {
        console.error(err);
@@ -105,7 +88,9 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
       context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
       const dataUrl = canvas.toDataURL('image/jpeg');
       setPreview(dataUrl);
-      stream?.getTracks().forEach(track => track.stop()); // Turn off camera
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop()); // Turn off camera
+      }
       setStream(null);
     }
   };
@@ -131,10 +116,11 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
     }
   };
 
-  const reset = () => {
+  const resetState = () => {
     setPreview(null);
     setResult(null);
     setIsLoading(false);
+    setHasCameraPermission(false);
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
@@ -143,7 +129,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      reset();
+      resetState();
     }
     setIsOpen(open);
   }
@@ -169,7 +155,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
             Upload or capture a photo of materials used to complete the task. The AI will identify items and quantities. Your location will be logged.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="camera">
+        <Tabs defaultValue="upload" onValueChange={resetState}>
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="camera" onClick={getCameraPermission}><Camera className="mr-2"/> Live Capture</TabsTrigger>
                 <TabsTrigger value="upload"><Upload className="mr-2"/> Upload</TabsTrigger>
@@ -179,7 +165,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
                     {preview ? (
                         <Image src={preview} alt="Materials preview" layout="fill" objectFit="contain" className="rounded-lg" />
                     ) : (
-                         hasCameraPermission ? (
+                         stream && hasCameraPermission ? (
                             <video ref={videoRef} className="w-full h-full object-cover rounded-md" autoPlay muted playsInline />
                         ) : (
                              <div className="text-center p-4">
@@ -194,7 +180,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
                 {preview ? (
                      <Button onClick={handleRetake} variant="outline" className="w-full mt-2"><RefreshCw className="mr-2"/>Retake Photo</Button>
                 ) : (
-                    <Button onClick={handleCapture} disabled={!hasCameraPermission} className="w-full mt-2"><Check className="mr-2"/>Capture Photo</Button>
+                    <Button onClick={handleCapture} disabled={!stream} className="w-full mt-2"><Check className="mr-2"/>Capture Photo</Button>
                 )}
             </TabsContent>
              <TabsContent value="upload">
