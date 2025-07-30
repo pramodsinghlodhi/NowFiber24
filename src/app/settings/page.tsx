@@ -14,7 +14,7 @@ import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useToast} from '@/hooks/use-toast';
 import {runAutoFaultDetection} from '@/app/actions';
-import {Loader2, Map, Bell, HardHat, Send} from 'lucide-react';
+import {Loader2, Map, Bell, HardHat, Send, Network} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { mockNotifications, Notification } from '@/lib/notifications';
 
@@ -24,6 +24,7 @@ export default function SettingsPage() {
   const {toast} = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingSnmp, setIsTestingSnmp] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastType, setBroadcastType] = useState<Notification['type']>('System');
@@ -81,6 +82,14 @@ export default function SettingsPage() {
       setIsTesting(false);
     }
   };
+  
+  const handleTestSnmp = () => {
+    setIsTestingSnmp(true);
+    setTimeout(() => {
+        setIsTestingSnmp(false);
+        toast({ title: 'SNMP Test Successful', description: 'Successfully connected to a test device via SNMP.'});
+    }, 1500)
+  }
 
   const handleBroadcast = () => {
     if (!broadcastMessage) {
@@ -180,6 +189,51 @@ export default function SettingsPage() {
                     </div>
                     </div>
                 </CardContent>
+                </Card>
+                
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className='flex items-center gap-2'><Network/> SNMP Configuration</CardTitle>
+                        <CardDescription>Configure settings for network device monitoring via SNMP.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                         <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="snmp-monitoring" className="text-base">
+                                Enable SNMP Monitoring
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                Use SNMP to poll devices for detailed status and metrics.
+                                </p>
+                            </div>
+                            <Switch id="snmp-monitoring" defaultChecked />
+                        </div>
+
+                         <div className="space-y-2">
+                            <Label htmlFor="snmp-community">SNMP Community String</Label>
+                            <Input id="snmp-community" type="password" defaultValue="public" />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="snmp-port">SNMP Port</Label>
+                                <Input id="snmp-port" type="number" defaultValue="161" />
+                            </div>
+                             <div>
+                                <Label>Test Connection</Label>
+                                <Button variant="outline" className="w-full mt-2" onClick={handleTestSnmp} disabled={isTestingSnmp}>
+                                {isTestingSnmp ? (
+                                    <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Testing...
+                                    </>
+                                ) : (
+                                    'Test SNMP Connection'
+                                )}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
                 </Card>
 
                  <Card>
