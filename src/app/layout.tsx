@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-provider';
+import MobileNav from '@/components/layout/mobile-nav';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
@@ -28,7 +29,10 @@ export default function RootLayout({
       <body className={`${inter.variable} ${spaceGrotesk.variable} font-body antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
-            {children}
+            <div className="pb-16 md:pb-0">
+                {children}
+            </div>
+            <MobileNav />
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

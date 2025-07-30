@@ -90,8 +90,16 @@ body {
   }
 }
 
+.leaflet-pane {
+    z-index: 10;
+}
+.leaflet-top, .leaflet-bottom {
+    z-index: 400; /* Default is 1000, lower it so shadcn components can be on top */
+}
+
 .leaflet-popup-content-wrapper {
     @apply bg-card text-card-foreground rounded-lg shadow-lg;
+    z-index: 900;
 }
 
 .leaflet-popup-content {
@@ -105,5 +113,5 @@ body {
 
 .custom-tooltip {
     @apply bg-card/80 text-card-foreground border-none shadow-lg rounded-md px-2 py-1 backdrop-blur-sm;
-    z-index: 1000 !important;
+    z-index: 950 !important;
 }
