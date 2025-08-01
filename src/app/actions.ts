@@ -4,22 +4,34 @@
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
-import {mockInfrastructure, mockTechnicians} from '@/lib/data';
+import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Technician, Infrastructure } from '@/lib/types';
+
 
 export async function runAutoFaultDetection() {
-  // In a real application, you would fetch this data from your database.
-  const techniciansWithLocation = mockTechnicians.filter(t => t.isActive).map(t => ({
-    techId: t.id,
-    latitude: t.lat,
-    longitude: t.lng,
-  }));
+  const techniciansCol = collection(db, 'technicians');
+  const q = query(techniciansCol, where('isActive', '==', true));
+  const techniciansSnapshot = await getDocs(q);
+  const techniciansWithLocation = techniciansSnapshot.docs.map(doc => {
+      const data = doc.data() as Technician;
+      return {
+          techId: doc.id,
+          latitude: data.lat,
+          longitude: data.lng,
+      };
+  });
 
-  // Find a single faulty device for the manual trigger, to prevent memory overload.
-  const faultyDevice = mockInfrastructure.find(d => d.status === 'offline');
-
-  if (!faultyDevice) {
+  const infrastructureCol = collection(db, 'infrastructure');
+  const faultyDeviceQuery = query(infrastructureCol, where('status', '==', 'offline'), limit(1));
+  const faultyDeviceSnapshot = await getDocs(faultyDeviceQuery);
+  
+  if (faultyDeviceSnapshot.empty) {
     return [{isReachable: true, alertCreated: false, issue: 'No offline devices found to test.'}];
   }
+
+  const faultyDeviceDoc = faultyDeviceSnapshot.docs[0];
+  const faultyDevice = { id: faultyDeviceDoc.id, ...faultyDeviceDoc.data() } as Infrastructure;
 
    const result = await autoFaultDetection({
     deviceId: faultyDevice.id,
@@ -33,7 +45,7 @@ export async function runAutoFaultDetection() {
    return [result];
 }
 
-export async function analyzeMaterials(photoDataUri: string) {
+export async function analyzeMaterials(photoDataUri: string, taskId: string) {
   // In a real app, you would get task details and issued materials from the DB based on the task ID.
   const mockTaskDetails = 'Task: Fix ONU-102 Connectivity. Replace faulty fiber optic cable and connector.';
   const mockMaterialsIssued = '1x SC/APC Connector, 20m Fiber Optic Cable, 1x Splicing Sleeve, 1x Cleaning Kit';

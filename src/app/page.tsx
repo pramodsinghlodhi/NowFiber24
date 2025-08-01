@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockStats, mockConnections, Technician, Infrastructure, Connection } from '@/lib/data';
+import { Technician, Infrastructure, Connection, Task, Alert, Stats } from '@/lib/types';
 import StatsCard from '@/components/dashboard/stats-card';
 import TasksList from '@/components/dashboard/tasks-list';
 import AlertsList from '@/components/dashboard/alerts-list';
@@ -18,56 +18,67 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { Users, Wifi, Siren, ListChecks } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   ssr: false,
   loading: () => <Skeleton className="h-full w-full rounded-xl" />,
 });
 
-
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
+  
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+  const { data: devices, loading: loadingDevices } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(collection(db, 'alerts'));
+  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(collection(db, 'connections'));
+  
+  const tasksQuery = useMemo(() => {
+    if (!user) return null;
+    return user.role === 'Admin' 
+      ? collection(db, 'tasks')
+      : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
+  }, [user]);
+
+  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery!);
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       router.push('/login');
     }
-  }, [user, router]);
+  }, [authLoading, user, router]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveTechnicians(prevTechnicians =>
-        prevTechnicians.map(tech => {
-          if (tech.isActive) {
-            // Simulate slight movement
-            const newLat = tech.lat + (Math.random() - 0.5) * 0.001;
-            const newLng = tech.lng + (Math.random() - 0.5) * 0.001;
-            const newPath = [...(tech.path || []), [newLat, newLng]] as [number, number][];
-            return { ...tech, lat: newLat, lng: newLng, path: newPath.slice(-10) }; // Keep last 10 points
+  const stats: Stats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = Timestamp.fromDate(today);
+
+    return {
+      techniciansOnDuty: technicians.filter(t => t.isActive).length,
+      onlineDevices: devices.filter(d => d.status === 'online').length,
+      activeAlerts: alerts.length,
+      tasksCompletedToday: tasks.filter(t => {
+          if (t.status === 'Completed' && t.completionTimestamp) {
+              return t.completionTimestamp >= todayTimestamp;
           }
-          return tech;
-        })
-      );
-    }, 5000); // Update every 5 seconds
+          return false;
+      }).length,
+    };
+  }, [technicians, devices, alerts, tasks]);
 
-    return () => clearInterval(interval);
-  }, []);
 
-  if (!user) {
+  const loading = authLoading || loadingTechs || loadingDevices || loadingAlerts || loadingConnections || loadingTasks;
+
+  if (loading || !user) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
-            <Skeleton className="h-full w-full" />
+            <p>Loading Dashboard...</p>
         </div>
     );
   }
-
-  const stats = mockStats;
-  const devices = mockInfrastructure;
-  const alerts = mockAlerts;
-  const tasks = mockTasks.filter(t => t.tech_id === user.id || user.role === 'Admin');
-  const connections = mockConnections;
 
   return (
     <SidebarProvider>
@@ -85,7 +96,7 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full flex flex-col p-0 overflow-hidden">
                 <div className="flex-grow">
-                    <MapView devices={devices} technicians={liveTechnicians} alerts={alerts} connections={connections} />
+                    <MapView devices={devices} technicians={technicians} alerts={alerts} connections={connections} />
                 </div>
             </Card>
             <div className="space-y-6">
@@ -95,7 +106,7 @@ export default function Home() {
                         <CardDescription>Tasks assigned to you or your team.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <TasksList tasks={tasks.filter(t => t.status !== 'Completed').slice(0, 5)} />
+                        <TasksList tasks={tasks.filter(t => t.status !== 'Completed').slice(0, 5)} technicians={technicians} />
                     </CardContent>
                 </Card>
               <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />

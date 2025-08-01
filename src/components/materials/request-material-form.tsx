@@ -15,10 +15,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { mockMaterials, mockAssignments, MaterialAssignment } from '@/lib/data';
 import { Loader2, Wrench } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useAuth } from '@/contexts/auth-context';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Material } from '@/lib/types';
 
 export default function RequestMaterial() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +31,9 @@ export default function RequestMaterial() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(collection(db, 'materials'));
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
         toast({ title: 'Not Authenticated', description: 'You must be logged in to make a request.', variant: 'destructive'});
@@ -41,22 +46,23 @@ export default function RequestMaterial() {
 
     setIsLoading(true);
 
-    // Simulate saving
-    setTimeout(() => {
-        const newRequest: MaterialAssignment = {
-            id: mockAssignments.length + 1,
+    try {
+        await addDoc(collection(db, 'assignments'), {
             technicianId: user.id,
             materialId,
             quantityAssigned,
             timestamp: new Date().toISOString(),
             status: 'Requested'
-        }
-        mockAssignments.unshift(newRequest);
+        });
         
-        setIsLoading(false);
-        setIsOpen(false);
         toast({ title: 'Request Submitted', description: 'Your material request has been sent to the administrator for approval.' });
-    }, 500);
+        setIsOpen(false);
+    } catch (error) {
+        console.error("Error submitting request: ", error);
+        toast({ title: 'Error', description: 'Could not submit your request.', variant: 'destructive'});
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -88,9 +94,9 @@ export default function RequestMaterial() {
              <div className="space-y-2">
                 <Label htmlFor="material">Material</Label>
                 <Select value={materialId} onValueChange={setMaterialId} required>
-                    <SelectTrigger id="material"><SelectValue placeholder="Select a material" /></SelectTrigger>
+                    <SelectTrigger id="material"><SelectValue placeholder={loadingMaterials ? "Loading materials..." : "Select a material"} /></SelectTrigger>
                     <SelectContent>
-                        {mockMaterials.map(mat => (
+                        {materials.map(mat => (
                             <SelectItem key={mat.id} value={mat.id}>
                                 {mat.name}
                             </SelectItem>

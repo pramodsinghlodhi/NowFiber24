@@ -19,13 +19,16 @@ import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
 import FaultDetector from '../dashboard/fault-detector';
 import RequestMaterial from '../materials/request-material-form';
-import { mockAssignments, mockAlerts } from '@/lib/data';
 import { Badge } from '../ui/badge';
 import { useSidebar } from '@/components/ui/sidebar';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import TraceRoute from '../dashboard/trace-route';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Alert as AlertType, MaterialAssignment } from '@/lib/types';
 
 const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
   ssr: false,
@@ -55,6 +58,12 @@ export default function AppSidebar() {
   const {user, logout} = useAuth();
   const { setOpenMobile, state } = useSidebar();
   const router = useRouter();
+  
+  const alertsQuery = query(collection(db, 'alerts'), where('severity', '==', 'Critical'));
+  const { data: criticalAlerts } = useFirestoreQuery<AlertType>(alertsQuery);
+
+  const assignmentsQuery = query(collection(db, 'assignments'), where('status', '==', 'Requested'));
+  const { data: requestedAssignments } = useFirestoreQuery<MaterialAssignment>(assignmentsQuery);
 
   const handleLinkClick = () => {
     setOpenMobile(false);
@@ -70,12 +79,11 @@ export default function AppSidebar() {
   const getNotificationCount = (key: string) => {
     if (user?.role !== 'Admin') return 0;
     if (key === 'materials') {
-      return mockAssignments.filter(a => a.status === 'Requested').length;
+      return requestedAssignments.length;
     }
     return 0;
   }
 
-  const criticalAlerts = mockAlerts.filter(a => a.severity === 'Critical');
   const latestCriticalAlert = criticalAlerts.length > 0 ? criticalAlerts[0] : null;
 
   return (

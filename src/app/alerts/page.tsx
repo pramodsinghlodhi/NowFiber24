@@ -10,7 +10,7 @@ import {
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
-import { mockAlerts, Alert as AlertType, mockInfrastructure, Infrastructure } from '@/lib/data';
+import { Alert as AlertType, Infrastructure } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,9 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const getSeverityBadge = (severity: 'Critical' | 'High' | 'Medium' | 'Low') => {
   switch (severity) {
@@ -52,6 +55,7 @@ export default function AlertsPage() {
   const router = useRouter();
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<AlertType>(collection(db, 'alerts'));
 
   useEffect(() => {
     if (!user) {
@@ -60,15 +64,21 @@ export default function AlertsPage() {
   }, [user, router]);
 
   useEffect(() => {
-    if (selectedAlert) {
-      const device = mockInfrastructure.find(d => d.id === selectedAlert.device_id) || null;
-      setSelectedDevice(device);
-    } else {
-      setSelectedDevice(null);
+    const fetchDevice = async () => {
+        if (selectedAlert) {
+            const deviceDocRef = doc(db, 'infrastructure', selectedAlert.device_id);
+            const deviceDoc = await getDoc(deviceDocRef);
+            if(deviceDoc.exists()) {
+                setSelectedDevice({ id: deviceDoc.id, ...deviceDoc.data() } as Infrastructure);
+            }
+        } else {
+            setSelectedDevice(null);
+        }
     }
+    fetchDevice();
   }, [selectedAlert]);
 
-  if (!user) {
+  if (!user || loadingAlerts) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <p>Loading...</p>
@@ -90,7 +100,7 @@ export default function AlertsPage() {
             <CardContent>
               {/* Mobile View */}
                <div className="md:hidden space-y-4">
-                 {mockAlerts.map((alert: AlertType) => (
+                 {alerts.map((alert: AlertType) => (
                     <Card key={alert.id} className={cn('p-4', getSeverityClass(alert.severity))}>
                         <div className="flex justify-between items-start">
                             <div>
@@ -121,7 +131,7 @@ export default function AlertsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAlerts.map((alert: AlertType) => (
+                  {alerts.map((alert: AlertType) => (
                     <TableRow key={alert.id} className={cn(getSeverityClass(alert.severity))}>
                       <TableCell>
                         <Badge variant={getSeverityBadge(alert.severity)} className={cn(alert.severity === 'High' && 'bg-orange-500 text-white')}>

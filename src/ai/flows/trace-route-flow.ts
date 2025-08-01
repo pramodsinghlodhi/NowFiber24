@@ -11,7 +11,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { mockInfrastructure, mockConnections, Infrastructure } from '@/lib/data';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Infrastructure, Connection } from '@/lib/types';
 
 
 const TraceRouteInputSchema = z.object({
@@ -22,7 +24,7 @@ export type TraceRouteInput = z.infer<typeof TraceRouteInputSchema>;
 
 const TraceRouteOutputSchema = z.object({
   path: z.array(z.object({
-    deviceId: z.string(),
+    id: z.string(),
     deviceType: z.string(),
     name: z.string(),
     lat: z.number(),
@@ -38,8 +40,7 @@ export async function traceRoute(input: TraceRouteInput): Promise<TraceRouteOutp
   return traceRouteFlow(input);
 }
 
-
-const findPath = (startId: string, endId: string): Infrastructure[] => {
+const findPath = async (startId: string, endId: string, infrastructure: Infrastructure[], connections: Connection[]): Promise<Infrastructure[]> => {
     const path: Infrastructure[] = [];
     const visited = new Set<string>();
     const queue: string[][] = [[startId]];
@@ -57,7 +58,7 @@ const findPath = (startId: string, endId: string): Infrastructure[] => {
         if (!visited.has(currentId)) {
             visited.add(currentId);
 
-            const neighbors = mockConnections
+            const neighbors = connections
                 .filter(c => c.from === currentId || c.to === currentId)
                 .map(c => (c.from === currentId ? c.to : c.from));
             
@@ -71,7 +72,7 @@ const findPath = (startId: string, endId: string): Infrastructure[] => {
     }
 
     if (foundPath.length > 0) {
-        return foundPath.map(id => mockInfrastructure.find(d => d.id === id)!);
+        return foundPath.map(id => infrastructure.find(d => d.id === id)!);
     }
     
     return [];
@@ -86,7 +87,14 @@ const traceRouteFlow = ai.defineFlow(
   },
   async ({ startDeviceId, endDeviceId }) => {
     
-    const path = findPath(startDeviceId, endDeviceId);
+    // Fetch infrastructure and connections from Firestore
+    const infraSnapshot = await getDocs(collection(db, 'infrastructure'));
+    const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
+
+    const connSnapshot = await getDocs(collection(db, 'connections'));
+    const mockConnections = connSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Connection[];
+
+    const path = await findPath(startDeviceId, endDeviceId, mockInfrastructure, mockConnections);
     
     if (path.length === 0) {
       return {
@@ -96,7 +104,7 @@ const traceRouteFlow = ai.defineFlow(
     }
     
     const pathWithDetails = path.map(device => ({
-        deviceId: device.id,
+        id: device.id,
         deviceType: device.type,
         name: device.name,
         lat: device.lat,

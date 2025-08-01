@@ -10,17 +10,19 @@ import {
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
-import { mockInfrastructure, Infrastructure } from '@/lib/data';
+import { Infrastructure } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Circle, MoreHorizontal, PlusCircle, Trash, Edit, MapPin, Tag, Wifi } from 'lucide-react';
+import { Circle, MoreHorizontal, PlusCircle, Trash, Edit, MapPin, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import DeviceForm from '@/components/inventory/device-form';
-
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const getStatusIndicator = (status: Infrastructure['status']) => {
     switch (status) {
@@ -41,10 +43,9 @@ export default function InventoryPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [devices, setDevices] = useState<Infrastructure[]>(mockInfrastructure);
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-
+  const { data: devices, loading } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
 
   useEffect(() => {
     if (!user) {
@@ -53,37 +54,44 @@ export default function InventoryPage() {
     }
   }, [user, router]);
 
-  const handleDelete = (deviceId: string) => {
+  const handleDelete = async (deviceId: string) => {
     if (user?.role !== 'Admin') {
         toast({ title: 'Permission Denied', description: 'You do not have permission to delete devices.', variant: 'destructive' });
         return;
     }
-    setDevices(prev => prev.filter(d => d.id !== deviceId));
-    const deviceIndex = mockInfrastructure.findIndex(d => d.id === deviceId);
-    if(deviceIndex > -1) mockInfrastructure.splice(deviceIndex, 1);
-
-    toast({
-        title: `Deleted Device ${deviceId}`,
-        description: "Device has been removed from the inventory.",
-        variant: "destructive"
-    })
+    try {
+      await deleteDoc(doc(db, 'infrastructure', deviceId));
+      toast({
+          title: `Deleted Device ${deviceId}`,
+          description: "Device has been removed from the inventory.",
+          variant: "destructive"
+      })
+    } catch (error) {
+        toast({ title: "Error", description: "Could not delete device."});
+    }
   }
 
-  const handleSave = (deviceData: Infrastructure) => {
+  const handleSave = async (deviceData: Omit<Infrastructure, 'id'>) => {
     const isEditing = !!selectedDevice;
     if (isEditing) {
-        setDevices(prev => prev.map(d => d.id === deviceData.id ? deviceData : d));
-        const deviceIndex = mockInfrastructure.findIndex(d => d.id === deviceData.id);
-        if(deviceIndex > -1) mockInfrastructure[deviceIndex] = deviceData;
-        toast({ title: "Device Updated", description: `${deviceData.id}'s details have been updated.` });
+        try {
+            const docRef = doc(db, 'infrastructure', selectedDevice.id);
+            await updateDoc(docRef, deviceData);
+            toast({ title: "Device Updated", description: `${selectedDevice.id}'s details have been updated.` });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not update device."});
+        }
     } else {
         if (user?.role !== 'Admin') {
             toast({ title: 'Permission Denied', description: 'You do not have permission to add new devices.', variant: 'destructive' });
             return;
         }
-        setDevices(prev => [...prev, deviceData]);
-        mockInfrastructure.push(deviceData);
-        toast({ title: "Device Added", description: `Device ${deviceData.id} has been added to the inventory.` });
+        try {
+            await addDoc(collection(db, 'infrastructure'), deviceData);
+            toast({ title: "Device Added", description: `Device has been added to the inventory.` });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not add new device."});
+        }
     }
     setIsFormOpen(false);
     setSelectedDevice(null);
@@ -99,10 +107,10 @@ export default function InventoryPage() {
     setIsFormOpen(true);
   }
 
-  if (!user) {
+  if (!user || loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <p>Unauthorized. Redirecting...</p>
+        <p>Loading...</p>
       </div>
     );
   }

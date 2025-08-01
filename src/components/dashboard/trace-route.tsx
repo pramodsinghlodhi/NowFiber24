@@ -16,10 +16,13 @@ import {
 import {Route, Bot, Loader2} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {runTraceRoute} from '@/app/actions';
-import {Alert, AlertTitle, AlertDescription} from '../ui/alert';
 import {Label} from '../ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '../ui/select';
-import {mockInfrastructure} from '@/lib/data';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Infrastructure } from '@/lib/types';
+
 
 interface TraceRouteProps {
     startDevice?: string;
@@ -35,6 +38,10 @@ export default function TraceRoute({ startDevice, endDevice, onTraceComplete }: 
   const [endDeviceId, setEndDeviceId] = useState(endDevice || '');
   const {toast} = useToast();
   const router = useRouter();
+
+  const { data: olts, loading: loadingOlts } = useFirestoreQuery<Infrastructure>(query(collection(db, 'infrastructure'), where('type', '==', 'OLT')));
+  const { data: onus, loading: loadingOnus } = useFirestoreQuery<Infrastructure>(query(collection(db, 'infrastructure'), where('type', '==', 'ONU')));
+
 
   useEffect(() => {
     if (startDevice) setStartDeviceId(startDevice);
@@ -100,9 +107,9 @@ export default function TraceRoute({ startDevice, endDevice, onTraceComplete }: 
              <div className="space-y-2">
                 <Label htmlFor="start-device">Start Device</Label>
                 <Select value={startDeviceId} onValueChange={setStartDeviceId}>
-                    <SelectTrigger id="start-device"><SelectValue placeholder="Select a starting OLT..." /></SelectTrigger>
+                    <SelectTrigger id="start-device"><SelectValue placeholder={loadingOlts ? "Loading..." : "Select a starting OLT..."} /></SelectTrigger>
                     <SelectContent>
-                        {mockInfrastructure.filter(d => d.type === 'OLT').map(device => (
+                        {olts.map(device => (
                             <SelectItem key={device.id} value={device.id}>{device.name} ({device.id})</SelectItem>
                         ))}
                     </SelectContent>
@@ -111,9 +118,9 @@ export default function TraceRoute({ startDevice, endDevice, onTraceComplete }: 
              <div className="space-y-2">
                 <Label htmlFor="end-device">End Device</Label>
                 <Select value={endDeviceId} onValueChange={setEndDeviceId}>
-                    <SelectTrigger id="end-device"><SelectValue placeholder="Select a target ONU..." /></SelectTrigger>
+                    <SelectTrigger id="end-device"><SelectValue placeholder={loadingOnus ? "Loading..." : "Select a target ONU..."} /></SelectTrigger>
                     <SelectContent>
-                        {mockInfrastructure.filter(d => d.type === 'ONU').map(device => (
+                        {onus.map(device => (
                             <SelectItem key={device.id} value={device.id}>{device.name} ({device.id})</SelectItem>
                         ))}
                     </SelectContent>
