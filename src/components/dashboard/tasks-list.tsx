@@ -1,13 +1,16 @@
+
 'use client';
 
-import {Task, mockTechnicians} from '@/lib/data';
-import {Button} from '@/components/ui/button';
-import {CheckCircle, Clock, User, Wrench} from 'lucide-react';
+import { Task, Technician } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Clock, User, Wrench } from 'lucide-react';
 import MaterialsAnalyzer from './materials-analyzer';
-import {useToast} from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useState } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const getStatusIcon = (status: 'Pending' | 'In Progress' | 'Completed') => {
   switch (status) {
@@ -23,11 +26,12 @@ const getStatusIcon = (status: 'Pending' | 'In Progress' | 'Completed') => {
 
 type TaskItemProps = {
   task: Task;
+  technicians: Technician[];
 };
 
-function TaskItem({task}: TaskItemProps) {
-  const {toast} = useToast();
-  const {user} = useAuth();
+function TaskItem({ task, technicians }: TaskItemProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [assignedTech, setAssignedTech] = useState(task.tech_id);
 
   const handleCheckIn = () => {
@@ -46,16 +50,24 @@ function TaskItem({task}: TaskItemProps) {
     }
   };
 
-  const handleReassign = (newTechId: string) => {
-    setAssignedTech(newTechId);
-    const techName = mockTechnicians.find(t => t.id === newTechId)?.name;
-    toast({
-        title: "Task Re-assigned",
-        description: `${task.title} has been assigned to ${techName}.`
-    })
+  const handleReassign = async (newTechId: string) => {
+    const techName = technicians.find(t => t.id === newTechId)?.name;
+    const taskDocRef = doc(db, 'tasks', task.id);
+
+    try {
+        await updateDoc(taskDocRef, { tech_id: newTechId });
+        setAssignedTech(newTechId);
+        toast({
+            title: "Task Re-assigned",
+            description: `${task.title} has been assigned to ${techName}.`
+        });
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to re-assign task.', variant: 'destructive'});
+        console.error("Failed to re-assign task: ", error);
+    }
   }
 
-  const assignedTechnician = mockTechnicians.find(t => t.id === assignedTech);
+  const assignedTechnician = technicians.find(t => t.id === assignedTech);
 
 
   return (
@@ -65,7 +77,7 @@ function TaskItem({task}: TaskItemProps) {
                 {getStatusIcon(task.status)}
                 <div>
                 <p className="font-semibold">{task.title}</p>
-                <p className="text-sm text-muted-foreground">Device ID: {task.description.split(' ')[1].replace('.','')}</p>
+                <p className="text-sm text-muted-foreground">Device ID: {task.device_id}</p>
                 </div>
             </div>
             <div className="flex items-center gap-2">
@@ -88,7 +100,7 @@ function TaskItem({task}: TaskItemProps) {
                         <SelectValue placeholder="Re-assign task..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {mockTechnicians.filter(t => t.isActive).map(tech => (
+                        {technicians.filter(t => t.isActive).map(tech => (
                             <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
                         ))}
                     </SelectContent>
@@ -99,11 +111,14 @@ function TaskItem({task}: TaskItemProps) {
   );
 }
 
-export default function TasksList({tasks}: {tasks: Task[]}) {
+export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: Technician[]}) {
+  if (!technicians) {
+    return null; // Or a loading indicator
+  }
   return (
     <div className="space-y-1">
         {tasks.map(task => (
-            <TaskItem key={task.id} task={task} />
+            <TaskItem key={task.id} task={task} technicians={technicians} />
         ))}
     </div>
   );

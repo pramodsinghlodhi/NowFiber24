@@ -7,39 +7,50 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockTasks, mockTechnicians, Task } from '@/lib/data';
+import { Technician, Task } from '@/lib/types';
 import TasksList from '@/components/dashboard/tasks-list';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function TasksPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!user) {
-        router.push('/login');
+        if (!authLoading && !user) {
+            router.push('/login');
         }
-    }, [user, router]);
+    }, [authLoading, user, router]);
 
-    const { userTasks, inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
-        if (!user) {
-            return { userTasks: [], inProgressTasks: [], pendingTasks: [], completedTasks: [] };
-        }
-        const tasks = user.role === 'Admin' ? mockTasks : mockTasks.filter(task => task.tech_id === user.id);
+    const tasksQuery = useMemo(() => {
+        if (!user) return null;
+        return user.role === 'Admin' 
+            ? collection(db, 'tasks') 
+            : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
+    }, [user]);
+
+    const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery!);
+    const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+
+    const { inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
         const inProgress = tasks.filter(task => task.status === 'In Progress');
         const pending = tasks.filter(task => task.status === 'Pending');
         const completed = tasks.filter(task => task.status === 'Completed');
-        return { userTasks: tasks, inProgressTasks: inProgress, pendingTasks: pending, completedTasks: completed };
-    }, [user]);
+        return { inProgressTasks: inProgress, pendingTasks: pending, completedTasks: completed };
+    }, [tasks]);
 
-    if (!user) {
+    const loading = authLoading || loadingTasks || loadingTechs;
+
+    if (loading || !user) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
-                <Skeleton className="h-full w-full" />
+                <p>Loading Tasks...</p>
             </div>
         );
     }
@@ -60,7 +71,7 @@ export default function TasksPage() {
                     </CardHeader>
                     <CardContent>
                         {inProgressTasks.length > 0 ? (
-                            <TasksList tasks={inProgressTasks} />
+                            <TasksList tasks={inProgressTasks} technicians={technicians} />
                         ) : (
                             <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
                         )}
@@ -75,7 +86,7 @@ export default function TasksPage() {
                     </CardHeader>
                     <CardContent>
                         {pendingTasks.length > 0 ? (
-                           <TasksList tasks={pendingTasks} />
+                           <TasksList tasks={pendingTasks} technicians={technicians} />
                         ) : (
                             <p className="text-muted-foreground text-sm">No pending tasks.</p>
                         )}
@@ -90,7 +101,7 @@ export default function TasksPage() {
                     </CardHeader>
                     <CardContent>
                         {completedTasks.length > 0 ? (
-                           <TasksList tasks={completedTasks} />
+                           <TasksList tasks={completedTasks} technicians={technicians} />
                         ) : (
                             <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
                         )}

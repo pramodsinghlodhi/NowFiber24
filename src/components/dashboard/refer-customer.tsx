@@ -1,3 +1,4 @@
+
 'use client';
 
 import {useState, useRef} from 'react';
@@ -17,7 +18,8 @@ import {Input} from '../ui/input';
 import {Label} from '../ui/label';
 import {Textarea} from '../ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
-import { mockReferrals } from '@/lib/data';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function ReferCustomer() {
   const { user } = useAuth();
@@ -31,31 +33,39 @@ export default function ReferCustomer() {
 
   const handleReferral = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+        toast({ title: 'Not Authenticated', description: 'You must be logged in to make a request.', variant: 'destructive'});
+        return;
+    }
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-        const newReferral = {
-            id: mockReferrals.length + 1,
-            tech_id: user.id,
-            customer_name: name,
-            phone,
-            address,
-            notes,
-            status: 'Pending' as 'Pending' | 'Contacted' | 'Closed',
-            timestamp: new Date().toISOString(),
-        }
-        mockReferrals.push(newReferral);
-        
-        setIsLoading(false);
-        setIsOpen(false);
-        resetForm();
-        toast({
-            title: 'Referral Submitted!',
-            description: 'The sales team has been notified of the new lead. Location captured.',
-        });
-    }, 1000)
+    try {
+      await addDoc(collection(db, 'referrals'), {
+        tech_id: user.id,
+        customer_name: name,
+        phone,
+        address,
+        notes,
+        status: 'Pending',
+        timestamp: new Date().toISOString(),
+      });
+
+      setIsLoading(false);
+      setIsOpen(false);
+      resetForm();
+      toast({
+        title: 'Referral Submitted!',
+        description: 'The sales team has been notified of the new lead. Location captured.',
+      });
+    } catch (error) {
+      console.error("Error submitting referral: ", error);
+      setIsLoading(false);
+      toast({
+        title: 'Submission Failed',
+        description: 'Could not submit your referral at this time.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const resetForm = () => {

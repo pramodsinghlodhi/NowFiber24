@@ -1,13 +1,16 @@
 
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 import { cn } from "@/lib/utils";
-import { Infrastructure, Technician, Alert, Connection, mockPlans } from "@/lib/data";
+import { Infrastructure, Technician, Alert, Connection, Plan } from "@/lib/types";
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // This is a workaround for a common issue with Leaflet and Next.js
 // It manually sets the paths for the default marker icons.
@@ -97,7 +100,7 @@ const getAlertIcon = () => {
     });
 }
 
-const createPopupContent = (device: Infrastructure, isTraced: boolean) => {
+const createPopupContent = (device: Infrastructure, isTraced: boolean, plans: Plan[]) => {
     let attributesHtml = '';
     if (device.attributes) {
         attributesHtml = Object.entries(device.attributes)
@@ -105,7 +108,7 @@ const createPopupContent = (device: Infrastructure, isTraced: boolean) => {
             .join('');
     }
 
-    const plan = mockPlans.find(p => p.assignedONT === device.id);
+    const plan = plans.find(p => p.assignedONT === device.id);
     const planHtml = plan ? `
         <div class="mt-2 pt-2 border-t">
             <p class="text-xs text-muted-foreground">Customer: <strong>${plan.customerId}</strong></p>
@@ -164,6 +167,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const router = useRouter();
+  const { data: plans } = useFirestoreQuery<Plan>(collection(db, 'plans'));
 
 
   useEffect(() => {
@@ -248,7 +252,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
             const isTraced = tracedDeviceIds.has(device.id);
             L.marker([device.lat, device.lng], { icon: getDeviceIcon(device, isTraced), zIndexOffset: isTraced ? 1000 : 0 })
                 .addTo(lg)
-                .bindPopup(createPopupContent(device, isTraced), { className: 'custom-popup' });
+                .bindPopup(createPopupContent(device, isTraced, plans), { className: 'custom-popup' });
         });
 
         alerts.forEach(alert => {
@@ -278,7 +282,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
             mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
         }
     }
-  }, [devices, technicians, alerts, connections, mapStyle, tracedPath, router]);
+  }, [devices, technicians, alerts, connections, mapStyle, tracedPath, router, plans]);
 
   return (
     <div className="h-full w-full bg-card rounded-xl shadow-inner border">
@@ -286,3 +290,5 @@ export default function MapView({ devices, technicians, alerts, connections, map
     </div>
   );
 }
+
+    
