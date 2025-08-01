@@ -43,7 +43,7 @@ export default function Home() {
       : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
   }, [user]);
 
-  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery!);
+  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {

@@ -35,7 +35,7 @@ export default function TasksPage() {
             : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
     }, [user]);
 
-    const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery!);
+    const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
 
     const { inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {

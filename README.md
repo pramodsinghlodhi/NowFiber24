@@ -213,3 +213,5 @@ This Next.js application is ready to be deployed to any hosting provider that su
     ```
 
 This will deploy your application to a live URL provided by Firebase.
+
+new

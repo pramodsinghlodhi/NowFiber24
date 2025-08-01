@@ -2,11 +2,18 @@
 import { useState, useEffect } from 'react';
 import { onSnapshot, Query } from 'firebase/firestore';
 
-export function useFirestoreQuery<T>(query: Query) {
+export function useFirestoreQuery<T>(query: Query | null) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!query) {
+        setData([]);
+        setLoading(false);
+        return;
+    }
+
+    setLoading(true);
     const unsubscribe = onSnapshot(query, (querySnapshot) => {
       const docs = querySnapshot.docs.map(doc => ({
         id: doc.id,

@@ -1,4 +1,5 @@
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -90,6 +91,7 @@ export type Task = {
   status: 'Pending' | 'In Progress' | 'Completed';
   lat: number;
   lng: number;
+  completionTimestamp?: any;
 };
 
 export type Alert = {
