@@ -14,6 +14,7 @@ export function useFirestoreQuery<T>(query: Query | null) {
     }
 
     setLoading(true);
+    // Setting up the listener. onSnapshot will return an unsubscribe function.
     const unsubscribe = onSnapshot(query, (querySnapshot) => {
       const docs = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -26,8 +27,10 @@ export function useFirestoreQuery<T>(query: Query | null) {
         setLoading(false);
     });
 
+    // Cleanup function to unsubscribe from the listener when the component unmounts
+    // or the query changes, to prevent memory leaks.
     return () => unsubscribe();
-  }, [query]);
+  }, [query]); // Re-run the effect if the query object itself changes.
 
   return { data, loading };
 }
