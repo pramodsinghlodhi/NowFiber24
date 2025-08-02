@@ -1,12 +1,7 @@
-<<<<<<< HEAD
+
 # Fiber24 - FTTH Network Management & Field Engineering Platform
 
-Fiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics.
-=======
-# Metatag Solution by PramodSingh Lodhi
-
-This is a NextJS starter in Metatag Solution.
->>>>>>> 3226408c358008eb08b26a949e7ffc6bf99f90c9
+Fiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
 
 ## Features
 
@@ -50,38 +45,37 @@ Here is an overview of the key files and directories in the project:
 ├── public/                 # Static assets (images, fonts, etc.)
 ├── src/
 │   ├── app/                # Next.js App Router: all pages and layouts
-│   │   ├── (admin)/        # Route group for admin-only pages
+│   │   ├── (admin)/        # Route group for admin-only pages (e.g., /technicians, /inventory)
 │   │   ├── (technician)/   # Route group for technician-only pages
 │   │   ├── api/            # API routes (if needed)
 │   │   ├── layout.tsx      # Root layout for the entire application
 │   │   ├── page.tsx        # The main dashboard page
 │   │   └── login/          # The login page
 │   ├── ai/                 # All Genkit AI-related code
-│   │   ├── flows/          # Genkit flows that define AI tasks
+│   │   ├── flows/          # Genkit flows that define AI tasks (e.g., fault detection)
 │   │   └── genkit.ts       # Genkit configuration and initialization
 │   ├── components/         # Reusable React components
-│   │   ├── dashboard/      # Components specific to the dashboard
-│   │   ├── layout/         # Layout components (Header, Sidebar)
-│   │   └── ui/             # ShadCN UI components
+│   │   ├── dashboard/      # Components specific to the dashboard (e.g., MapView, StatsCard)
+│   │   ├── layout/         # Layout components (Header, Sidebar, MobileNav)
+│   │   └── ui/             # ShadCN UI components (Button, Card, etc.)
 │   ├── contexts/           # React contexts for state management
-│   │   └── auth-context.tsx  # Handles user authentication state
+│   │   └── auth-context.tsx  # Handles user authentication state against Firebase
 │   ├── hooks/              # Custom React hooks
-│   │   └── use-toast.ts    # Hook for displaying toast notifications
+│   │   └── use-firestore-query.ts # Hook for fetching live data collections from Firestore
 │   ├── lib/                # Libraries, helpers, and configuration
-│   │   ├── data.ts         # Mock data for development (to be replaced by Firebase)
-│   │   ├── firebase.ts     # Firebase initialization and configuration
+│   │   ├── firebase.ts     # Firebase initialization and configuration (IMPORTANT)
+│   │   ├── types.ts        # TypeScript type definitions for all data models
 │   │   └── utils.ts        # Utility functions (e.g., cn for styling)
-│   └── styles/             # Global styles and Tailwind CSS configuration
-│       └── globals.css     # Main stylesheet with Tailwind directives and theme variables
+│   └── README.md           # This file, providing setup and deployment instructions
 ├── .env                    # Environment variables (e.g., API keys)
-├── next.config.mjs         # Next.js configuration
+├── next.config.ts          # Next.js configuration
 ├── package.json            # Project dependencies and scripts
-└── README.md               # This file
+└── tsconfig.json           # TypeScript configuration for the project
 ```
 
-## Project Setup Guide
+## Production Setup Guide (Step-by-Step)
 
-Follow these steps to set up and run the project on your local machine and prepare it for deployment.
+Follow these steps to set up and run the project on your local machine and prepare it for deployment. This guide assumes you have a basic understanding of Firebase.
 
 ### 1. Prerequisites
 
@@ -89,9 +83,9 @@ Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [npm](https://www.npmjs.com/) (or [yarn](https://yarnpkg.com/))
 
-### 2. Firebase Setup (Crucial Step)
+### 2. Firebase Project Setup (CRUCIAL)
 
-This application is powered by Firebase. You must configure it correctly for the application to run.
+This application is fully powered by Firebase. **It will not run without a correctly configured Firebase project.**
 
 **A. Create a Firebase Project:**
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
@@ -104,55 +98,81 @@ This application is powered by Firebase. You must configure it correctly for the
 
 **C. Configure the Application:**
 1. In the project's root directory, open the file `src/lib/firebase.ts`.
-2. **Replace the existing `firebaseConfig` object with the one you copied** from the Firebase console. The file should look like this:
+2. **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
 
-```typescript
-// src/lib/firebase.ts
-// This file initializes the connection to your Firebase project.
-// The configuration object below is essential for the app to communicate with Firebase services.
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+    - **File:** `src/lib/firebase.ts`
+    - **Line to Replace:** Approximately line 6
 
-const firebaseConfig = {
-  // Paste your config object here
-  apiKey: "AIza...",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "...",
-  appId: "1:...",
-  measurementId: "G-..."
-};
+    ```typescript
+    // src/lib/firebase.ts
 
-// Initialize Firebase App
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app); // Firebase Authentication instance
-const db = getFirestore(app); // Firestore Database instance
+    import { initializeApp, getApp, getApps } from 'firebase/app';
+    import { getAuth } from 'firebase/auth';
+    import { getFirestore } from 'firebase/firestore';
 
-export { app, auth, db };
-```
+    // v-- PASTE YOUR FIREBASE CONFIG OBJECT HERE --v
+    const firebaseConfig = {
+      apiKey: "AIza...",
+      authDomain: "your-project-id.firebaseapp.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project-id.appspot.com",
+      messagingSenderId: "...",
+      appId: "1:...",
+      measurementId: "G-..."
+    };
+    // ^-- PASTE YOUR FIREBASE CONFIG OBJECT HERE --^
+
+    // Initialize Firebase
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    export { app, auth, db };
+    ```
 
 **D. Enable Firebase Services:**
 1. In the Firebase Console, go to the **Authentication** section. Click **"Get started"** and enable the **"Email/Password"** sign-in provider.
 2. Go to the **Firestore Database** section. Click **"Create database"**, start in **test mode** for now (you can secure it later with Security Rules), and choose a location.
 
-**E. Create User Accounts:**
-The application will not work without user accounts. You need to create them in Firebase Authentication.
+**E. Create User Accounts (Required for Login):**
+The application will not work without user accounts. You must create them in Firebase Authentication.
 1. Go to the **Authentication** -> **Users** tab in the Firebase Console.
-2. Click **"Add user"** to create the following accounts. The email is derived from the User ID.
+2. Click **"Add user"** to create at least one administrator and one technician. The email address is derived from the User ID you want to use for login.
+
     - **Admin User**:
         - **Email**: `admin@fibervision.com`
-        - **Password**: `admin`
+        - **Password**: `admin` (or any password of your choice)
+
     - **Technician User**:
         - **Email**: `tech-001@fibervision.com`
-        - **Password**: `password`
+        - **Password**: `password` (or any password of your choice)
 
-**F. Set up Firestore Data (Optional but Recommended):**
-To see data in the app beyond authentication, you need to add documents to your Firestore database. The most important collection is `users`.
-1.  Go to the **Firestore Database** -> **Data** tab.
-2.  Create a collection named `users`.
-3.  Add a document with the **Document ID** set to match the user's UID from the Authentication tab. Add fields that match the `User` type in `src/lib/data.ts` (e.g., `name`, `role`, `avatarUrl`).
+**F. Set up Firestore Data:**
+For the application to be populated with data, you must create collections in Firestore. The most important is the `users` collection, which links Authentication accounts to application roles.
+
+1. Go to the **Firestore Database** -> **Data** tab.
+2. Create a collection named `users`.
+3. For each user you created in Authentication, you must add a corresponding document in the `users` collection. **The Document ID must be the User UID** from the Authentication tab (not the email).
+    - **Get the UID**: In the Authentication -> Users tab, copy the UID for each user.
+    - **Create the Document**: In Firestore, click "Add document" in the `users` collection and paste the UID as the Document ID.
+
+    - **Admin Document (ID = UID of `admin@fibervision.com`):**
+      - `id`: "admin" (This is the login ID)
+      - `name`: "Admin User"
+      - `role`: "Admin"
+      - `isBlocked`: `false`
+      - `avatarUrl`: "https://i.pravatar.cc/150?u=admin"
+      - `contact`: "+15551234567"
+
+    - **Technician Document (ID = UID of `tech-001@fibervision.com`):**
+      - `id`: "tech-001" (This is the login ID)
+      - `name`: "John Doe"
+      - `role`: "Technician"
+      - `isBlocked`: `false`
+      - `avatarUrl`: "https://i.pravatar.cc/150?u=tech-001"
+      - `contact`: "+15558765432"
+
+*For the application to be fully functional, you will need to add documents to other collections as well, such as `technicians`, `tasks`, `alerts`, and `infrastructure`.*
 
 ### 3. Local Development
 
@@ -188,11 +208,11 @@ Use these credentials to log in after setting up the user accounts in Firebase.
 
 -   **Administrator:**
     -   **User ID:** `admin`
-    -   **Password:** `admin`
+    -   **Password:** `admin` (or the password you set)
 
 -   **Technician:**
     -   **User ID:** `tech-001`
-    -   **Password:** `password`
+    -   **Password:** `password` (or the password you set)
 
 ### 5. Deployment
 
@@ -213,5 +233,3 @@ This Next.js application is ready to be deployed to any hosting provider that su
     ```
 
 This will deploy your application to a live URL provided by Firebase.
-
-new

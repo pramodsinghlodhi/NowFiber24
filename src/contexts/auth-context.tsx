@@ -6,8 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { User, mockUsers } from '@/lib/data'; 
-import { Skeleton } from '@/components/ui/skeleton';
+import { User } from '@/lib/types'; 
 
 interface AuthContextType {
   user: User | null;
@@ -36,13 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userDoc.exists()) {
           setUser({ id: userDoc.id, ...userDoc.data() } as User);
         } else {
-          // Fallback for mock users during transition
-          const mockUser = mockUsers.find(u => u.id === fbUser.email?.split('@')[0]);
-          if (mockUser) {
-            setUser(mockUser);
-          } else {
-            setUser(null);
-          }
+          console.error(`No user document found for UID: ${fbUser.uid}`);
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -53,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
   
-    useEffect(() => {
+  useEffect(() => {
     if (!loading && !user && pathname !== '/login') {
       router.push('/login');
     }
@@ -69,15 +63,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle setting the user
+      // onAuthStateChanged will handle setting the user and redirecting
       return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
-       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-           const mockUser = mockUsers.find(u => u.id === userId && u.password === password)
-           if (mockUser) {
-                return { success: false, message: `User '${email}' not found in Firebase. Please create this user in the Firebase console.` };
-           }
-           return { success: false, message: 'Invalid credentials. Please try again.' };
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/wrong-password') {
+           return { success: false, message: 'Invalid credentials. Please ensure the user exists in Firebase Authentication and the credentials are correct.' };
        }
       return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }

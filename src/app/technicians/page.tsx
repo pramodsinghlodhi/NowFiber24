@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockTechnicians, Technician, mockUsers, User } from '@/lib/data';
+import { Technician, User } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -22,6 +22,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { getAuth, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
+
 
 const getStatusBadge = (tech: Technician) => {
     if (!tech.isActive) {
@@ -41,83 +46,110 @@ const getStatusBadge = (tech: Technician) => {
 
 
 export default function TechniciansPage() {
-    const { user } = useAuth();
+    const { user: currentUser } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [technicians, setTechnicians] = useState<Technician[]>(mockTechnicians);
-    const [users, setUsers] = useState<User[]>(mockUsers);
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
+    const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+    const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(collection(db, 'users'));
 
     useEffect(() => {
-        if (!user) {
+        if (!currentUser) {
             router.push('/login');
             return;
         }
-        if (user.role !== 'Admin') {
+        if (currentUser.role !== 'Admin') {
             router.push('/');
         }
-    }, [user, router]);
+    }, [currentUser, router]);
 
-    const handleDelete = (techId: string) => {
-        setTechnicians(prev => prev.filter(t => t.id !== techId));
-        setUsers(prev => prev.filter(u => u.id !== techId));
-        
-        const techUserIndex = mockUsers.findIndex(u => u.id === techId);
-        if(techUserIndex > -1) mockUsers.splice(techUserIndex, 1);
-        
-        const techIndex = mockTechnicians.findIndex(t => t.id === techId);
-        if(techIndex > -1) mockTechnicians.splice(techIndex, 1);
-
-        toast({
-            title: `Deleted Technician ${techId}`,
-            description: "Technician has been removed from the list.",
-            variant: "destructive"
-        })
+    const handleDelete = async (techId: string) => {
+        // This is a simplified delete. In a real app, you would handle this more carefully,
+        // perhaps by disabling the user in Firebase Auth instead of deleting.
+        // Also, you'd need to handle re-assigning tasks, etc.
+        try {
+            await deleteDoc(doc(db, 'technicians', techId));
+            await deleteDoc(doc(db, 'users', techId)); // Assuming user doc ID is the same as tech ID
+            toast({
+                title: `Deleted Technician ${techId}`,
+                description: "Technician has been removed from the system.",
+                variant: "destructive"
+            });
+        } catch (error) {
+            console.error("Error deleting technician: ", error);
+            toast({ title: "Error", description: "Could not delete technician.", variant: "destructive" });
+        }
     }
 
-    const handleSave = (techData: Technician, userData: User) => {
+    const handleSave = async (techData: Omit<Technician, 'id'> & { id?: string }, userData: Omit<User, 'id'> & { id?: string }) => {
         const isEditing = !!selectedTechnician;
-
-        if(isEditing) {
-            setTechnicians(prev => prev.map(t => t.id === techData.id ? techData : t));
-            const techIndex = mockTechnicians.findIndex(t => t.id === techData.id);
-            if(techIndex > -1) mockTechnicians[techIndex] = techData;
-
-            setUsers(prev => prev.map(u => u.id === userData.id ? userData : u));
-            const userIndex = mockUsers.findIndex(u => u.id === userData.id);
-            if(userIndex > -1) mockUsers[userIndex] = userData;
-
-            toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
+    
+        if (isEditing && selectedTechnician) {
+            // Editing existing technician
+            const techDocRef = doc(db, 'technicians', selectedTechnician.id);
+            const userDocRef = doc(db, 'users', selectedTechnician.id);
+            try {
+                await updateDoc(techDocRef, techData);
+                await updateDoc(userDocRef, { name: userData.name, contact: userData.contact, avatarUrl: userData.avatarUrl, role: 'Technician' });
+                toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
+            } catch (error) {
+                console.error("Error updating technician: ", error);
+                toast({ title: "Error", description: "Could not update technician.", variant: "destructive"});
+            }
         } else {
-            setTechnicians(prev => [...prev, techData]);
-            mockTechnicians.push(techData);
+            // Adding new technician
+            if (!userData.id || !userData.password) {
+                toast({title: "Missing Info", description: "Technician ID and Password are required for new users.", variant: "destructive"});
+                return;
+            }
+            const email = `${userData.id}@fibervision.com`;
+            const auth = getAuth();
+            try {
+                // 1. Create Firebase Auth user
+                const userCredential = await createUserWithEmailAndPassword(auth, email, userData.password);
+                const newUserId = userCredential.user.uid;
 
-            setUsers(prev => [...prev, userData]);
-            mockUsers.push(userData);
+                // 2. Create user document in Firestore
+                const userDocRef = doc(db, 'users', newUserId);
+                await setDoc(userDocRef, { ...userData, role: 'Technician', id: userData.id });
+                
+                // 3. Create technician document in Firestore
+                const techDocRef = doc(db, 'technicians', userData.id);
+                await setDoc(techDocRef, { ...techData, id: userData.id });
 
-            toast({ title: "Technician Added", description: `${techData.name} has been added to the team.` });
+                toast({ title: "Technician Added", description: `${userData.name} has been added to the team.` });
+            } catch (error: any) {
+                 console.error("Error adding new technician: ", error);
+                 let message = "Could not add new technician.";
+                 if (error.code === 'auth/email-already-in-use') {
+                     message = "This Technician ID is already in use.";
+                 } else if (error.code === 'auth/weak-password') {
+                     message = "The password is too weak. It must be at least 6 characters."
+                 }
+                toast({ title: "Error", description: message, variant: "destructive"});
+            }
         }
         setIsFormOpen(false);
         setSelectedTechnician(null);
     }
     
-    const handleToggleBlock = (techId: string) => {
-        const userToUpdate = users.find(u => u.id === techId);
-        if (!userToUpdate) return;
+    const handleToggleBlock = async (userToToggle: User) => {
+        if (!userToToggle.id) return;
+        const userDocRef = doc(db, 'users', userToToggle.id);
+        const isBlocked = !userToToggle.isBlocked;
         
-        const isBlocked = !userToUpdate.isBlocked;
-        
-        setUsers(prev => prev.map(u => u.id === techId ? { ...u, isBlocked } : u));
-        
-        const userIndex = mockUsers.findIndex(u => u.id === techId);
-        if(userIndex > -1) mockUsers[userIndex].isBlocked = isBlocked;
-
-        toast({
-            title: `Technician ${isBlocked ? 'Blocked' : 'Unblocked'}`,
-            description: `${userToUpdate.name}'s access has been ${isBlocked ? 'revoked' : 'restored'}.`,
-        });
+        try {
+            await updateDoc(userDocRef, { isBlocked: isBlocked });
+            toast({
+                title: `Technician ${isBlocked ? 'Blocked' : 'Unblocked'}`,
+                description: `${userToToggle.name}'s access has been ${isBlocked ? 'revoked' : 'restored'}.`,
+            });
+        } catch (error) {
+             console.error("Error toggling block status: ", error);
+            toast({ title: "Error", description: "Could not update technician status.", variant: "destructive"});
+        }
     }
 
     const handleAddNew = () => {
@@ -129,11 +161,13 @@ export default function TechniciansPage() {
         setSelectedTechnician(tech);
         setIsFormOpen(true);
     }
+    
+    const loading = loadingTechs || loadingUsers;
 
-    if (!user || user.role !== 'Admin') {
+    if (!currentUser || loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
-                <p>Unauthorized. Redirecting...</p>
+                <p>Loading...</p>
             </div>
         );
     }
@@ -190,16 +224,18 @@ export default function TechniciansPage() {
                                                     Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
-                                                {techUser?.isBlocked ? (
-                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserCheck className="mr-2 h-4 w-4" />
-                                                        Unblock Access
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserX className="mr-2 h-4 w-4" />
-                                                        Block Access
-                                                    </DropdownMenuItem>
+                                                {techUser && (
+                                                    techUser.isBlocked ? (
+                                                        <DropdownMenuItem onClick={() => handleToggleBlock(techUser)}>
+                                                            <UserCheck className="mr-2 h-4 w-4" />
+                                                            Unblock Access
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(techUser)}>
+                                                            <UserX className="mr-2 h-4 w-4" />
+                                                            Block Access
+                                                        </DropdownMenuItem>
+                                                    )
                                                 )}
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
                                                     <Trash className="mr-2 h-4 w-4" />
@@ -273,16 +309,18 @@ export default function TechniciansPage() {
                                                     Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
-                                                {techUser?.isBlocked ? (
-                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserCheck className="mr-2 h-4 w-4" />
-                                                        Unblock Access
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserX className="mr-2 h-4 w-4" />
-                                                        Block Access
-                                                    </DropdownMenuItem>
+                                                {techUser && (
+                                                    techUser.isBlocked ? (
+                                                        <DropdownMenuItem onClick={() => handleToggleBlock(techUser)}>
+                                                            <UserCheck className="mr-2 h-4 w-4" />
+                                                            Unblock Access
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(techUser)}>
+                                                            <UserX className="mr-2 h-4 w-4" />
+                                                            Block Access
+                                                        </DropdownMenuItem>
+                                                    )
                                                 )}
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
                                                     <Trash className="mr-2 h-4 w-4" />
@@ -304,7 +342,9 @@ export default function TechniciansPage() {
             onOpenChange={setIsFormOpen}
             onSave={handleSave}
             technician={selectedTechnician}
+            allUsers={users}
         />
     </SidebarProvider>
   );
 }
+

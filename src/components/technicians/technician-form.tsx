@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Technician, User, mockUsers, mockTechnicians } from '@/lib/data';
+import { Technician, User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -23,11 +23,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 interface TechnicianFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (technician: Technician, user: User) => void;
+  onSave: (technician: Omit<Technician, 'id'> & { id?: string }, user: Omit<User, 'id'> & { id?: string }) => void;
   technician: Technician | null;
+  allUsers: User[];
 }
 
-export default function TechnicianForm({ isOpen, onOpenChange, onSave, technician }: TechnicianFormProps) {
+export default function TechnicianForm({ isOpen, onOpenChange, onSave, technician, allUsers }: TechnicianFormProps) {
   const [name, setName] = useState('');
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
@@ -46,8 +47,9 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
       setRole(technician.role);
       setContact(technician.contact);
       setAvatarUrl(technician.avatarUrl || '');
-      const user = mockUsers.find(u => u.id === technician.id);
-      setPassword(user?.password || '');
+      // In a real app, you would not expose passwords like this.
+      // This is a simplification for the demo.
+      setPassword('********'); 
     } else {
       // Reset form for new entry
       setName('');
@@ -61,47 +63,47 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !id || !password || !contact) {
+    if (!name || !id || !contact) {
         toast({ title: 'Missing Fields', description: 'Please fill out all required fields.', variant: 'destructive'});
         return;
     }
+    
+    if (!isEditing && (!password || password === '********')) {
+        toast({ title: 'Missing Fields', description: 'Password is required for new technicians.', variant: 'destructive'});
+        return;
+    }
 
-    if (!isEditing && mockUsers.some(u => u.id === id)) {
+    if (!isEditing && allUsers.some(u => u.id === id)) {
         toast({ title: 'ID already exists', description: 'This technician ID is already in use. Please choose another.', variant: 'destructive'});
         return;
     }
 
     setIsLoading(true);
 
-    // Simulate saving
-    setTimeout(() => {
-        const existingTechnician = isEditing ? mockTechnicians.find(t => t.id === id) : undefined;
-        const newOrUpdatedTechnician: Technician = {
-            id,
-            name,
-            role,
-            contact,
-            avatarUrl,
-            lat: existingTechnician?.lat || 34.0522,
-            lng: existingTechnician?.lng || -118.2437,
-            isActive: existingTechnician?.isActive || false,
-            status: existingTechnician?.status || 'available',
-        };
-        
-        const existingUser = isEditing ? mockUsers.find(u => u.id === id) : undefined;
-        const newOrUpdatedUser: User = {
-            id,
-            name,
-            password,
-            role: 'Technician',
-            contact,
-            avatarUrl,
-            isBlocked: existingUser?.isBlocked || false,
-        };
+    const newOrUpdatedTechnician: Omit<Technician, 'id'> & { id?: string } = {
+        id: isEditing ? technician.id : id,
+        name,
+        role,
+        contact,
+        avatarUrl,
+        lat: technician?.lat || 34.0522, // Default or existing
+        lng: technician?.lng || -118.2437,
+        isActive: technician?.isActive || false,
+        status: technician?.status || 'available',
+    };
+    
+    const newOrUpdatedUser: Omit<User, 'id'> & { id?: string } = {
+        id: isEditing ? technician.id : id,
+        name,
+        password: password === '********' ? undefined : password, // Don't pass dummy password
+        role: 'Technician',
+        contact,
+        avatarUrl,
+        isBlocked: technician ? allUsers.find(u => u.id === technician.id)?.isBlocked || false : false,
+    };
 
-        onSave(newOrUpdatedTechnician, newOrUpdatedUser);
-        setIsLoading(false);
-    }, 500);
+    onSave(newOrUpdatedTechnician, newOrUpdatedUser);
+    setIsLoading(false);
   };
   
   const getInitials = (name: string) => {
@@ -127,7 +129,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
           <div className="grid gap-4 py-4">
             <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                    <AvatarImage src={avatarUrl} alt={name} />
+                    <AvatarImage src={avatarUrl || `https://i.pravatar.cc/150?u=${id}`} alt={name} />
                     <AvatarFallback>{getInitials(name)}</AvatarFallback>
                 </Avatar>
                 <div className="w-full space-y-2">
@@ -146,7 +148,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditing} placeholder={isEditing ? "Unchanged" : ""} />
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
