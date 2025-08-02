@@ -14,14 +14,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Material, mockMaterials } from '@/lib/data';
+import { Material } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface MaterialFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (material: Material) => void;
+  onSave: (material: Omit<Material, 'id'>, materialId?: string) => void;
   material: Material | null;
 }
 
@@ -33,6 +36,8 @@ export default function MaterialForm({ isOpen, onOpenChange, onSave, material }:
   const [quantityInStock, setQuantityInStock] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const { data: materials } = useFirestoreQuery<Material>(collection(db, 'materials'));
 
   const isEditing = !!material;
 
@@ -60,26 +65,23 @@ export default function MaterialForm({ isOpen, onOpenChange, onSave, material }:
         return;
     }
 
-    if (!isEditing && mockMaterials.some(m => m.id === id)) {
+    if (!isEditing && materials.some(m => m.id === id)) {
         toast({ title: 'ID already exists', description: 'This material ID is already in use.', variant: 'destructive'});
         return;
     }
 
     setIsLoading(true);
 
-    // Simulate saving
-    setTimeout(() => {
-        const newOrUpdatedMaterial: Material = {
-            id,
-            name,
-            description,
-            imageUrl,
-            quantityInStock,
-        };
+    const newOrUpdatedMaterial: Omit<Material, 'id'> = {
+        id,
+        name,
+        description,
+        imageUrl,
+        quantityInStock,
+    };
 
-        onSave(newOrUpdatedMaterial);
-        setIsLoading(false);
-    }, 500);
+    onSave(newOrUpdatedMaterial, isEditing ? material.id : undefined);
+    setIsLoading(false);
   };
 
   return (

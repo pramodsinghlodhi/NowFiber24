@@ -10,16 +10,18 @@ import {
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
-import { mockReferrals, Referral, mockTechnicians } from '@/lib/data';
+import { Referral, Technician } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, HardHat, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const getStatusBadge = (status: 'Pending' | 'Contacted' | 'Closed') => {
@@ -36,16 +38,18 @@ const getStatusBadge = (status: 'Pending' | 'Contacted' | 'Closed') => {
 
 
 export default function ReferralsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [referrals, setReferrals] = useState(mockReferrals);
+
+  const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(collection(db, 'referrals'));
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       router.push('/login');
     }
-  }, [user, router]);
+  }, [authLoading, user, router]);
   
   const filteredReferrals = useMemo(() => {
     if (!user) return [];
@@ -54,12 +58,19 @@ export default function ReferralsPage() {
   }, [user, referrals]);
 
 
-  const handleStatusChange = (referralId: number, newStatus: Referral['status']) => {
-    setReferrals(prev => prev.map(r => r.id === referralId ? {...r, status: newStatus} : r));
-    toast({ title: "Status Updated", description: `Referral status changed to ${newStatus}.` });
+  const handleStatusChange = async (referralId: string, newStatus: Referral['status']) => {
+    const docRef = doc(db, 'referrals', referralId);
+    try {
+        await updateDoc(docRef, { status: newStatus });
+        toast({ title: "Status Updated", description: `Referral status changed to ${newStatus}.` });
+    } catch (error) {
+        toast({ title: "Error", description: "Could not update status.", variant: "destructive"});
+    }
   }
 
-  if (!user) {
+  const loading = authLoading || loadingReferrals || loadingTechs;
+
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <p>Loading...</p>
@@ -96,7 +107,7 @@ export default function ReferralsPage() {
                                 <p className="flex items-center gap-2"><Phone size={14}/> {referral.phone}</p>
                                 <p className="flex items-center gap-2"><MapPin size={14}/> {referral.address}</p>
                                 {user.role === 'Admin' && (
-                                     <p className="flex items-center gap-2"><HardHat size={14}/> {mockTechnicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</p>
+                                     <p className="flex items-center gap-2"><HardHat size={14}/> {technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</p>
                                 )}
                             </div>
                             {user.role === 'Admin' && (
@@ -138,7 +149,7 @@ export default function ReferralsPage() {
                       <TableCell>{referral.address}</TableCell>
                       <TableCell>{format(new Date(referral.timestamp), 'MMM dd, yyyy')}</TableCell>
                       {user.role === 'Admin' && (
-                        <TableCell>{mockTechnicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
+                        <TableCell>{technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
                       )}
                       <TableCell>{getStatusBadge(referral.status)}</TableCell>
                        <TableCell className="text-right">
@@ -171,5 +182,3 @@ export default function ReferralsPage() {
     </SidebarProvider>
   );
 }
-
-

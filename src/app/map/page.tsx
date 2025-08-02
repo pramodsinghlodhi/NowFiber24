@@ -10,16 +10,18 @@ import {
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import { mockAlerts, mockTasks, mockInfrastructure, mockTechnicians, mockConnections, Technician, Infrastructure } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Map as MapIcon, Satellite, Filter as FilterIcon, Route, Loader2 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { runTraceRoute } from '../actions';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Technician, Infrastructure, Alert, Connection } from '@/lib/types';
 
 
 const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
@@ -27,13 +29,15 @@ const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
   loading: () => <Skeleton className="h-full w-full rounded-xl" />,
 });
 
-const allDeviceTypes = Array.from(new Set(mockInfrastructure.map(d => d.type)));
-
 const initialFilters = {
     technicians: true,
     alerts: true,
     connections: true,
-    ...allDeviceTypes.reduce((acc, type) => ({ ...acc, [type]: true }), {})
+    'OLT': true,
+    'switch': true,
+    'Pole': true,
+    'splitter': true,
+    'ONU': true,
 };
 
 function MapContent() {
@@ -41,11 +45,18 @@ function MapContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [liveTechnicians, setLiveTechnicians] = useState<Technician[]>(mockTechnicians);
+  
   const [mapStyle, setMapStyle] = useState('map');
   const [filters, setFilters] = useState<Record<string, boolean>>(initialFilters);
   const [tracedPath, setTracedPath] = useState<Infrastructure[]>([]);
   const [isTracing, setIsTracing] = useState(false);
+
+  const { data: allInfrastructure, loading: loadingInfra } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
+  const { data: liveTechnicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(collection(db, 'alerts'));
+  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(collection(db, 'connections'));
+
+  const allDeviceTypes = useMemo(() => Array.from(new Set(allInfrastructure.map(d => d.type))), [allInfrastructure]);
 
   useEffect(() => {
     if (!user) {
@@ -86,7 +97,6 @@ function MapContent() {
                 description: `Path found with ${traceResult.path.length} hops.`,
             });
             const pathData = encodeURIComponent(JSON.stringify(traceResult.path));
-            // Update URL without reloading the page
             router.replace(`/map?path=${pathData}`, { scroll: false });
         } else {
             toast({
@@ -107,26 +117,6 @@ function MapContent() {
     }
   };
 
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveTechnicians(prevTechnicians =>
-        prevTechnicians.map(tech => {
-          if (tech.isActive) {
-            // Simulate slight movement
-            const newLat = tech.lat + (Math.random() - 0.5) * 0.001;
-            const newLng = tech.lng + (Math.random() - 0.5) * 0.001;
-            const newPath = [...(tech.path || []), [newLat, newLng]] as [number, number][];
-            return { ...tech, lat: newLat, lng: newLng, path: newPath.slice(-10) }; // Keep last 10 points
-          }
-          return tech;
-        })
-      );
-    }, 5000); // Update every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
   const handleFilterChange = (key: string, value: boolean) => {
     setFilters(prev => ({
         ...prev,
@@ -135,15 +125,16 @@ function MapContent() {
   }
 
   const filteredData = useMemo(() => {
-    const filteredDevices = mockInfrastructure.filter(device => filters[device.type]);
+    const filteredDevices = allInfrastructure.filter(device => filters[device.type]);
     const filteredTechnicians = filters.technicians ? liveTechnicians : [];
-    const filteredAlerts = filters.alerts ? mockAlerts : [];
-    const filteredConnections = filters.connections ? mockConnections : [];
+    const filteredAlerts = filters.alerts ? alerts : [];
+    const filteredConnections = filters.connections ? connections : [];
     return { filteredDevices, filteredTechnicians, filteredAlerts, filteredConnections };
-  }, [filters, liveTechnicians]);
+  }, [filters, liveTechnicians, allInfrastructure, alerts, connections]);
 
+  const loading = loadingInfra || loadingTechs || loadingAlerts || loadingConnections;
 
-  if (!user) {
+  if (!user || loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Skeleton className="h-full w-full" />

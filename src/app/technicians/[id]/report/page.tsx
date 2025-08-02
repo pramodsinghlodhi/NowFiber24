@@ -8,17 +8,12 @@ import AppSidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
 import {
-  mockTechnicians,
-  mockTasks,
-  mockAssignments,
-  mockReferrals,
-  mockMaterials,
   Technician,
   Task,
   MaterialAssignment,
   Referral,
   Material,
-} from '@/lib/data';
+} from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -26,35 +21,63 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CheckCircle, Clock, UserPlus, ListChecks, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection, query, where, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useState } from 'react';
 
 export default function TechnicianReportPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const techId = params.id as string;
+  
+  const [technician, setTechnician] = useState<Technician | null>(null);
+  const [loadingTechnician, setLoadingTechnician] = useState(true);
+
+  const tasksQuery = useMemo(() => techId ? query(collection(db, 'tasks'), where('tech_id', '==', techId)) : null, [techId]);
+  const assignmentsQuery = useMemo(() => techId ? query(collection(db, 'assignments'), where('technicianId', '==', techId)) : null, [techId]);
+  const referralsQuery = useMemo(() => techId ? query(collection(db, 'referrals'), where('tech_id', '==', techId)) : null, [techId]);
+  
+  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
+  const { data: assignments, loading: loadingAssignments } = useFirestoreQuery<MaterialAssignment>(assignmentsQuery);
+  const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
+  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(collection(db, 'materials'));
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       router.push('/login');
       return;
     }
-    if (user.role !== 'Admin') {
+    if (!authLoading && user?.role !== 'Admin') {
       router.push('/');
     }
-  }, [user, router]);
+  }, [authLoading, user, router]);
 
-  const technician = useMemo(() => mockTechnicians.find(t => t.id === techId), [techId]);
-  const tasks = useMemo(() => mockTasks.filter(t => t.tech_id === techId), [techId]);
-  const assignments = useMemo(() => mockAssignments.filter(a => a.technicianId === techId), [techId]);
-  const referrals = useMemo(() => mockReferrals.filter(r => r.tech_id === techId), [techId]);
-
+  useEffect(() => {
+    if (techId) {
+      const fetchTechnician = async () => {
+        setLoadingTechnician(true);
+        const techDocRef = doc(db, 'technicians', techId);
+        const techDoc = await getDoc(techDocRef);
+        if (techDoc.exists()) {
+          setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+        }
+        setLoadingTechnician(false);
+      };
+      fetchTechnician();
+    }
+  }, [techId]);
+  
   const completedTasks = useMemo(() => tasks.filter(t => t.status === 'Completed').length, [tasks]);
   const completionRate = useMemo(() => (tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0), [tasks, completedTasks]);
 
-  if (!user || user.role !== 'Admin') {
+  const loading = authLoading || loadingTechnician || loadingTasks || loadingAssignments || loadingReferrals || loadingMaterials;
+  
+  if (loading || !user || user.role !== 'Admin') {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <p>Unauthorized. Redirecting...</p>
+        <p>Loading Report...</p>
       </div>
     );
   }
@@ -174,7 +197,7 @@ export default function TechnicianReportPage() {
                             </TableHeader>
                             <TableBody>
                                 {assignments.map(assignment => {
-                                    const material = mockMaterials.find(m => m.id === assignment.materialId);
+                                    const material = materials.find(m => m.id === assignment.materialId);
                                     return (
                                         <TableRow key={assignment.id}>
                                             <TableCell className="font-medium">{material?.name || 'N/A'}</TableCell>

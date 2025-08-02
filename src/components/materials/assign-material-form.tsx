@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { mockMaterials, mockTechnicians, MaterialAssignment } from '@/lib/data';
+import { MaterialAssignment, Technician, Material } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -22,9 +22,11 @@ interface AssignMaterialFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (assignment: Omit<MaterialAssignment, 'id' | 'status'>) => void;
+  technicians: Technician[];
+  materials: Material[];
 }
 
-export default function AssignMaterialForm({ isOpen, onOpenChange, onSave }: AssignMaterialFormProps) {
+export default function AssignMaterialForm({ isOpen, onOpenChange, onSave, technicians, materials }: AssignMaterialFormProps) {
   const [technicianId, setTechnicianId] = useState('');
   const [materialId, setMaterialId] = useState('');
   const [quantityAssigned, setQuantityAssigned] = useState(1);
@@ -47,7 +49,7 @@ export default function AssignMaterialForm({ isOpen, onOpenChange, onSave }: Ass
         return;
     }
 
-    const material = mockMaterials.find(m => m.id === materialId);
+    const material = materials.find(m => m.id === materialId);
     if (material && material.quantityInStock < quantityAssigned) {
         toast({ title: 'Insufficient Stock', description: `Not enough ${material.name} in stock.`, variant: 'destructive'});
         return;
@@ -55,16 +57,13 @@ export default function AssignMaterialForm({ isOpen, onOpenChange, onSave }: Ass
 
     setIsLoading(true);
 
-    // Simulate saving
-    setTimeout(() => {
-        onSave({
-            technicianId,
-            materialId,
-            quantityAssigned,
-            timestamp: new Date().toISOString()
-        });
-        setIsLoading(false);
-    }, 500);
+    onSave({
+        technicianId,
+        materialId,
+        quantityAssigned,
+        timestamp: new Date().toISOString()
+    });
+    setIsLoading(false);
   };
 
   return (
@@ -84,7 +83,7 @@ export default function AssignMaterialForm({ isOpen, onOpenChange, onSave }: Ass
                 <Select value={technicianId} onValueChange={setTechnicianId} required>
                     <SelectTrigger id="technician"><SelectValue placeholder="Select a technician" /></SelectTrigger>
                     <SelectContent>
-                        {mockTechnicians.map(tech => (
+                        {technicians.map(tech => (
                             <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
                         ))}
                     </SelectContent>
@@ -95,7 +94,7 @@ export default function AssignMaterialForm({ isOpen, onOpenChange, onSave }: Ass
                 <Select value={materialId} onValueChange={setMaterialId} required>
                     <SelectTrigger id="material"><SelectValue placeholder="Select a material" /></SelectTrigger>
                     <SelectContent>
-                        {mockMaterials.map(mat => (
+                        {materials.map(mat => (
                             <SelectItem key={mat.id} value={mat.id} disabled={mat.quantityInStock === 0}>
                                 {mat.name} ({mat.quantityInStock} in stock)
                             </SelectItem>

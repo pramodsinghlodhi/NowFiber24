@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useMemo } from 'react';
@@ -14,9 +13,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Label, LabelList } from 'recharts';
-import { mockTechnicianPerformance, mockAlertsBySeverity, mockAlertsByType, mockTaskStatusDistribution } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { useFirestoreQuery } from '@/hooks/use-firestore-query';
+import { collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Task, Technician, Alert, Infrastructure } from '@/lib/types';
+
 
 const chartConfigSeverity = {
     count: { label: 'Alerts' },
@@ -34,26 +37,74 @@ const chartConfigTaskStatus = {
 }
 
 export default function ReportsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(collection(db, 'tasks'));
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(collection(db, 'alerts'));
+  const { data: infrastructure, loading: loadingInfra } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
+  
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       router.push('/login');
       return;
     }
-    if (user.role !== 'Admin') {
+    if (!authLoading && user?.role !== 'Admin') {
       router.push('/');
     }
-  }, [user, router]);
+  }, [authLoading, user, router]);
+
+  const technicianPerformance = useMemo(() => {
+    return technicians.map(tech => {
+        const assignedTasks = tasks.filter(t => t.tech_id === tech.id);
+        const completedTasks = assignedTasks.filter(t => t.status === 'Completed');
+        const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
+        return {
+            techId: tech.id,
+            name: tech.name,
+            assignedTasks: assignedTasks.length,
+            completedTasks: completedTasks.length,
+            completionRate: Math.round(completionRate)
+        };
+    });
+  }, [technicians, tasks]);
   
-  const totalAlerts = useMemo(() => mockAlertsByType.reduce((acc, curr) => acc + curr.count, 0), []);
+  const alertsBySeverity = useMemo(() => {
+      const severityCounts = alerts.reduce((acc, alert) => {
+          acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
+      return (Object.keys(chartConfigSeverity) as (keyof typeof chartConfigSeverity)[])
+        .filter(key => key !== 'count')
+        .map(severity => ({ severity, count: severityCounts[severity] || 0 }));
+  }, [alerts]);
 
+  const taskStatusDistribution = useMemo(() => {
+      const statusCounts = tasks.reduce((acc, task) => {
+          acc[task.status] = (acc[task.status] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
+      return Object.entries(statusCounts).map(([status, count]) => ({ status, count }));
+  }, [tasks]);
 
-  if (!user || user.role !== 'Admin') {
+  const alertsByType = useMemo(() => {
+      const typeCounts = alerts.reduce((acc, alert) => {
+          const device = infrastructure.find(d => d.id === alert.device_id);
+          const type = device?.type || 'Unknown';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
+      return Object.entries(typeCounts).map(([type, count]) => ({ type, count }));
+  }, [alerts, infrastructure]);
+  
+  const totalAlerts = useMemo(() => alerts.length, [alerts]);
+  const loading = authLoading || loadingTasks || loadingTechs || loadingAlerts || loadingInfra;
+
+  if (loading || !user || user.role !== 'Admin') {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <p>Unauthorized. Redirecting...</p>
+        <p>Loading Reports...</p>
       </div>
     );
   }
@@ -74,7 +125,7 @@ export default function ReportsPage() {
                     <CardContent>
                         {/* Mobile View */}
                         <div className="md:hidden space-y-4">
-                            {mockTechnicianPerformance.map(tech => (
+                            {technicianPerformance.map(tech => (
                                 <Card key={tech.techId} className="p-4">
                                     <p className="font-semibold">{tech.name}</p>
                                     <div className="flex justify-between items-center text-sm text-muted-foreground mt-1">
@@ -97,7 +148,7 @@ export default function ReportsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockTechnicianPerformance.map(tech => (
+                                {technicianPerformance.map(tech => (
                                     <TableRow key={tech.techId}>
                                         <TableCell className="font-medium">{tech.name}</TableCell>
                                         <TableCell>{tech.assignedTasks}</TableCell>
@@ -121,7 +172,7 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfigSeverity} className="h-[250px] w-full">
-                            <BarChart data={mockAlertsBySeverity} layout="vertical" accessibilityLayer>
+                            <BarChart data={alertsBySeverity} layout="vertical" accessibilityLayer>
                                 <YAxis 
                                     dataKey="severity"
                                     type="category"
@@ -135,8 +186,8 @@ export default function ReportsPage() {
                                 <CartesianGrid horizontal={false} />
                                 <ChartTooltip content={<ChartTooltipContent />} />
                                 <Bar dataKey="count" layout="vertical" radius={4}>
-                                    {mockAlertsBySeverity.map((entry) => (
-                                        <Cell key={entry.severity} fill={`var(--color-${entry.severity})`} />
+                                    {alertsBySeverity.map((entry) => (
+                                        <Cell key={entry.severity} fill={chartConfigSeverity[entry.severity as keyof typeof chartConfigSeverity]?.color} />
                                     ))}
                                 </Bar>
                             </BarChart>
@@ -152,12 +203,15 @@ export default function ReportsPage() {
                        <ChartContainer config={chartConfigTaskStatus} className="h-[250px] w-full">
                             <PieChart>
                                 <ChartTooltip content={<ChartTooltipContent nameKey="status" hideLabel />} />
-                                <Pie data={mockTaskStatusDistribution} dataKey="count" nameKey="status">
+                                <Pie data={taskStatusDistribution} dataKey="count" nameKey="status">
                                      <LabelList
                                         dataKey="status"
                                         className="fill-background text-sm font-medium"
                                         formatter={(value: keyof typeof chartConfigTaskStatus) => chartConfigTaskStatus[value]?.label}
                                     />
+                                     {taskStatusDistribution.map((entry) => (
+                                        <Cell key={entry.status} fill={chartConfigTaskStatus[entry.status as keyof typeof chartConfigTaskStatus]?.color} />
+                                    ))}
                                 </Pie>
                                  <ChartLegend
                                     content={<ChartLegendContent nameKey="status" />}
@@ -178,7 +232,7 @@ export default function ReportsPage() {
                         <PieChart>
                              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                             <Pie 
-                                data={mockAlertsByType} 
+                                data={alertsByType} 
                                 dataKey="count" 
                                 nameKey="type" 
                                 cx="50%" 
@@ -209,5 +263,3 @@ export default function ReportsPage() {
     </SidebarProvider>
   );
 }
-
-    
