@@ -65,8 +65,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [loading, user, pathname, router]);
 
   const login = async (userId: string, password?: string): Promise<{ success: boolean, message: string }> => {
-    if (!userId.trim()) {
-        return { success: false, message: 'User ID is required.' };
+    if (!userId || !userId.trim()) {
+        return { success: false, message: 'User ID cannot be empty.' };
     }
     if (!password) {
         return { success: false, message: 'Password is required.' };
