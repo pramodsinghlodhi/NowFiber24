@@ -1,73 +1,79 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if a user is an Admin
+  
     function isAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-    }
-
-    // Helper function to check if a user is a Technician
-    function isTechnician() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Technician';
-    }
-
-    // Users can read their own data. Admins can read/write any user data.
-    match /users/{userId} {
-      allow read: if request.auth.uid == userId || isAdmin();
-      allow write: if isAdmin();
-      allow create: if request.auth.uid == userId;
-    }
-
-    // Technicians can update their own document, Admins can manage all.
-    match /technicians/{techId} {
-      allow read: if request.auth != null; // All authenticated users can read
-      allow write: if isAdmin() || (isTechnician() && request.resource.data.id == techId);
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
     
-    // Tasks can be updated by assigned tech or admin.
-    match /tasks/{taskId} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin() || (isTechnician() && request.resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
+    function isTechnician() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Technician';
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Referrals can be created by techs, but only managed by admins.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /technicians/{techId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    
+    match /tasks/{taskId} {
+      allow read: if isSignedIn();
+      allow update(diff, resource): if (
+        (isTechnician() && diff.onlyAffects(['status'])) ||
+        (isAdmin() && diff.onlyAffects(['tech_id']))
+      );
+      allow create, delete: if isAdmin();
+    }
+
+    match /alerts/{alertId} {
+        allow read: if isSignedIn();
+        allow create, write, delete: if isAdmin();
+    }
+    
+    match /infrastructure/{deviceId} {
+        allow read: if isSignedIn();
+        allow create, write, delete: if isAdmin();
+    }
+    
+    match /connections/{connectionId} {
+        allow read: if isSignedIn();
+        allow create, write, delete: if isAdmin();
+    }
+
+    match /materials/{materialId} {
+        allow read: if isSignedIn();
+        allow create, write, delete: if isAdmin();
+    }
+
+    match /assignments/{assignmentId} {
+        allow read: if isSignedIn();
+        // Technicians can create requests, admins can update/approve them
+        allow create: if isTechnician();
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+    }
+
     match /referrals/{referralId} {
-        allow read: if request.auth != null;
+        allow read: if isSignedIn();
         allow create: if isTechnician();
         allow update: if isAdmin();
     }
     
-    // Material assignments can be created/updated by admin or requested by tech.
-    match /assignments/{assignmentId} {
-        allow read: if request.auth != null;
-        allow create: if isTechnician() || isAdmin();
-        allow update, delete: if isAdmin();
-    }
-
-    // Read-only for most users, admin can manage everything else.
-    match /{document=**} {
-      allow read: if request.auth != null;
-    }
-    
-    // Admins have write access to these collections
-    match /infrastructure/{docId} {
-      allow write: if isAdmin();
-    }
-     match /alerts/{docId} {
-      allow write: if isAdmin();
-    }
-     match /connections/{docId} {
-      allow write: if isAdmin();
-    }
-     match /materials/{docId} {
-      allow write: if isAdmin();
-    }
-     match /plans/{docId} {
-      allow write: if isAdmin();
+     match /plans/{planId} {
+        allow read: if isSignedIn();
+        allow create, write, delete: if isAdmin();
     }
   }
 }
