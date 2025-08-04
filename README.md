@@ -1,4 +1,3 @@
-
 # NowFiber24 - FTTH Network Management & Field Engineering Platform
 
 NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
@@ -45,6 +44,10 @@ Follow these steps to set up and run the project on your local machine and prepa
 Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [npm](https://www.npmjs.com/) (or [yarn](https://yarnpkg.com/))
+- [Firebase CLI](https://firebase.google.com/docs/cli):
+  ```bash
+  npm install -g firebase-tools
+  ```
 
 ### 2. Firebase Project Setup (CRUCIAL)
 
@@ -103,28 +106,33 @@ This application is fully powered by Firebase. **It will not run without a corre
 4.  **Enable the "Email/Password" provider** and click **"Save"**. This is required for the login to work.
 5.  Next, go to the **Firestore Database** section in the left-hand menu.
 6.  Click **"Create database"**.
-7.  Select **"Start in test mode"**. This allows for easy read/write access during setup. You can (and should) secure your database with Security Rules before going to production. Click **"Next"**.
+7.  Select **"Start in production mode"**. Click **"Next"**.
 8.  Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
 
-**E. Create User Accounts (Required for Login):**
-The application will not work without user accounts. You must create them in Firebase Authentication.
+**E. Deploy Security Rules (CRITICAL STEP):**
+Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
+1.  Open your terminal in the project's root directory.
+2.  Log in to Firebase: `firebase login`
+3.  Set the active project: `firebase use YOUR_PROJECT_ID` (replace `YOUR_PROJECT_ID` with the ID from your Firebase console).
+4.  Deploy the rules:
+    ```bash
+    firebase deploy --only firestore
+    ```
+    This command reads the `firestore.rules` file and applies them to your database.
+
+**F. Create User Accounts & Data (Required for Login):**
+The application will not work without user accounts and initial data.
 1.  Go to the **Authentication** -> **Users** tab in the Firebase Console.
 2.  Click **"Add user"** to create at least one administrator and one technician. The email address is derived from the User ID you want to use for login.
-
     - **Admin User**:
         - **Email**: `admin@fibervision.com`
         - **Password**: `admin` (or any password of your choice)
-
     - **Technician User**:
         - **Email**: `tech-001@fibervision.com`
         - **Password**: `password` (or any password of your choice)
+3. **Set up Firestore Data:** For the application to be populated with data, you must create collections in Firestore. The `src/lib/data` directory contains JSON files for each collection needed, and a detailed guide on how to use them.
 
-**F. Set up Firestore Data (Quick Start):**
-For the application to be populated with data, you must create collections in Firestore. The `src/lib/data` directory contains JSON files for each collection needed, and a detailed guide on how to use them.
-
-**For a detailed, step-by-step guide on how to create the collections and documents, please see the `src/lib/data/README.md` file in this project.**
-
-This initial data setup is crucial for the application to function correctly.
+**For a detailed, step-by-step guide on how to create the collections and documents, please see the `src/lib/data/README.md` file in this project.** This initial data setup is crucial for the application to function correctly.
 
 ### 3. Local Development
 
