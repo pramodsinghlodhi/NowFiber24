@@ -23,7 +23,7 @@ import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } 
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, addDoc, setDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
 
@@ -65,21 +65,32 @@ export default function TechniciansPage() {
         }
     }, [currentUser, router]);
 
-    const handleDelete = async (techId: string) => {
-        // This is a simplified delete. In a real app, you would handle this more carefully,
-        // perhaps by disabling the user in Firebase Auth instead of deleting.
-        // Also, you'd need to handle re-assigning tasks, etc.
+    const handleDelete = async (tech: Technician) => {
         try {
-            await deleteDoc(doc(db, 'technicians', techId));
-            await deleteDoc(doc(db, 'users', techId)); // Assuming user doc ID is the same as tech ID
+            // In a real app, you would need to handle deleting the Firebase Auth user, which is a sensitive operation.
+            // For now, we will just delete the Firestore documents.
+            const batch = writeBatch(db);
+            const userQuery = query(collection(db, 'users'), where('id', '==', tech.id));
+            const userSnapshot = await getDocs(userQuery);
+
+            if (!userSnapshot.empty) {
+                const userDocRef = userSnapshot.docs[0].ref;
+                batch.delete(userDocRef);
+            }
+            
+            const techDocRef = doc(db, 'technicians', tech.id);
+            batch.delete(techDocRef);
+
+            await batch.commit();
+
             toast({
-                title: `Deleted Technician ${techId}`,
+                title: `Deleted Technician ${tech.id}`,
                 description: "Technician has been removed from the system.",
                 variant: "destructive"
             });
         } catch (error) {
             console.error("Error deleting technician: ", error);
-            toast({ title: "Error", description: "Could not delete technician.", variant: "destructive" });
+            toast({ title: "Error", description: "Could not delete technician. You may need to manually remove the user from Firebase Authentication.", variant: "destructive" });
         }
     }
 
@@ -89,10 +100,19 @@ export default function TechniciansPage() {
         if (isEditing && selectedTechnician) {
             // Editing existing technician
             const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-            const userDocRef = doc(db, 'users', selectedTechnician.id);
+            const userQuery = query(collection(db, 'users'), where('id', '==', selectedTechnician.id));
+             
             try {
-                await updateDoc(techDocRef, techData);
-                await updateDoc(userDocRef, { name: userData.name, contact: userData.contact, avatarUrl: userData.avatarUrl, role: 'Technician' });
+                const userSnapshot = await getDocs(userQuery);
+                const batch = writeBatch(db);
+                
+                batch.update(techDocRef, { ...techData });
+                if (!userSnapshot.empty) {
+                    const userDocRef = userSnapshot.docs[0].ref;
+                    batch.update(userDocRef, { name: userData.name, contact: userData.contact, avatarUrl: userData.avatarUrl });
+                }
+
+                await batch.commit();
                 toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
             } catch (error) {
                 console.error("Error updating technician: ", error);
@@ -111,13 +131,18 @@ export default function TechniciansPage() {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, userData.password);
                 const newUserId = userCredential.user.uid;
 
-                // 2. Create user document in Firestore
+                // 2. Create user and technician documents in Firestore
+                const batch = writeBatch(db);
+
                 const userDocRef = doc(db, 'users', newUserId);
-                await setDoc(userDocRef, { ...userData, role: 'Technician', id: userData.id });
+                const finalUserData = { ...userData, role: 'Technician', id: userData.id };
+                delete finalUserData.password; // Do not store password in Firestore
+                batch.set(userDocRef, finalUserData);
                 
-                // 3. Create technician document in Firestore
                 const techDocRef = doc(db, 'technicians', userData.id);
-                await setDoc(techDocRef, { ...techData, id: userData.id });
+                batch.set(techDocRef, { ...techData, id: userData.id });
+
+                await batch.commit();
 
                 toast({ title: "Technician Added", description: `${userData.name} has been added to the team.` });
             } catch (error: any) {
@@ -137,10 +162,17 @@ export default function TechniciansPage() {
     
     const handleToggleBlock = async (userToToggle: User) => {
         if (!userToToggle.id) return;
-        const userDocRef = doc(db, 'users', userToToggle.id);
-        const isBlocked = !userToToggle.isBlocked;
+        
+        const q = query(collection(db, 'users'), where('id', '==', userToToggle.id));
         
         try {
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                toast({ title: "Error", description: "User document not found.", variant: "destructive"});
+                return;
+            }
+            const userDocRef = querySnapshot.docs[0].ref;
+            const isBlocked = !userToToggle.isBlocked;
             await updateDoc(userDocRef, { isBlocked: isBlocked });
             toast({
                 title: `Technician ${isBlocked ? 'Blocked' : 'Unblocked'}`,
@@ -237,7 +269,7 @@ export default function TechniciansPage() {
                                                         </DropdownMenuItem>
                                                     )
                                                 )}
-                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                     <Trash className="mr-2 h-4 w-4" />
                                                     Delete
                                                 </DropdownMenuItem>
@@ -322,7 +354,7 @@ export default function TechniciansPage() {
                                                         </DropdownMenuItem>
                                                     )
                                                 )}
-                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech.id)}>
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                     <Trash className="mr-2 h-4 w-4" />
                                                     Delete
                                                 </DropdownMenuItem>
@@ -347,4 +379,3 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
-

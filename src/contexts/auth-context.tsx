@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/lib/types'; 
 
@@ -33,7 +33,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setUser({ id: userDoc.id, ...userDoc.data() } as User);
+          const userData = { id: userDoc.id, ...userDoc.data() } as User;
+          if (userData.isBlocked) {
+             console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
+             await signOut(auth); // Sign out the blocked user
+             setUser(null);
+          } else {
+             setUser(userData);
+          }
         } else {
           console.error(`No user document found for UID: ${fbUser.uid}`);
           setUser(null);
@@ -58,16 +65,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: 'Password is required.' };
     }
     
-    // Construct email from userId
-    const email = `${userId}@fibervision.com`;
-
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle setting the user and redirecting
-      return { success: true, message: 'Welcome back!' };
+        // 1. Find user in Firestore by their custom ID
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("id", "==", userId), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return { success: false, message: 'Invalid User ID.' };
+        }
+        
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data() as User;
+
+        if (userData.isBlocked) {
+            return { success: false, message: 'This account has been blocked by an administrator.' };
+        }
+
+        // 2. Construct email and attempt sign-in
+        const email = `${userId}@fibervision.com`;
+        await signInWithEmailAndPassword(auth, email, password);
+
+        // onAuthStateChanged will handle setting the user state and redirecting
+        return { success: true, message: 'Welcome back!' };
+
     } catch (error: any) {
-       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/wrong-password') {
-           return { success: false, message: 'Invalid credentials. Please ensure the user exists in Firebase Authentication and the credentials are correct.' };
+       console.error("Login Error:", error.code, error.message);
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+           return { success: false, message: 'Invalid password. Please try again.' };
+       }
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+           return { success: false, message: 'This User ID is not registered in our authentication system.' };
        }
       return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
