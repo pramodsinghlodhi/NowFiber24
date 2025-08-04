@@ -45,7 +45,7 @@ export default function LoginPage() {
             Enter your credentials to access the dashboard.
             <br />
             <span className="text-xs text-muted-foreground">
-                (Try: admin/admin or tech-001/password)
+                (Try: masteradmin, admin, or user)
             </span>
           </CardDescription>
         </CardHeader>
@@ -69,8 +69,8 @@ export default function LoginPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
                     />
+                     <p className="text-xs text-muted-foreground">Password not required for test users.</p>
                 </div>
             </CardContent>
             <CardFooter>
