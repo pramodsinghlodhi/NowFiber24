@@ -100,7 +100,7 @@ This application is fully powered by Firebase. **It will not run without a corre
 1.  In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
 2.  Click **"Get started"**.
 3.  On the Sign-in method tab, select **"Email/Password"** from the list of providers.
-4.  Enable the **"Email/Password"** provider and click **"Save"**.
+4.  **Enable the "Email/Password" provider** and click **"Save"**. This is required for the login to work.
 5.  Next, go to the **Firestore Database** section in the left-hand menu.
 6.  Click **"Create database"**.
 7.  Select **"Start in test mode"**. This allows for easy read/write access during setup. You can (and should) secure your database with Security Rules before going to production. Click **"Next"**.

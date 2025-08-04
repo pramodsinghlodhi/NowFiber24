@@ -127,7 +127,7 @@ export { app, auth, db };
 ```
 
 **D. Enable Firebase Services:**
-1. In the Firebase Console, go to the **Authentication** section. Click **"Get started"** and enable the **"Email/Password"** sign-in provider.
+1. In the Firebase Console, go to the **Authentication** section. Click **"Get started"**. On the Sign-in method tab, select **"Email/Password"** from the list of providers. **Enable it and click Save.**
 2. Go to the **Firestore Database** section. Click **"Create database"**, start in **test mode** for now (you can secure it later with Security Rules), and choose a location.
 
 **E. Create User Accounts:**
