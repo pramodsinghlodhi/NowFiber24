@@ -119,38 +119,19 @@ The application will not work without user accounts. You must create them in Fir
         - **Email**: `tech-001@fibervision.com`
         - **Password**: `password` (or any password of your choice)
 
-**F. Set up Firestore Data:**
-For the application to be populated with data, you must create collections in Firestore. The most important is the `users` collection, which links Authentication accounts to application roles.
+**F. Set up Firestore Data (Quick Start):**
+For the application to be populated with data, you must create collections in Firestore. The `src/lib/data` directory contains JSON files for each collection needed.
 
 1. Go to the **Firestore Database** -> **Data** tab.
-2. Click **"+ Start collection"**.
-3. For the **Collection ID**, enter `users`. Click **"Next"**.
-4. Now you will create the first document. **The Document ID must be the User UID** from the Authentication tab (not the email).
-    - **To get the UID**: Go to the Authentication -> Users tab in a separate browser tab. You will see a "User UID" column. Copy the UID for the `admin@fibervision.com` user.
-    - **Create the Admin Document**:
-        - Paste the copied UID into the **Document ID** field.
-        - Add the following fields to the document:
-            - `id` (string): `admin`
-            - `name` (string): `Admin User`
-            - `role` (string): `Admin`
-            - `isBlocked` (boolean): `false`
-            - `avatarUrl` (string): `https://i.pravatar.cc/150?u=admin`
-            - `contact` (string): `+15551234567`
-        - Click **"Save"**.
-5. **Create the Technician Document**:
-    - In the `users` collection, click **"Add document"**.
-    - Go back to the Authentication tab and copy the User UID for the `tech-001@fibervision.com` user.
-    - Paste the UID into the **Document ID** field.
-    - Add the following fields:
-        - `id` (string): `tech-001`
-        - `name` (string): `John Doe`
-        - `role` (string): `Technician`
-        - `isBlocked` (boolean): `false`
-        - `avatarUrl` (string): `https://i.pravatar.cc/150?u=tech-001`
-        - `contact` (string): `+15558765432`
-    - Click **"Save"**.
+2. For each JSON file in `src/lib/data` (e.g., `users.json`, `technicians.json`), follow these steps:
+    a. Click **"+ Start collection"**.
+    b. The **Collection ID** is the name of the file without the `.json` extension (e.g., `users`). Click **"Next"**.
+    c. Now, for each top-level key-value pair in the JSON file, create a new document.
+       - The **Document ID** should be the key (e.g., `f10a8f7c-4876-47a9-8354-9031c51322b8` for the first user).
+       - The fields of the document should be the key-value pairs from the JSON object. You will need to add each field manually.
+    d. **Important:** For the `users` collection, make sure the **Document ID** you use for each user matches the **User UID** found in the **Authentication -> Users** tab. You may need to copy the UID from Authentication after creating the user there and use it when creating the corresponding document in the `users` collection.
 
-*For the application to be fully functional, you will need to add documents to other collections as well, such as `technicians`, `tasks`, `alerts`, and `infrastructure`.*
+*This initial data setup is crucial for the application to function correctly.*
 
 ### 3. Local Development
 

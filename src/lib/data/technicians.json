@@ -1,0 +1,43 @@
+
+{
+  "tech-001": {
+    "id": "tech-001",
+    "name": "John Doe",
+    "lat": 34.0522,
+    "lng": -118.2437,
+    "role": "Field Engineer",
+    "contact": "+15558765432",
+    "isActive": true,
+    "status": "available",
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-001",
+    "path": [
+      [34.0522, -118.2437],
+      [34.055, -118.245],
+      [34.058, -118.248]
+    ]
+  },
+  "tech-002": {
+    "id": "tech-002",
+    "name": "Jane Smith",
+    "lat": 34.06,
+    "lng": -118.25,
+    "role": "Splicing Technician",
+    "contact": "+15559876543",
+    "isActive": true,
+    "status": "on-task",
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-002",
+    "path": []
+  },
+  "tech-003": {
+    "id": "tech-003",
+    "name": "Mike Johnson",
+    "lat": 34.045,
+    "lng": -118.23,
+    "role": "Field Engineer",
+    "contact": "+15554567890",
+    "isActive": false,
+    "status": "available",
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-003",
+    "path": []
+  }
+}

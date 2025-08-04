@@ -1,0 +1,128 @@
+
+{
+  "OLT-01": {
+    "id": "OLT-01",
+    "projectId": "ftth001",
+    "type": "OLT",
+    "name": "Central Office OLT 1",
+    "lat": 34.052235,
+    "lng": -118.243683,
+    "ip": "10.0.0.1",
+    "status": "online",
+    "attributes": {
+      "assetLabel": "CO-1-OLT-1"
+    }
+  },
+  "SPL-01": {
+    "id": "SPL-01",
+    "projectId": "ftth001",
+    "type": "splitter",
+    "name": "Main Splitter 1",
+    "lat": 34.055,
+    "lng": -118.248,
+    "status": "online",
+    "attributes": {
+      "couplerRatio": "1:8",
+      "openPorts": 3
+    }
+  },
+  "POLE-101": {
+    "id": "POLE-101",
+    "projectId": "ftth001",
+    "type": "Pole",
+    "name": "Utility Pole 101",
+    "lat": 34.058,
+    "lng": -118.252,
+    "status": "installed",
+    "attributes": {}
+  },
+  "ONU-101": {
+    "id": "ONU-101",
+    "projectId": "ftth001",
+    "type": "ONU",
+    "name": "Customer ONU at 123 Main St",
+    "lat": 34.06,
+    "lng": -118.255,
+    "ip": "10.0.1.101",
+    "status": "online",
+    "attributes": {
+      "powerLevel": "-22.5 dBm"
+    },
+    "connectedBy": "John Doe",
+    "connectionDate": "2023-10-26T10:00:00Z"
+  },
+  "ONU-102": {
+    "id": "ONU-102",
+    "projectId": "ftth001",
+    "type": "ONU",
+    "name": "Customer ONU at 456 Oak Ave",
+    "lat": 34.05,
+    "lng": -118.26,
+    "ip": "10.0.1.102",
+    "status": "offline",
+    "attributes": {
+      "powerLevel": "-28.0 dBm"
+    }
+  },
+  "ONU-103": {
+    "id": "ONU-103",
+    "projectId": "ftth001",
+    "type": "ONU",
+    "name": "Customer ONU at 789 Pine Ln",
+    "lat": 34.048,
+    "lng": -118.24,
+    "ip": "10.0.1.103",
+    "status": "online",
+    "attributes": {
+      "powerLevel": "-21.0 dBm"
+    }
+  },
+  "SPL-02": {
+    "id": "SPL-02",
+    "projectId": "ftth001",
+    "type": "splitter",
+    "name": "Secondary Splitter 2",
+    "lat": 34.045,
+    "lng": -118.245,
+    "status": "online",
+    "attributes": {
+      "couplerRatio": "1:4",
+      "openPorts": 1
+    }
+  },
+  "ONU-104": {
+    "id": "ONU-104",
+    "projectId": "ftth001",
+    "type": "ONU",
+    "name": "Business ONU at 101 Business Blvd",
+    "lat": 34.042,
+    "lng": -118.243,
+    "ip": "10.0.1.104",
+    "status": "offline",
+    "attributes": {
+      "powerLevel": "-29.5 dBm"
+    }
+  },
+  "SWITCH-01": {
+    "id": "SWITCH-01",
+    "type": "switch",
+    "name": "Aggregation Switch 1",
+    "lat": 34.053,
+    "lng": -118.245,
+    "ip": "10.0.0.2",
+    "status": "online",
+    "attributes": {}
+  },
+  "ONU-105": {
+    "id": "ONU-105",
+    "type": "ONU",
+    "name": "Customer ONU at 210 Maple Dr",
+    "lat": 34.057,
+    "lng": -118.258,
+    "ip": "10.0.1.105",
+    "status": "offline",
+    "attributes": {
+      "powerLevel": "-25.1 dBm"
+    }
+  }
+}

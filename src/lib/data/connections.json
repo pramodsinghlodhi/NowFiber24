@@ -1,0 +1,52 @@
+
+{
+  "conn-1": {
+    "id": "conn-1",
+    "projectId": "ftth001",
+    "from": "OLT-01",
+    "to": "SPL-01",
+    "status": "active"
+  },
+  "conn-2": {
+    "id": "conn-2",
+    "projectId": "ftth001",
+    "from": "SPL-01",
+    "to": "POLE-101",
+    "status": "active"
+  },
+  "conn-3": {
+    "id": "conn-3",
+    "projectId": "ftth001",
+    "from": "POLE-101",
+    "to": "ONU-101",
+    "status": "active"
+  },
+  "conn-4": {
+    "id": "conn-4",
+    "projectId": "ftth001",
+    "from": "POLE-101",
+    "to": "ONU-102",
+    "status": "active"
+  },
+  "conn-5": {
+    "id": "conn-5",
+    "projectId": "ftth001",
+    "from": "OLT-01",
+    "to": "SPL-02",
+    "status": "active"
+  },
+  "conn-6": {
+    "id": "conn-6",
+    "projectId": "ftth001",
+    "from": "SPL-02",
+    "to": "ONU-103",
+    "status": "active"
+  },
+  "conn-7": {
+    "id": "conn-7",
+    "projectId": "ftth001",
+    "from": "SPL-02",
+    "to": "ONU-104",
+    "status": "active"
+  }
+}

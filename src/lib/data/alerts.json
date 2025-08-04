@@ -1,0 +1,30 @@
+
+{
+  "alert-1": {
+    "id": "alert-1",
+    "device_id": "ONU-102",
+    "issue": "Device is offline",
+    "lat": 34.05,
+    "lng": -118.26,
+    "timestamp": "2023-10-27T10:00:00Z",
+    "severity": "Critical"
+  },
+  "alert-2": {
+    "id": "alert-2",
+    "device_id": "ONU-104",
+    "issue": "High latency detected",
+    "lat": 34.042,
+    "lng": -118.243,
+    "timestamp": "2023-10-27T10:05:00Z",
+    "severity": "High"
+  },
+  "alert-3": {
+    "id": "alert-3",
+    "device_id": "SPL-01",
+    "issue": "Power level degraded",
+    "lat": 34.055,
+    "lng": -118.248,
+    "timestamp": "2023-10-27T09:30:00Z",
+    "severity": "Medium"
+  }
+}

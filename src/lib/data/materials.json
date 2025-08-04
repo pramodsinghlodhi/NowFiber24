@@ -1,0 +1,24 @@
+
+{
+  "fiber-24": {
+    "id": "fiber-24",
+    "name": "24-count Fiber Optic Cable",
+    "description": "Per meter",
+    "imageUrl": "https://placehold.co/100x100.png",
+    "quantityInStock": 2000
+  },
+  "sc-apc-conn": {
+    "id": "sc-apc-conn",
+    "name": "SC/APC Connector",
+    "description": "Single unit",
+    "imageUrl": "https://placehold.co/100x100.png",
+    "quantityInStock": 500
+  },
+  "onu-std-01": {
+    "id": "onu-std-01",
+    "name": "Standard Customer ONU",
+    "description": "Model XYZ-123",
+    "imageUrl": "https://placehold.co/100x100.png",
+    "quantityInStock": 50
+  }
+}

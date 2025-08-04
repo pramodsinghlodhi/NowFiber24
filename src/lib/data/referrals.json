@@ -1,0 +1,23 @@
+
+{
+  "ref-1": {
+    "id": "ref-1",
+    "tech_id": "tech-001",
+    "customer_name": "Sarah Connor",
+    "phone": "555-111-2222",
+    "address": "888 Maple St, Los Angeles, CA",
+    "notes": "Interested in 1 Gig plan. Lives next to existing customer.",
+    "status": "Pending",
+    "timestamp": "2023-10-25T15:00:00Z"
+  },
+  "ref-2": {
+    "id": "ref-2",
+    "tech_id": "tech-002",
+    "customer_name": "Kyle Reese",
+    "phone": "555-333-4444",
+    "address": "999 Oak Ave, Los Angeles, CA",
+    "notes": "Moving in next month. Wants to schedule installation.",
+    "status": "Contacted",
+    "timestamp": "2023-10-24T11:00:00Z"
+  }
+}

@@ -1,0 +1,23 @@
+
+{
+  "plan-1": {
+    "id": "plan-1",
+    "projectId": "ftth001",
+    "customerId": "CUST-001",
+    "planName": "Fiber 1 Gig",
+    "activationDate": "2023-01-15T00:00:00Z",
+    "expiryDate": "2024-01-15T00:00:00Z",
+    "status": "active",
+    "assignedONT": "ONU-101"
+  },
+  "plan-2": {
+    "id": "plan-2",
+    "projectId": "ftth001",
+    "customerId": "CUST-002",
+    "planName": "Fiber 500",
+    "activationDate": "2023-03-20T00:00:00Z",
+    "expiryDate": "2024-03-20T00:00:00Z",
+    "status": "suspended",
+    "assignedONT": "ONU-102"
+  }
+}

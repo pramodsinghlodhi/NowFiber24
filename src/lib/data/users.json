@@ -1,0 +1,35 @@
+
+{
+  "f10a8f7c-4876-47a9-8354-9031c51322b8": {
+    "id": "admin",
+    "name": "Admin User",
+    "role": "Admin",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=admin",
+    "contact": "+15551234567"
+  },
+  "e2a5f1e8-7c4d-4e8a-9f5b-1d3c2b0a9e7d": {
+    "id": "tech-001",
+    "name": "John Doe",
+    "role": "Technician",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-001",
+    "contact": "+15558765432"
+  },
+  "a3b8d6c4-9f2a-4e1b-8d7c-5e4f3a2b1c0d": {
+    "id": "tech-002",
+    "name": "Jane Smith",
+    "role": "Technician",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-002",
+    "contact": "+15559876543"
+  },
+  "c1d0e9f6-3a2b-4c1d-9e8f-7g6h5i4j3k2l": {
+    "id": "tech-003",
+    "name": "Mike Johnson",
+    "role": "Technician",
+    "isBlocked": true,
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-003",
+    "contact": "+15554567890"
+  }
+}

@@ -1,0 +1,27 @@
+
+{
+  "assign-1": {
+    "id": "assign-1",
+    "materialId": "sc-apc-conn",
+    "technicianId": "tech-001",
+    "quantityAssigned": 10,
+    "status": "Issued",
+    "timestamp": "2023-10-26T08:00:00Z"
+  },
+  "assign-2": {
+    "id": "assign-2",
+    "materialId": "onu-std-01",
+    "technicianId": "tech-002",
+    "quantityAssigned": 1,
+    "status": "Pending",
+    "timestamp": "2023-10-27T09:00:00Z"
+  },
+  "assign-3": {
+    "id": "assign-3",
+    "materialId": "fiber-24",
+    "technicianId": "tech-001",
+    "quantityAssigned": 50,
+    "status": "Requested",
+    "timestamp": "2023-10-27T11:00:00Z"
+  }
+}
