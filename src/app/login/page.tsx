@@ -43,10 +43,6 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-headline">NowFiber24 Login</CardTitle>
           <CardDescription>
             Enter your credentials to access the dashboard.
-            <br />
-            <span className="text-xs text-muted-foreground">
-                (Try: masteradmin, admin, or user)
-            </span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -69,8 +65,8 @@ export default function LoginPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
                     />
-                     <p className="text-xs text-muted-foreground">Password not required for test users.</p>
                 </div>
             </CardContent>
             <CardFooter>

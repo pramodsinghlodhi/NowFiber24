@@ -18,36 +18,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const mockUsers: {[key: string]: User} = {
-    masteradmin: {
-        uid: 'master-admin-uid',
-        id: 'masteradmin',
-        name: 'Master Admin',
-        role: 'Admin', // Assuming master admin has Admin role with extended privileges handled elsewhere
-        isBlocked: false,
-        avatarUrl: 'https://i.pravatar.cc/150?u=masteradmin',
-        contact: '+15550000001'
-    },
-    admin: {
-        uid: 'admin-uid',
-        id: 'admin',
-        name: 'Admin User',
-        role: 'Admin',
-        isBlocked: false,
-        avatarUrl: 'https://i.pravatar.cc/150?u=admin',
-        contact: '+15551234567'
-    },
-    user: {
-        uid: 'user-uid',
-        id: 'tech-001',
-        name: 'Technician User',
-        role: 'Technician',
-        isBlocked: false,
-        avatarUrl: 'https://i.pravatar.cc/150?u=tech-001',
-        contact: '+15558765432'
-    }
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
@@ -57,12 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      // If we are using a mock user, don't let onAuthStateChanged override it.
-      if (user && Object.values(mockUsers).some(mock => mock.uid === user.uid)) {
-        setLoading(false);
-        return;
-      }
-
       setFirebaseUser(fbUser);
       if (fbUser) {
         // Fetch user profile from Firestore using the UID from Auth
@@ -91,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, []);
   
   // This effect handles redirection based on auth state.
   useEffect(() => {
@@ -104,16 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!userId || !userId.trim()) {
         return { success: false, message: 'User ID cannot be empty.' };
     }
-     // Bypass for mock users
-    if (mockUsers[userId.toLowerCase()]) {
-        const mockUser = mockUsers[userId.toLowerCase()];
-        setUser(mockUser);
-        setFirebaseUser(null); // No real firebase user for bypass
-        return { success: true, message: `Logged in as ${mockUser.name}` };
-    }
     
     if (!password) {
-        return { success: false, message: 'Password is required.' };
+        return { success: false, message: 'Password is required for all users.' };
     }
     
     // The email is constructed from the User ID. This must match the email in Firebase Auth.
@@ -136,15 +93,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    // If it was a mock user, just clear state
-    if (user && Object.values(mockUsers).some(mock => mock.uid === user.uid)) {
-        setUser(null);
-        setFirebaseUser(null);
-    } else {
-       await signOut(auth);
-       setUser(null);
-       setFirebaseUser(null);
-    }
+    await signOut(auth);
+    setUser(null);
+    setFirebaseUser(null);
     router.push('/login');
   };
   
