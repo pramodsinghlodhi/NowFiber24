@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import DeviceForm from '@/components/inventory/device-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const getStatusIndicator = (status: Infrastructure['status']) => {
@@ -71,15 +71,15 @@ export default function InventoryPage() {
     }
   }
 
-  const handleSave = async (deviceData: Omit<Infrastructure, 'id'>) => {
-    const isEditing = !!selectedDevice;
-    if (isEditing) {
+  const handleSave = async (deviceData: Omit<Infrastructure, 'id'>, isEditing: boolean) => {
+    if (isEditing && selectedDevice) {
         try {
             const docRef = doc(db, 'infrastructure', selectedDevice.id);
             await updateDoc(docRef, deviceData);
-            toast({ title: "Device Updated", description: `${selectedDevice.id}'s details have been updated.` });
+            toast({ title: "Device Updated", description: `${selectedDevice.name}'s details have been updated.` });
         } catch (error) {
-            toast({ title: "Error", description: "Could not update device."});
+            console.error("Update error: ", error);
+            toast({ title: "Error", description: "Could not update device.", variant: "destructive" });
         }
     } else {
         if (user?.role !== 'Admin') {
@@ -87,10 +87,12 @@ export default function InventoryPage() {
             return;
         }
         try {
-            await addDoc(collection(db, 'infrastructure'), deviceData);
-            toast({ title: "Device Added", description: `Device has been added to the inventory.` });
+            const docRef = doc(db, 'infrastructure', deviceData.id);
+            await setDoc(docRef, deviceData);
+            toast({ title: "Device Added", description: `Device ${deviceData.id} has been added to the inventory.` });
         } catch (error) {
-            toast({ title: "Error", description: "Could not add new device."});
+            console.error("Add error: ", error);
+            toast({ title: "Error", description: "Could not add new device. Is the ID unique?", variant: "destructive"});
         }
     }
     setIsFormOpen(false);

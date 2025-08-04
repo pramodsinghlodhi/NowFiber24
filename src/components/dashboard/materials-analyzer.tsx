@@ -16,7 +16,7 @@ import {Bot, Wrench, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw} f
 import {useToast} from '@/hooks/use-toast';
 import Image from 'next/image';
 import {analyzeMaterials} from '@/app/actions';
-import {Task} from '@/lib/data';
+import {Task} from '@/lib/types';
 import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
 import {Badge} from '../ui/badge';
 import { cn } from '@/lib/utils';
@@ -105,7 +105,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
     setResult(null);
 
     try {
-      const analysisResult = await analyzeMaterials(preview);
+      const analysisResult = await analyzeMaterials(preview, task.id);
       setResult(analysisResult);
       toast({title: 'Analysis Complete', description: 'Successfully analyzed materials photo.'});
     } catch (error) {

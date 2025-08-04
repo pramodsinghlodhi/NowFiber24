@@ -4,9 +4,9 @@
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
-import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Technician, Infrastructure } from '@/lib/types';
+import { Technician, Infrastructure, Task, MaterialAssignment } from '@/lib/types';
 
 
 export async function runAutoFaultDetection() {
@@ -46,17 +46,31 @@ export async function runAutoFaultDetection() {
 }
 
 export async function analyzeMaterials(photoDataUri: string, taskId: string) {
-  // In a real app, you would get task details and issued materials from the DB based on the task ID.
-  const mockTaskDetails = 'Task: Fix ONU-102 Connectivity. Replace faulty fiber optic cable and connector.';
-  const mockMaterialsIssued = '1x SC/APC Connector, 20m Fiber Optic Cable, 1x Splicing Sleeve, 1x Cleaning Kit';
+    const taskDocRef = doc(db, 'tasks', taskId);
+    const taskDoc = await getDoc(taskDocRef);
+    if (!taskDoc.exists()) {
+        throw new Error("Task not found");
+    }
+    const taskData = taskDoc.data() as Task;
 
-  const result = await analyzeMaterialsUsed({
-    photoDataUri,
-    taskDetails: mockTaskDetails,
-    materialsIssued: mockMaterialsIssued,
-  });
+    const assignmentsQuery = query(collection(db, 'assignments'), where('technicianId', '==', taskData.tech_id));
+    const assignmentsSnapshot = await getDocs(assignmentsQuery);
+    const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
-  return result;
+    // This is a simplification. A real app would likely link assignments to specific tasks.
+    // For now, we'll just create a string of all materials issued to the tech.
+    const materialsIssuedString = assignments
+        .filter(a => a.status === 'Issued')
+        .map(a => `${a.quantityAssigned}x ${a.materialId}`)
+        .join(', ');
+
+    const result = await analyzeMaterialsUsed({
+        photoDataUri,
+        taskDetails: `${taskData.title}: ${taskData.description}`,
+        materialsIssued: materialsIssuedString || "No materials were formally issued for this task.",
+    });
+
+    return result;
 }
 
 export async function runTraceRoute(input: TraceRouteInput) {

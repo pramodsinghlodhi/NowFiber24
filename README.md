@@ -36,43 +36,6 @@ NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service
 
 ---
 
-## Project Structure
-
-Here is an overview of the key files and directories in the project:
-
-```
-/
-├── public/                 # Static assets (images, fonts, etc.)
-├── src/
-│   ├── app/                # Next.js App Router: all pages and layouts
-│   │   ├── (admin)/        # Route group for admin-only pages (e.g., /technicians, /inventory)
-│   │   ├── (technician)/   # Route group for technician-only pages
-│   │   ├── api/            # API routes (if needed)
-│   │   ├── layout.tsx      # Root layout for the entire application
-│   │   ├── page.tsx        # The main dashboard page
-│   │   └── login/          # The login page
-│   ├── ai/                 # All Genkit AI-related code
-│   │   ├── flows/          # Genkit flows that define AI tasks (e.g., fault detection)
-│   │   └── genkit.ts       # Genkit configuration and initialization
-│   ├── components/         # Reusable React components
-│   │   ├── dashboard/      # Components specific to the dashboard (e.g., MapView, StatsCard)
-│   │   ├── layout/         # Layout components (Header, Sidebar, MobileNav)
-│   │   └── ui/             # ShadCN UI components (Button, Card, etc.)
-│   ├── contexts/           # React contexts for state management
-│   │   └── auth-context.tsx  # Handles user authentication state against Firebase
-│   ├── hooks/              # Custom React hooks
-│   │   └── use-firestore-query.ts # Hook for fetching live data collections from Firestore
-│   ├── lib/                # Libraries, helpers, and configuration
-│   │   ├── firebase.ts     # Firebase initialization and configuration (IMPORTANT)
-│   │   ├── types.ts        # TypeScript type definitions for all data models
-│   │   └── utils.ts        # Utility functions (e.g., cn for styling)
-│   └── README.md           # This file, providing setup and deployment instructions
-├── .env                    # Environment variables (e.g., API keys)
-├── next.config.ts          # Next.js configuration
-├── package.json            # Project dependencies and scripts
-└── tsconfig.json           # TypeScript configuration for the project
-```
-
 ## Production Setup Guide (Step-by-Step)
 
 Follow these steps to set up and run the project on your local machine and prepare it for deployment. This guide assumes you have a basic understanding of Firebase.
@@ -321,5 +284,3 @@ To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web
 This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
-
-  

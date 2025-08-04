@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Infrastructure, mockInfrastructure } from '@/lib/data';
+import { Infrastructure } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useAuth } from '@/contexts/auth-context';
@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/auth-context';
 interface DeviceFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (device: Infrastructure) => void;
+  onSave: (device: Omit<Infrastructure, 'id'>, isEditing: boolean) => void;
   device: Infrastructure | null;
 }
 
@@ -80,33 +80,25 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
         return;
     }
 
-    if (!isEditing && mockInfrastructure.some(d => d.id === id)) {
-        toast({ title: 'ID already exists', description: 'This device ID is already in use. Please choose another.', variant: 'destructive'});
-        return;
-    }
-
     setIsLoading(true);
 
-    // Simulate saving
-    setTimeout(() => {
-        const newOrUpdatedDevice: Infrastructure = {
-            id,
-            projectId: 'ftth001', // Default project for now
-            name,
-            type,
-            ip,
-            lat,
-            lng,
-            status,
-            quantity,
-            attributes,
-            connectedBy: isEditing ? device?.connectedBy : user?.name,
-            connectionDate: isEditing ? device?.connectionDate : new Date().toISOString(),
-        };
+    const newOrUpdatedDevice: Omit<Infrastructure, 'id'> = {
+        id,
+        projectId: 'ftth001', // Default project for now
+        name,
+        type,
+        ip,
+        lat,
+        lng,
+        status,
+        quantity,
+        attributes,
+        connectedBy: isEditing ? device?.connectedBy : user?.name,
+        connectionDate: isEditing ? device?.connectionDate : new Date().toISOString(),
+    };
 
-        onSave(newOrUpdatedDevice);
-        setIsLoading(false);
-    }, 500);
+    onSave(newOrUpdatedDevice, isEditing);
+    setIsLoading(false);
   };
 
   const handleAttributeChange = (key: keyof NonNullable<Infrastructure['attributes']>, value: string | number) => {
@@ -229,6 +221,10 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
                             {['2F', '4F', '8F', '12F', '24F', '48F', '96F'].map(cap => <SelectItem key={cap} value={cap}>{cap}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="openPorts">Open Ports</Label>
+                    <Input id="openPorts" type="number" value={attributes?.openPorts || ''} onChange={(e) => handleAttributeChange('openPorts', parseInt(e.target.value, 10))} placeholder="e.g., 4" />
                 </div>
             </div>
           </div>
