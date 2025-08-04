@@ -60,7 +60,8 @@ export type Plan = {
 };
 
 export type User = {
-    id: string;
+    uid: string; // Firebase Auth UID
+    id: string; // Custom login ID (e.g., 'admin', 'tech-001')
     name: string;
     role: 'Admin' | 'Technician' | 'Field Engineer';
     password?: string;
@@ -92,6 +93,7 @@ export type Task = {
   lat: number;
   lng: number;
   completionTimestamp?: any;
+  device_id: string;
 };
 
 export type Alert = {

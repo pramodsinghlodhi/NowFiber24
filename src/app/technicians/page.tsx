@@ -94,23 +94,19 @@ export default function TechniciansPage() {
         }
     }
 
-    const handleSave = async (techData: Omit<Technician, 'id'> & { id?: string }, userData: Omit<User, 'id'> & { id?: string }) => {
+    const handleSave = async (techData: Omit<Technician, 'id'> & { id?: string }, userData: Omit<User, 'uid' | 'id'> & { id?: string }) => {
         const isEditing = !!selectedTechnician;
     
         if (isEditing && selectedTechnician) {
             // Editing existing technician
             const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-            const userQuery = query(collection(db, 'users'), where('id', '==', selectedTechnician.id));
+            const userDocRef = doc(db, 'users', selectedTechnician.uid);
              
             try {
-                const userSnapshot = await getDocs(userQuery);
                 const batch = writeBatch(db);
                 
                 batch.update(techDocRef, { ...techData });
-                if (!userSnapshot.empty) {
-                    const userDocRef = userSnapshot.docs[0].ref;
-                    batch.update(userDocRef, { name: userData.name, contact: userData.contact, avatarUrl: userData.avatarUrl });
-                }
+                batch.update(userDocRef, { name: userData.name, contact: userData.contact, avatarUrl: userData.avatarUrl });
 
                 await batch.commit();
                 toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
@@ -161,17 +157,11 @@ export default function TechniciansPage() {
     }
     
     const handleToggleBlock = async (userToToggle: User) => {
-        if (!userToToggle.id) return;
+        if (!userToToggle.uid) return;
         
-        const q = query(collection(db, 'users'), where('id', '==', userToToggle.id));
+        const userDocRef = doc(db, 'users', userToToggle.uid);
         
         try {
-            const querySnapshot = await getDocs(q);
-            if (querySnapshot.empty) {
-                toast({ title: "Error", description: "User document not found.", variant: "destructive"});
-                return;
-            }
-            const userDocRef = querySnapshot.docs[0].ref;
             const isBlocked = !userToToggle.isBlocked;
             await updateDoc(userDocRef, { isBlocked: isBlocked });
             toast({
@@ -190,8 +180,12 @@ export default function TechniciansPage() {
     }
 
     const handleEdit = (tech: Technician) => {
-        setSelectedTechnician(tech);
-        setIsFormOpen(true);
+        const techUser = users.find(u => u.id === tech.id);
+        if (techUser) {
+            setSelectedTechnician({ ...tech, uid: techUser.uid });
+        } else {
+            toast({ title: 'Error', description: 'Could not find matching user for this technician.', variant: 'destructive'});
+        }
     }
     
     const loading = loadingTechs || loadingUsers;
@@ -379,3 +373,4 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
+

@@ -33,13 +33,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          const userData = { id: userDoc.id, ...userDoc.data() } as User;
+          const userData = userDoc.data() as Omit<User, 'id'>;
           if (userData.isBlocked) {
              console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
              await signOut(auth); // Sign out the blocked user
              setUser(null);
           } else {
-             setUser(userData);
+             setUser({ uid: fbUser.uid, ...userData } as User);
           }
         } else {
           console.error(`No user document found for UID: ${fbUser.uid}`);
@@ -65,37 +65,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: 'Password is required.' };
     }
     
+    const email = `${userId}@fibervision.com`;
+
     try {
-        // 1. Find user in Firestore by their custom ID
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where("id", "==", userId), limit(1));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            return { success: false, message: 'Invalid User ID.' };
-        }
-        
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data() as User;
-
-        if (userData.isBlocked) {
-            return { success: false, message: 'This account has been blocked by an administrator.' };
-        }
-
-        // 2. Construct email and attempt sign-in
-        const email = `${userId}@fibervision.com`;
         await signInWithEmailAndPassword(auth, email, password);
-
-        // onAuthStateChanged will handle setting the user state and redirecting
+        // onAuthStateChanged will handle setting user state and redirecting
         return { success: true, message: 'Welcome back!' };
-
     } catch (error: any) {
        console.error("Login Error:", error.code, error.message);
-       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-           return { success: false, message: 'Invalid password. Please try again.' };
-       }
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-           return { success: false, message: 'This User ID is not registered in our authentication system.' };
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+           return { success: false, message: 'Invalid User ID or Password.' };
        }
       return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
