@@ -1,4 +1,3 @@
-
 # Firestore Database Setup Guide
 
 This guide provides step-by-step instructions on how to populate your Cloud Firestore database using the JSON files in this directory. Following these steps is crucial for the application to function correctly.

@@ -1,6 +1,6 @@
 
 {
-  "PASTE_ADMIN_UID_HERE": {
+  "admin-user-profile": {
     "id": "admin",
     "name": "Admin User",
     "role": "Admin",
@@ -8,7 +8,7 @@
     "avatarUrl": "https://i.pravatar.cc/150?u=admin",
     "contact": "+15551234567"
   },
-  "PASTE_TECH_001_UID_HERE": {
+  "tech-001-profile": {
     "id": "tech-001",
     "name": "John Doe",
     "role": "Technician",
@@ -16,7 +16,7 @@
     "avatarUrl": "https://i.pravatar.cc/150?u=tech-001",
     "contact": "+15558765432"
   },
-  "PASTE_TECH_002_UID_HERE": {
+  "tech-002-profile": {
     "id": "tech-002",
     "name": "Jane Smith",
     "role": "Technician",
@@ -24,7 +24,7 @@
     "avatarUrl": "https://i.pravatar.cc/150?u=tech-002",
     "contact": "+15559876543"
   },
-  "PASTE_TECH_003_UID_HERE": {
+  "tech-003-profile": {
     "id": "tech-003",
     "name": "Mike Johnson",
     "role": "Technician",
