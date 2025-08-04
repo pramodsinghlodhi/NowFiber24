@@ -52,7 +52,10 @@ This application is fully powered by Firebase. **It will not run without a corre
 
 **A. Create a Firebase Project:**
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Click **"Add project"** and follow the on-screen instructions to create a new project.
+2. Click **"Add project"**.
+3. Enter a project name (e.g., "NowFiber24-prod") and click **"Continue"**.
+4. You can choose to enable Google Analytics or not for this project. It is not required for the application to function. Click **"Continue"**.
+5. After a moment, your project will be ready. Click **"Continue"**.
 
 **B. Create a Web App:**
 1. Inside your new project, click the Web icon (`</>`) to create a new Web App.
@@ -94,8 +97,14 @@ This application is fully powered by Firebase. **It will not run without a corre
     ```
 
 **D. Enable Firebase Services:**
-1. In the Firebase Console, go to the **Authentication** section. Click **"Get started"** and enable the **"Email/Password"** sign-in provider.
-2. Go to the **Firestore Database** section. Click **"Create database"**, start in **test mode** for now (you can secure it later with Security Rules), and choose a location.
+1. In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
+2. Click **"Get started"**.
+3. On the Sign-in method tab, select **"Email/Password"** from the list of providers.
+4. Enable the **"Email/Password"** provider and click **"Save"**.
+5. Next, go to the **Firestore Database** section in the left-hand menu.
+6. Click **"Create database"**.
+7. Select **"Start in test mode"**. This allows for easy read/write access during setup. You can (and should) secure your database with Security Rules before going to production. Click **"Next"**.
+8. Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
 
 **E. Create User Accounts (Required for Login):**
 The application will not work without user accounts. You must create them in Firebase Authentication.
@@ -114,26 +123,32 @@ The application will not work without user accounts. You must create them in Fir
 For the application to be populated with data, you must create collections in Firestore. The most important is the `users` collection, which links Authentication accounts to application roles.
 
 1. Go to the **Firestore Database** -> **Data** tab.
-2. Create a collection named `users`.
-3. For each user you created in Authentication, you must add a corresponding document in the `users` collection. **The Document ID must be the User UID** from the Authentication tab (not the email).
-    - **Get the UID**: In the Authentication -> Users tab, copy the UID for each user.
-    - **Create the Document**: In Firestore, click "Add document" in the `users` collection and paste the UID as the Document ID.
-
-    - **Admin Document (ID = UID of `admin@fibervision.com`):**
-      - `id`: "admin" (This is the login ID)
-      - `name`: "Admin User"
-      - `role`: "Admin"
-      - `isBlocked`: `false`
-      - `avatarUrl`: "https://i.pravatar.cc/150?u=admin"
-      - `contact`: "+15551234567"
-
-    - **Technician Document (ID = UID of `tech-001@fibervision.com`):**
-      - `id`: "tech-001" (This is the login ID)
-      - `name`: "John Doe"
-      - `role`: "Technician"
-      - `isBlocked`: `false`
-      - `avatarUrl`: "https://i.pravatar.cc/150?u=tech-001"
-      - `contact`: "+15558765432"
+2. Click **"+ Start collection"**.
+3. For the **Collection ID**, enter `users`. Click **"Next"**.
+4. Now you will create the first document. **The Document ID must be the User UID** from the Authentication tab (not the email).
+    - **To get the UID**: Go to the Authentication -> Users tab in a separate browser tab. You will see a "User UID" column. Copy the UID for the `admin@fibervision.com` user.
+    - **Create the Admin Document**:
+        - Paste the copied UID into the **Document ID** field.
+        - Add the following fields to the document:
+            - `id` (string): `admin`
+            - `name` (string): `Admin User`
+            - `role` (string): `Admin`
+            - `isBlocked` (boolean): `false`
+            - `avatarUrl` (string): `https://i.pravatar.cc/150?u=admin`
+            - `contact` (string): `+15551234567`
+        - Click **"Save"**.
+5. **Create the Technician Document**:
+    - In the `users` collection, click **"Add document"**.
+    - Go back to the Authentication tab and copy the User UID for the `tech-001@fibervision.com` user.
+    - Paste the UID into the **Document ID** field.
+    - Add the following fields:
+        - `id` (string): `tech-001`
+        - `name` (string): `John Doe`
+        - `role` (string): `Technician`
+        - `isBlocked` (boolean): `false`
+        - `avatarUrl` (string): `https://i.pravatar.cc/150?u=tech-001`
+        - `contact` (string): `+15558765432`
+    - Click **"Save"**.
 
 *For the application to be fully functional, you will need to add documents to other collections as well, such as `technicians`, `tasks`, `alerts`, and `infrastructure`.*
 
