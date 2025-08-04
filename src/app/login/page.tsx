@@ -40,7 +40,7 @@ export default function LoginPage() {
             <div className="flex justify-center items-center mb-4">
                 <Logo className="w-12 h-12 text-primary" />
             </div>
-          <CardTitle className="text-2xl font-headline">Fiber24 Login</CardTitle>
+          <CardTitle className="text-2xl font-headline">NowFiber24 Login</CardTitle>
           <CardDescription>
             Enter your credentials to access the dashboard.
             <br />

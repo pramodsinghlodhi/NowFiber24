@@ -1,7 +1,7 @@
 
-# Fiber24 - FTTH Network Management & Field Engineering Platform
+# NowFiber24 - FTTH Network Management & Field Engineering Platform
 
-Fiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics.
+NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics.
 
 ## Features
 
@@ -94,7 +94,7 @@ This application is powered by Firebase. You must configure it correctly for the
 
 **B. Create a Web App:**
 1. Inside your new project, click the Web icon (`</>`) to create a new Web App.
-2. Register your app with a nickname (e.g., "Fiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
+2. Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
 3. After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
 
 **C. Configure the Application:**
@@ -285,9 +285,9 @@ It's crucial to use a process manager like **PM2** to keep your application runn
 
 2.  **Start your application with PM2:**
     ```bash
-    pm2 start npm --name "fiber24" -- start
+    pm2 start npm --name "nowfiber24" -- start
     ```
-    - `--name "fiber24"` gives your process a memorable name.
+    - `--name "nowfiber24"` gives your process a memorable name.
     - `-- start` tells PM2 to use the `start` script from your `package.json`.
 
 3.  **Ensure PM2 starts on server reboot:**
@@ -306,6 +306,6 @@ To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web
 
 This is an advanced step and requires separate tutorials on configuring Nginx.
 
-Your application is now running on your VPS! You can view logs with `pm2 logs fiber24` and manage the process with `pm2 stop fiber24`, `pm2 restart fiber24`, etc.
+Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
 
   
