@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
-import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/lib/types'; 
 
@@ -29,20 +29,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
-        // Fetch user profile from Firestore
+        // Fetch user profile from Firestore using the UID from Auth
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          const userData = userDoc.data() as Omit<User, 'id'>;
+          const userData = userDoc.data() as Omit<User, 'uid'>;
+          // Check if user is blocked before setting the state
           if (userData.isBlocked) {
              console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
-             await signOut(auth); // Sign out the blocked user
+             await signOut(auth); // Force sign out for blocked user
              setUser(null);
           } else {
-             setUser({ uid: fbUser.uid, ...userData } as User);
+             setUser({ uid: fbUser.uid, ...userData });
           }
         } else {
-          console.error(`No user document found for UID: ${fbUser.uid}`);
+          // This case can happen if a user is created in Auth but not in Firestore.
+          console.error(`No user document found for UID: ${fbUser.uid}. Logging out.`);
+          await signOut(auth);
           setUser(null);
         }
       } else {
@@ -54,6 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
   
+  // This effect handles redirection based on auth state.
   useEffect(() => {
     if (!loading && !user && pathname !== '/login') {
       router.push('/login');
@@ -65,15 +69,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: 'Password is required.' };
     }
     
+    // The email is constructed from the User ID. This must match the email in Firebase Auth.
     const email = `${userId}@fibervision.com`;
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // onAuthStateChanged will handle setting user state and redirecting
+        // onAuthStateChanged listener will handle fetching user data and redirecting
         return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
        console.error("Login Error:", error.code, error.message);
-       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
            return { success: false, message: 'Invalid User ID or Password.' };
        }
       return { success: false, message: 'An unexpected error occurred. Please try again.' };
@@ -82,6 +87,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await signOut(auth);
+    setUser(null);
+    setFirebaseUser(null);
     router.push('/login');
   };
   

@@ -47,63 +47,31 @@ Repeat this process for any other users you create.
 
 ## Step 2: Set up Remaining Collections
 
-For the following collections, the Document ID can be copied directly from the JSON files.
+For the following collections, the Document ID can be copied directly from the JSON files. The process is the same for each file.
 
-### `technicians` Collection
+### General Process:
 
 1.  In Firestore, click **+ Start collection**.
-2.  **Collection ID**: `technicians`.
-3.  Open `technicians.json`. For each entry (e.g., `"tech-001"`), click **+ Add document**.
-4.  Use the key as the **Document ID** (e.g., `tech-001`).
-5.  Copy all the fields and values from the corresponding JSON object into the Firestore document fields.
-6.  Click **Save**. Repeat for all technicians.
+2.  Enter the correct **Collection ID** (e.g., `technicians`).
+3.  Open the corresponding JSON file (e.g., `technicians.json`).
+4.  For each top-level key in the JSON file (e.g., `"tech-001"`):
+    *   Click **+ Add document**.
+    *   Use the key as the **Document ID** (e.g., `tech-001`).
+    *   Copy all the fields and values from the JSON object into the Firestore document fields.
+    *   **For nested objects** like `attributes` in the `infrastructure.json` file, you will first add a field with the key `attributes`, set its type to `map`, and then add the nested fields and values inside that map.
+5.  Click **Save**. Repeat for all entries in the file.
 
-### `tasks` Collection
+### Collections to Create:
 
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `tasks`.
-3.  Open `tasks.json`. For each entry (e.g., `"task-1"`), click **+ Add document**.
-4.  Use the key as the **Document ID** (e.g., `task-1`).
-5.  Copy all the fields and values.
-6.  Click **Save**. Repeat for all tasks.
-
-### `alerts` Collection
-
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `alerts`.
-3.  Open `alerts.json`. Follow the same process to add each alert as a new document.
-
-### `infrastructure` Collection
-
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `infrastructure`.
-3.  This collection has many items. Open `infrastructure.json`.
-4.  For each entry (e.g., `"OLT-01"`, `"SPL-01"`), create a new document using the key as the **Document ID**.
-5.  Carefully copy all fields, including the nested `attributes` object. When you add a field, you can set its type to `map` for the `attributes` object, and then add the fields inside it.
-
-### `connections` Collection
-
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `connections`.
-3.  Open `connections.json` and add each connection as a new document.
-
-### `materials` Collection
-
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `materials`.
-3.  Open `materials.json` and add each material as a new document.
-
-### `assignments` Collection
-
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `assignments`.
-3.  Open `assignments.json` and add each assignment as a new document.
-
-### `referrals` Collection
-
-1.  Click **+ Start collection**.
-2.  **Collection ID**: `referrals`.
-3.  Open `referrals.json` and add each referral as a new document.
+-   `technicians` (from `technicians.json`)
+-   `tasks` (from `tasks.json`)
+-   `alerts` (from `alerts.json`)
+-   `infrastructure` (from `infrastructure.json`)
+-   `connections` (from `connections.json`)
+-   `materials` (from `materials.json`)
+-   `assignments` (from `assignments.json`)
+-   `referrals` (from `referrals.json`)
+-   `plans` (from `plans.json`)
 
 ---
 

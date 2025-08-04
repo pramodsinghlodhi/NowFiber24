@@ -51,20 +51,20 @@ Before you begin, ensure you have the following installed:
 This application is fully powered by Firebase. **It will not run without a correctly configured Firebase project.**
 
 **A. Create a Firebase Project:**
-1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Click **"Add project"**.
-3. Enter a project name (e.g., "NowFiber24-prod") and click **"Continue"**.
-4. You can choose to enable Google Analytics or not for this project. It is not required for the application to function. Click **"Continue"**.
-5. After a moment, your project will be ready. Click **"Continue"**.
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Click **"Add project"**.
+3.  Enter a project name (e.g., "NowFiber24-prod") and click **"Continue"**.
+4.  You can choose to enable Google Analytics or not for this project. It is not required for the application to function. Click **"Continue"**.
+5.  After a moment, your project will be ready. Click **"Continue"**.
 
 **B. Create a Web App:**
-1. Inside your new project, click the Web icon (`</>`) to create a new Web App.
-2. Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
-3. After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
+1.  Inside your new project, click the Web icon (`</>`) to create a new Web App.
+2.  Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
+3.  After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
 
 **C. Configure the Application:**
-1. In the project's root directory, open the file `src/lib/firebase.ts`.
-2. **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
+1.  In the project's root directory, open the file `src/lib/firebase.ts`.
+2.  **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
 
     - **File:** `src/lib/firebase.ts`
     - **Line to Replace:** Approximately line 6
@@ -97,19 +97,19 @@ This application is fully powered by Firebase. **It will not run without a corre
     ```
 
 **D. Enable Firebase Services:**
-1. In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
-2. Click **"Get started"**.
-3. On the Sign-in method tab, select **"Email/Password"** from the list of providers.
-4. Enable the **"Email/Password"** provider and click **"Save"**.
-5. Next, go to the **Firestore Database** section in the left-hand menu.
-6. Click **"Create database"**.
-7. Select **"Start in test mode"**. This allows for easy read/write access during setup. You can (and should) secure your database with Security Rules before going to production. Click **"Next"**.
-8. Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
+1.  In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
+2.  Click **"Get started"**.
+3.  On the Sign-in method tab, select **"Email/Password"** from the list of providers.
+4.  Enable the **"Email/Password"** provider and click **"Save"**.
+5.  Next, go to the **Firestore Database** section in the left-hand menu.
+6.  Click **"Create database"**.
+7.  Select **"Start in test mode"**. This allows for easy read/write access during setup. You can (and should) secure your database with Security Rules before going to production. Click **"Next"**.
+8.  Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
 
 **E. Create User Accounts (Required for Login):**
 The application will not work without user accounts. You must create them in Firebase Authentication.
-1. Go to the **Authentication** -> **Users** tab in the Firebase Console.
-2. Click **"Add user"** to create at least one administrator and one technician. The email address is derived from the User ID you want to use for login.
+1.  Go to the **Authentication** -> **Users** tab in the Firebase Console.
+2.  Click **"Add user"** to create at least one administrator and one technician. The email address is derived from the User ID you want to use for login.
 
     - **Admin User**:
         - **Email**: `admin@fibervision.com`
@@ -166,27 +166,8 @@ Use these credentials to log in after setting up the user accounts in Firebase.
     -   **User ID:** `tech-001`
     -   **Password:** `password` (or the password you set)
 
-### 5. Deployment
+### 5. Deployment to a Virtual Private Server (VPS)
 
-You have multiple options for deploying this Next.js application.
-
-#### Option 1: Firebase Hosting (Recommended)
-1.  Install the Firebase CLI: `npm install -g firebase-tools`
-2.  Login to Firebase: `firebase login`
-3.  Initialize Firebase Hosting: `firebase init hosting`
-    -   Select "Use an existing project" and choose the project you created.
-    -   When asked for your public directory, enter `.next`.
-    -   Configure as a single-page app (SPA): **No**.
-    -   Set up automatic builds and deploys with GitHub: **Yes** (recommended) or No.
-4.  Deploy your application:
-    ```bash
-    npm run build
-    firebase deploy
-    ```
-
-This will deploy your application to a live URL provided by Firebase.
-
-#### Option 2: Deploying to a Virtual Private Server (VPS)
 This guide assumes you have a VPS (e.g., from DigitalOcean, Linode, AWS EC2) running a recent version of Linux (like Ubuntu 22.04).
 
 **Step 1: Connect to your VPS**
@@ -268,8 +249,6 @@ It's crucial to use a process manager like **PM2** to keep your application runn
     ```
 
 **Step 8: Configure a Reverse Proxy (Recommended)**
-To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. The Next.js app runs on port 3000 by default, and Nginx will forward traffic from port 80 to it.
-
-This is an advanced step and requires separate tutorials on configuring Nginx.
+To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. The Next.js app runs on port 3000 by default, and Nginx will forward traffic from port 80 to it. This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.

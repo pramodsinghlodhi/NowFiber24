@@ -23,9 +23,9 @@ import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } 
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, deleteDoc, addDoc, setDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, writeBatch, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { getAuth, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
 
 const getStatusBadge = (tech: Technician) => {
@@ -67,14 +67,13 @@ export default function TechniciansPage() {
 
     const handleDelete = async (tech: Technician) => {
         try {
-            // In a real app, you would need to handle deleting the Firebase Auth user, which is a sensitive operation.
+            // In a real app, you would need a cloud function to delete the Firebase Auth user.
             // For now, we will just delete the Firestore documents.
             const batch = writeBatch(db);
-            const userQuery = query(collection(db, 'users'), where('id', '==', tech.id));
-            const userSnapshot = await getDocs(userQuery);
-
-            if (!userSnapshot.empty) {
-                const userDocRef = userSnapshot.docs[0].ref;
+            
+            const userQuerySnapshot = await getDocs(query(collection(db, 'users'), where('id', '==', tech.id)));
+            if (!userQuerySnapshot.empty) {
+                const userDocRef = userQuerySnapshot.docs[0].ref;
                 batch.delete(userDocRef);
             }
             
@@ -94,13 +93,17 @@ export default function TechniciansPage() {
         }
     }
 
-    const handleSave = async (techData: Omit<Technician, 'id'> & { id?: string }, userData: Omit<User, 'uid' | 'id'> & { id?: string }) => {
+    const handleSave = async (techData: Omit<Technician, 'id' | 'uid'> & { id?: string }, userData: Omit<User, 'uid' | 'id'> & { id?: string; password?: string }) => {
         const isEditing = !!selectedTechnician;
     
         if (isEditing && selectedTechnician) {
-            // Editing existing technician
+            const techUser = users.find(u => u.id === selectedTechnician.id);
+            if (!techUser) {
+                 toast({ title: "Error", description: "Could not find associated user to update.", variant: "destructive"});
+                 return;
+            }
             const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-            const userDocRef = doc(db, 'users', selectedTechnician.uid);
+            const userDocRef = doc(db, 'users', techUser.uid);
              
             try {
                 const batch = writeBatch(db);
@@ -130,11 +133,19 @@ export default function TechniciansPage() {
                 // 2. Create user and technician documents in Firestore
                 const batch = writeBatch(db);
 
+                // Use the new Auth UID as the document ID in the 'users' collection
                 const userDocRef = doc(db, 'users', newUserId);
-                const finalUserData = { ...userData, role: 'Technician', id: userData.id };
-                delete finalUserData.password; // Do not store password in Firestore
+                const finalUserData: Partial<User> = { 
+                    id: userData.id, 
+                    name: userData.name,
+                    role: 'Technician',
+                    contact: userData.contact,
+                    avatarUrl: userData.avatarUrl,
+                    isBlocked: false,
+                };
                 batch.set(userDocRef, finalUserData);
                 
+                // Use the custom tech ID as the document ID in the 'technicians' collection
                 const techDocRef = doc(db, 'technicians', userData.id);
                 batch.set(techDocRef, { ...techData, id: userData.id });
 
@@ -157,7 +168,10 @@ export default function TechniciansPage() {
     }
     
     const handleToggleBlock = async (userToToggle: User) => {
-        if (!userToToggle.uid) return;
+        if (!userToToggle.uid) {
+             toast({ title: "Error", description: "User UID not found.", variant: "destructive"});
+             return;
+        };
         
         const userDocRef = doc(db, 'users', userToToggle.uid);
         
@@ -183,6 +197,7 @@ export default function TechniciansPage() {
         const techUser = users.find(u => u.id === tech.id);
         if (techUser) {
             setSelectedTechnician({ ...tech, uid: techUser.uid });
+            setIsFormOpen(true);
         } else {
             toast({ title: 'Error', description: 'Could not find matching user for this technician.', variant: 'destructive'});
         }
@@ -367,10 +382,11 @@ export default function TechniciansPage() {
             isOpen={isFormOpen}
             onOpenChange={setIsFormOpen}
             onSave={handleSave}
-            technician={selectedTechnician}
+            technician={selectedTechnician as (Technician & { uid: string; }) | null}
             allUsers={users}
         />
     </SidebarProvider>
   );
 }
+
 
