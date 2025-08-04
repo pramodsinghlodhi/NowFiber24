@@ -45,9 +45,9 @@ Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [npm](https://www.npmjs.com/) (or [yarn](https://yarnpkg.com/))
 - [Firebase CLI](https://firebase.google.com/docs/cli):
-  ```bash
+  \`\`\`bash
   npm install -g firebase-tools
-  ```
+  \`\`\`
 
 ### 2. Firebase Project Setup (CRUCIAL)
 
@@ -61,18 +61,18 @@ This application is fully powered by Firebase. **It will not run without a corre
 5.  After a moment, your project will be ready. Click **"Continue"**.
 
 **B. Create a Web App:**
-1.  Inside your new project, click the Web icon (`</>`) to create a new Web App.
+1.  Inside your new project, click the Web icon (\`</>\`) to create a new Web App.
 2.  Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
-3.  After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
+3.  After registering, Firebase will provide you with a \`firebaseConfig\` object. **Copy this object.**
 
 **C. Configure the Application:**
-1.  In the project's root directory, open the file `src/lib/firebase.ts`.
-2.  **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
+1.  In the project's root directory, open the file \`src/lib/firebase.ts\`.
+2.  **Replace the placeholder \`firebaseConfig\` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
 
-    - **File:** `src/lib/firebase.ts`
+    - **File:** \`src/lib/firebase.ts\`
     - **Line to Replace:** Approximately line 6
 
-    ```typescript
+    \`\`\`typescript
     // src/lib/firebase.ts
 
     import { initializeApp, getApp, getApps } from 'firebase/app';
@@ -97,7 +97,7 @@ This application is fully powered by Firebase. **It will not run without a corre
     const db = getFirestore(app);
 
     export { app, auth, db };
-    ```
+    \`\`\`
 
 **D. Enable Firebase Services:**
 1.  In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
@@ -112,54 +112,54 @@ This application is fully powered by Firebase. **It will not run without a corre
 **E. Deploy Security Rules (CRITICAL STEP):**
 Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
 1.  Open your terminal in the project's root directory.
-2.  Log in to Firebase: `firebase login`
-3.  Set the active project: `firebase use YOUR_PROJECT_ID` (replace `YOUR_PROJECT_ID` with the ID from your Firebase console).
+2.  Log in to Firebase: \`firebase login\`
+3.  Set the active project: \`firebase use YOUR_PROJECT_ID\` (replace \`YOUR_PROJECT_ID\` with the ID from your Firebase console).
 4.  Deploy the rules:
-    ```bash
+    \`\`\`bash
     firebase deploy --only firestore
-    ```
-    This command reads the `firestore.rules` file and applies them to your database.
+    \`\`\`
+    This command reads the \`firestore.rules\` file and applies them to your database.
 
 **F. Create User Accounts & Data (Required for Login):**
 The application will not work without user accounts and initial data.
 1.  Go to the **Authentication** -> **Users** tab in the Firebase Console.
 2.  Click **"Add user"** to create at least one administrator and one technician. The email address is derived from the User ID you want to use for login.
     - **Admin User**:
-        - **Email**: `admin@fibervision.com`
-        - **Password**: `admin` (or any password of your choice)
+        - **Email**: \`admin@fibervision.com\`
+        - **Password**: \`admin\` (or any password of your choice)
     - **Technician User**:
-        - **Email**: `tech-001@fibervision.com`
-        - **Password**: `password` (or any password of your choice)
-3. **Set up Firestore Data:** For the application to be populated with data, you must create collections in Firestore. The `src/lib/data` directory contains JSON files for each collection needed, and a detailed guide on how to use them.
+        - **Email**: \`tech-001@fibervision.com\`
+        - **Password**: \`password\` (or any password of your choice)
+3. **Set up Firestore Data:** For the application to be populated with data, you must create collections in Firestore. The \`src/lib/data\` directory contains JSON files for each collection needed, and a detailed guide on how to use them.
 
-**For a detailed, step-by-step guide on how to create the collections and documents, please see the `src/lib/data/README.md` file in this project.** This initial data setup is crucial for the application to function correctly.
+**For a detailed, step-by-step guide on how to create the collections and documents, please see the \`src/lib/data/README.md\` file in this project.** This initial data setup is crucial for the application to function correctly.
 
 ### 3. Local Development
 
 1.  **Clone the repository:**
-    ```bash
+    \`\`\`bash
     git clone <your-repository-url>
     cd <repository-name>
-    ```
+    \`\`\`
 
 2.  **Install dependencies:**
-    ```bash
+    \`\`\`bash
     npm install
-    ```
+    \`\`\`
 
 3.  **Set up environment variables:**
-    Create a new file named `.env` in the root of your project. This file is for secret keys and should not be committed to version control. Add your Gemini API key for the AI features to work.
-    ```env
+    Create a new file named \`.env\` in the root of your project. This file is for secret keys and should not be committed to version control. Add your Gemini API key for the AI features to work.
+    \`\`\`env
     # .env
     # This key is required for the Genkit AI flows to function.
     # Get your key from Google AI Studio.
     GEMINI_API_KEY=your_google_ai_studio_api_key
-    ```
+    \`\`\`
     
 4.  **Run the development server:**
-    ```bash
+    \`\`\`bash
     npm run dev
-    ```
+    \`\`\`
     The application will be available at [http://localhost:3000](http://localhost:3000).
 
 ### 4. Default Login Credentials
@@ -167,12 +167,12 @@ The application will not work without user accounts and initial data.
 Use these credentials to log in after setting up the user accounts in Firebase.
 
 -   **Administrator:**
-    -   **User ID:** `admin`
-    -   **Password:** `admin` (or the password you set)
+    -   **User ID:** \`admin\`
+    -   **Password:** \`admin\` (or the password you set)
 
 -   **Technician:**
-    -   **User ID:** `tech-001`
-    -   **Password:** `password` (or the password you set)
+    -   **User ID:** \`tech-001\`
+    -   **Password:** \`password\` (or the password you set)
 
 ### 5. Deployment to a Virtual Private Server (VPS)
 
@@ -180,13 +180,13 @@ This guide assumes you have a VPS (e.g., from DigitalOcean, Linode, AWS EC2) run
 
 **Step 1: Connect to your VPS**
 Connect to your server via SSH:
-```bash
+\`\`\`bash
 ssh your_username@your_vps_ip_address
-```
+\`\`\`
 
 **Step 2: Install Prerequisites**
-You'll need `git` to clone the repository and `Node.js` to run the application.
-```bash
+You'll need \`git\` to clone the repository and \`Node.js\` to run the application.
+\`\`\`bash
 # Update package lists
 sudo apt update
 
@@ -196,67 +196,67 @@ sudo apt install git -y
 # Install Node.js (v18 or later recommended)
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
-```
+\`\`\`
 
 **Step 3: Clone Your Project**
 Clone your project repository from GitHub (or your preferred Git provider) to the VPS.
-```bash
+\`\`\`bash
 git clone https://your-repository-url.git
 cd <repository-name>
-```
+\`\`\`
 
 **Step 4: Install Dependencies**
 Install the necessary Node.js packages.
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 **Step 5: Set Up Environment Variables**
-Create a `.env` file for your production environment variables.
-```bash
+Create a \`.env\` file for your production environment variables.
+\`\`\`bash
 # Create and open the .env file with nano editor
 nano .env
-```
+\`\`\`
 Add your Gemini API key to this file:
-```env
+\`\`\`env
 # .env
 GEMINI_API_KEY=your_production_google_ai_studio_api_key
-```
-Press `CTRL+X`, then `Y`, then `Enter` to save and exit `nano`.
+\`\`\`
+Press \`CTRL+X\`, then \`Y\`, then \`Enter\` to save and exit \`nano\`.
 
 **Step 6: Build the Application**
 Create a production-optimized build of your Next.js app.
-```bash
+\`\`\`bash
 npm run build
-```
+\`\`\`
 
 **Step 7: Run the Application with a Process Manager**
 It's crucial to use a process manager like **PM2** to keep your application running continuously, even if it crashes or the server reboots.
 
 1.  **Install PM2 globally:**
-    ```bash
+    \`\`\`bash
     sudo npm install pm2 -g
-    ```
+    \`\`\`
 
 2.  **Start your application with PM2:**
-    ```bash
+    \`\`\`bash
     pm2 start npm --name "nowfiber24" -- start
-    ```
-    - `--name "nowfiber24"` gives your process a memorable name.
-    - `-- start` tells PM2 to use the `start` script from your `package.json`.
+    \`\`\`
+    - \`--name "nowfiber24"\` gives your process a memorable name.
+    - \`-- start\` tells PM2 to use the \`start\` script from your \`package.json\`.
 
 3.  **Ensure PM2 starts on server reboot:**
-    ```bash
+    \`\`\`bash
     pm2 startup
-    ```
+    \`\`\`
     This command will generate another command that you need to copy and paste to complete the setup.
 
 4.  **Save the current process list:**
-    ```bash
+    \`\`\`bash
     pm2 save
-    ```
+    \`\`\`
 
 **Step 8: Configure a Reverse Proxy (Recommended)**
 To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. The Next.js app runs on port 3000 by default, and Nginx will forward traffic from port 80 to it. This is an advanced step and requires separate tutorials on configuring Nginx.
 
-Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
+Your application is now running on your VPS! You can view logs with \`pm2 logs nowfiber24\` and manage the process with \`pm2 stop nowfiber24\`, \`pm2 restart nowfiber24\`, etc.
