@@ -1,79 +1,79 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+    
+    // Helper function to check if the requesting user is an Admin
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-    }
-    
-    function isTechnician() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Technician';
-    }
-    
-    function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
+    // Helper function to get the requesting user's custom ID (e.g., 'tech-001')
+    function getRequestingUserCustomId() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
+    }
+
+    // Users can read and update their own user document. Admins can manage all user docs.
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-      allow create: if isAdmin();
-      allow delete: if isAdmin();
-    }
-    
-    match /technicians/{techId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow update(diff, resource): if (
-        (isTechnician() && diff.onlyAffects(['status'])) ||
-        (isAdmin() && diff.onlyAffects(['tech_id']))
-      );
+      allow read, update: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow create, delete: if isAdmin();
     }
 
-    match /alerts/{alertId} {
-        allow read: if isSignedIn();
-        allow create, write, delete: if isAdmin();
+    // Admins can manage technicians. Any authenticated user can read the technician list.
+    match /technicians/{techId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
     }
     
+    // Admins can manage inventory. Authenticated users can read.
     match /infrastructure/{deviceId} {
-        allow read: if isSignedIn();
-        allow create, write, delete: if isAdmin();
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
     }
     
+    // Admins can manage connections. Authenticated users can read.
     match /connections/{connectionId} {
-        allow read: if isSignedIn();
-        allow create, write, delete: if isAdmin();
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
+    // Admins can read all tasks. Technicians can only read tasks assigned to them.
+    // Admins can create/update/delete tasks. Technicians can update their own tasks.
+    match /tasks/{taskId} {
+      allow read: if request.auth != null && (isAdmin() || resource.data.tech_id == getRequestingUserCustomId());
+      allow create, delete: if isAdmin();
+      allow update: if request.auth != null && (isAdmin() || resource.data.tech_id == getRequestingUserCustomId());
+    }
+
+    // Admins can read/write all alerts. Technicians can read all alerts.
+    match /alerts/{alertId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Admins can manage materials. Any authenticated user can read the materials list.
     match /materials/{materialId} {
-        allow read: if isSignedIn();
-        allow create, write, delete: if isAdmin();
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
+    // Admins can manage assignments. Technicians can create (request) and read their own assignments.
     match /assignments/{assignmentId} {
-        allow read: if isSignedIn();
-        // Technicians can create requests, admins can update/approve them
-        allow create: if isTechnician();
-        allow update: if isAdmin();
-        allow delete: if isAdmin();
+        allow read: if request.auth != null && (isAdmin() || resource.data.technicianId == getRequestingUserCustomId());
+        allow create: if request.auth != null; // Allows both admins and techs to create
+        allow update, delete: if isAdmin();
     }
 
+    // Admins can manage referrals. Technicians can create and read their own referrals.
     match /referrals/{referralId} {
-        allow read: if isSignedIn();
-        allow create: if isTechnician();
-        allow update: if isAdmin();
+        allow read: if request.auth != null && (isAdmin() || resource.data.tech_id == getRequestingUserCustomId());
+        allow create: if request.auth != null;
+        allow update, delete: if isAdmin();
     }
     
-     match /plans/{planId} {
-        allow read: if isSignedIn();
-        allow create, write, delete: if isAdmin();
+    // Plans can only be managed by Admins.
+    match /plans/{planId} {
+        allow read, write: if isAdmin();
     }
   }
 }
