@@ -1,4 +1,3 @@
-
 # NowFiber24 - FTTH Network Management & Field Engineering Platform
 
 NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
@@ -120,18 +119,11 @@ The application will not work without user accounts. You must create them in Fir
         - **Password**: `password` (or any password of your choice)
 
 **F. Set up Firestore Data (Quick Start):**
-For the application to be populated with data, you must create collections in Firestore. The `src/lib/data` directory contains JSON files for each collection needed.
+For the application to be populated with data, you must create collections in Firestore. The `src/lib/data` directory contains JSON files for each collection needed, and a detailed guide on how to use them.
 
-1. Go to the **Firestore Database** -> **Data** tab.
-2. For each JSON file in `src/lib/data` (e.g., `users.json`, `technicians.json`), follow these steps:
-    a. Click **"+ Start collection"**.
-    b. The **Collection ID** is the name of the file without the `.json` extension (e.g., `users`). Click **"Next"**.
-    c. Now, for each top-level key-value pair in the JSON file, create a new document.
-       - The **Document ID** should be the key (e.g., `f10a8f7c-4876-47a9-8354-9031c51322b8` for the first user).
-       - The fields of the document should be the key-value pairs from the JSON object. You will need to add each field manually.
-    d. **Important:** For the `users` collection, make sure the **Document ID** you use for each user matches the **User UID** found in the **Authentication -> Users** tab. You may need to copy the UID from Authentication after creating the user there and use it when creating the corresponding document in the `users` collection.
+**For a detailed, step-by-step guide on how to create the collections and documents, please see the `src/lib/data/README.md` file in this project.**
 
-*This initial data setup is crucial for the application to function correctly.*
+This initial data setup is crucial for the application to function correctly.
 
 ### 3. Local Development
 
