@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import DeviceForm from '@/components/inventory/device-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, addDoc, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const getStatusIndicator = (status: Infrastructure['status']) => {
