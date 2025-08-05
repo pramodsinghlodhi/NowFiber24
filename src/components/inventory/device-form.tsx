@@ -91,7 +91,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
         lat,
         lng,
         status,
-        quantity,
+        quantity: quantity === undefined ? null : quantity, // Ensure we don't send undefined
         attributes,
         connectedBy: isEditing ? device?.connectedBy : user?.name,
         connectionDate: isEditing ? device?.connectionDate : new Date().toISOString(),
