@@ -3,14 +3,23 @@
 
 import { Task, Technician } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Clock, User, Wrench } from 'lucide-react';
+import { CheckCircle, Clock, User, HardHat } from 'lucide-react';
 import MaterialsAnalyzer from './materials-analyzer';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useState, useMemo } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal } from 'lucide-react';
+
 
 const getStatusIcon = (status: 'Pending' | 'In Progress' | 'Completed') => {
   switch (status) {
@@ -32,21 +41,23 @@ type TaskItemProps = {
 function TaskItem({ task, technicians }: TaskItemProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [assignedTech, setAssignedTech] = useState(task.tech_id);
+  const [assignedTechId, setAssignedTechId] = useState(task.tech_id);
 
-  const handleCheckIn = () => {
-    const isNearby = Math.random() > 0.3; 
-    if (isNearby) {
-      toast({
-        title: 'Check-in Successful',
-        description: `You are now checked in for task: ${task.title}`,
-      });
-    } else {
-      toast({
-        title: 'Check-in Failed',
-        description: 'You must be within 100m of the job site to check in.',
-        variant: 'destructive',
-      });
+  const handleStatusChange = async (newStatus: Task['status']) => {
+    const taskDocRef = doc(db, 'tasks', task.id);
+    try {
+        const updateData: any = { status: newStatus };
+        if (newStatus === 'Completed') {
+            updateData.completionTimestamp = serverTimestamp();
+        }
+        await updateDoc(taskDocRef, updateData);
+        toast({
+            title: `Task Updated`,
+            description: `${task.title} marked as ${newStatus}.`,
+        });
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to update task status.', variant: 'destructive'});
+        console.error("Failed to update task status: ", error);
     }
   };
 
@@ -56,7 +67,7 @@ function TaskItem({ task, technicians }: TaskItemProps) {
 
     try {
         await updateDoc(taskDocRef, { tech_id: newTechId });
-        setAssignedTech(newTechId);
+        setAssignedTechId(newTechId);
         toast({
             title: "Task Re-assigned",
             description: `${task.title} has been assigned to ${techName}.`
@@ -68,36 +79,31 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   }
 
   const assignedTechnician = useMemo(() => {
-    return technicians.find(t => t.id === assignedTech);
-  }, [technicians, assignedTech]);
+    return technicians.find(t => t.id === assignedTechId);
+  }, [technicians, assignedTechId]);
 
 
   return (
     <div className="flex flex-col p-3 rounded-lg hover:bg-muted/50 transition-colors border-b last:border-b-0">
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                {getStatusIcon(task.status)}
-                <div>
-                <p className="font-semibold">{task.title}</p>
-                <p className="text-sm text-muted-foreground">Device ID: {task.device_id}</p>
+        <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+                <span className="mt-1">{getStatusIcon(task.status)}</span>
+                <div className="flex-1">
+                    <p className="font-semibold leading-tight">{task.title}</p>
+                    <p className="text-sm text-muted-foreground">{task.description}</p>
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                {task.status !== 'Completed' && user?.role === 'Technician' && (
-                    <Button variant="outline" size="sm" onClick={handleCheckIn}>
-                        Check In
-                    </Button>
-                )}
                  {task.status !== 'Completed' && <MaterialsAnalyzer task={task} /> }
             </div>
         </div>
          <div className="flex items-center justify-between mt-3 pl-9">
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <User className="h-4 w-4" />
+                <HardHat className="h-4 w-4" />
                 <span>{assignedTechnician?.name || 'Unassigned'}</span>
             </div>
             {user?.role === 'Admin' && task.status !== 'Completed' && (
-                 <Select value={assignedTech} onValueChange={handleReassign}>
+                 <Select value={assignedTechId} onValueChange={handleReassign}>
                     <SelectTrigger className="w-[180px] h-8 text-xs">
                         <SelectValue placeholder="Re-assign task..." />
                     </SelectTrigger>
@@ -108,14 +114,40 @@ function TaskItem({ task, technicians }: TaskItemProps) {
                     </SelectContent>
                 </Select>
             )}
+
+            {user?.role === 'Technician' && task.status !== 'Completed' && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8">
+                            Update Status <MoreHorizontal className="h-4 w-4 ml-2"/>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                         {task.status === 'Pending' && (
+                            <DropdownMenuItem onClick={() => handleStatusChange('In Progress')}>
+                                Mark as In Progress
+                            </DropdownMenuItem>
+                         )}
+                         {task.status === 'In Progress' && (
+                             <DropdownMenuItem onClick={() => handleStatusChange('Completed')}>
+                                Mark as Completed
+                            </DropdownMenuItem>
+                         )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
         </div>
     </div>
   );
 }
 
 export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: Technician[]}) {
+  if (!tasks || tasks.length === 0) {
+    return <p className="text-muted-foreground text-sm p-4 text-center">No tasks in this category.</p>;
+  }
+  
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 -m-3">
         {tasks.map(task => (
             <TaskItem key={task.id} task={task} technicians={technicians} />
         ))}

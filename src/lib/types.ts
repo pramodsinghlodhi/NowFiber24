@@ -22,7 +22,7 @@ export type Infrastructure = {
   lng: number;
   ip?: string;
   status: 'online' | 'offline' | 'maintenance' | 'planned' | 'installed';
-  quantity?: number; // e.g., meters for fiber
+  quantity?: number | null; // e.g., meters for fiber
   connectedTo?: string;
   connectedBy?: string;
   connectionDate?: string;
@@ -82,6 +82,7 @@ export type Technician = {
   tasksAssigned?: string[]; // Array of infrastructure IDs
   path?: [number, number][];
   avatarUrl?: string;
+  uid?: string;
 };
 
 export type Task = {
@@ -102,7 +103,7 @@ export type Alert = {
   issue: string;
   lat: number;
   lng: number;
-  timestamp: string;
+  timestamp: any;
   severity: 'Critical' | 'High' | 'Medium' | 'Low';
 };
 
@@ -114,7 +115,7 @@ export type Referral = {
     address: string;
     notes: string;
     status: 'Pending' | 'Contacted' | 'Closed';
-    timestamp: string;
+    timestamp: any;
 }
 
 export type Stats = {
@@ -138,7 +139,7 @@ export type MaterialAssignment = {
     technicianId: string;
     quantityAssigned: number;
     status: 'Requested' | 'Pending' | 'Issued' | 'Returned' | 'Rejected';
-    timestamp: string;
+    timestamp: any;
 }
 
 export type TechnicianPerformance = {

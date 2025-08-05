@@ -61,9 +61,11 @@ export default function TasksPage() {
             ? collection(db, 'tasks') 
             : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
     }, [user]);
+    
+    const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
 
     const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
-    const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+    const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
 
     const { inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
         const inProgress = tasks.filter(task => task.status === 'In Progress');
@@ -74,11 +76,21 @@ export default function TasksPage() {
 
     const loading = authLoading || loadingTasks || loadingTechs;
 
-    if (!user) {
+    if (loading || !user) {
         return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <p>Redirecting to login...</p>
-            </div>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <Header />
+                 <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        <TaskColumnSkeleton />
+                        <TaskColumnSkeleton />
+                        <TaskColumnSkeleton />
+                    </div>
+                 </main>
+              </SidebarInset>
+            </SidebarProvider>
         );
     }
 
@@ -89,61 +101,51 @@ export default function TasksPage() {
         <Header />
         <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {loading ? (
-                    <>
-                        <TaskColumnSkeleton />
-                        <TaskColumnSkeleton />
-                        <TaskColumnSkeleton />
-                    </>
-                ) : (
-                    <>
-                         <Card className="lg:col-span-1">
-                            <CardHeader>
-                                <CardTitle>In Progress</CardTitle>
-                                <CardDescription>
-                                    Tasks you are currently working on.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {inProgressTasks.length > 0 ? (
-                                    <TasksList tasks={inProgressTasks} technicians={technicians} />
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                         <Card className="lg:col-span-1">
-                            <CardHeader>
-                                <CardTitle>Pending Tasks</CardTitle>
-                                <CardDescription>
-                                    Your queue of upcoming jobs.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {pendingTasks.length > 0 ? (
-                                   <TasksList tasks={pendingTasks} technicians={technicians} />
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">No pending tasks.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                         <Card className="lg:col-span-1">
-                            <CardHeader>
-                                <CardTitle>Completed</CardTitle>
-                                <CardDescription>
-                                    Recently completed jobs.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {completedTasks.length > 0 ? (
-                                   <TasksList tasks={completedTasks} technicians={technicians} />
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </>
-                )}
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle>In Progress</CardTitle>
+                        <CardDescription>
+                            Tasks that are currently being worked on.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {inProgressTasks.length > 0 ? (
+                            <TasksList tasks={inProgressTasks} technicians={technicians} />
+                        ) : (
+                            <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                 <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle>Pending Tasks</CardTitle>
+                        <CardDescription>
+                            A queue of upcoming jobs for the team.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {pendingTasks.length > 0 ? (
+                           <TasksList tasks={pendingTasks} technicians={technicians} />
+                        ) : (
+                            <p className="text-muted-foreground text-sm">No pending tasks.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                 <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle>Completed</CardTitle>
+                        <CardDescription>
+                            A log of recently completed jobs.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {completedTasks.length > 0 ? (
+                           <TasksList tasks={completedTasks} technicians={technicians} />
+                        ) : (
+                            <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </main>
       </SidebarInset>
