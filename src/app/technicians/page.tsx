@@ -70,30 +70,26 @@ export default function TechniciansPage() {
 
     const handleDelete = async (tech: Technician) => {
         try {
-            // In a real app, you would need a cloud function to delete the Firebase Auth user.
-            // For now, we will just delete the Firestore documents.
-            const batch = writeBatch(db);
-            
-            // Find the user document by the technician ID.
-            const userQuerySnapshot = await getDocs(query(collection(db, 'users'), where('id', '==', tech.id)));
-            if (!userQuerySnapshot.empty) {
-                const userDocRef = userQuerySnapshot.docs[0].ref;
-                batch.delete(userDocRef);
-            }
-            
-            const techDocRef = doc(db, 'technicians', tech.id);
-            batch.delete(techDocRef);
-
-            await batch.commit();
-
-            toast({
-                title: `Deleted Technician ${tech.id}`,
-                description: "Technician has been removed from the system.",
-                variant: "destructive"
+            const response = await fetch('/api/deleteUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ techId: tech.id }),
             });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast({
+                    title: `Deleted Technician ${tech.id}`,
+                    description: result.message,
+                    variant: "destructive"
+                });
+            } else {
+                 toast({ title: "Error", description: result.message, variant: "destructive" });
+            }
         } catch (error) {
             console.error("Error deleting technician: ", error);
-            toast({ title: "Error", description: "Could not delete technician. You may need to manually remove the user from Firebase Authentication.", variant: "destructive" });
+            toast({ title: "Error", description: "Could not delete technician. A network error occurred.", variant: "destructive" });
         }
     }
 
@@ -394,3 +390,4 @@ export default function TechniciansPage() {
     
 
     
+
