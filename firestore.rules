@@ -1,98 +1,84 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
     // Helper functions
     function isAuth() {
       return request.auth != null;
     }
-
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
+    
+    function getRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
     }
 
     function isAdmin() {
-      return isAuth() && getUserData(request.auth.uid).role == 'Admin';
+      return isAuth() && getRole(request.auth.uid) == 'Admin';
     }
-
+    
     function isTechnician() {
-        return isAuth() && getUserData(request.auth.uid).role == 'Technician';
-    }
-    
-    function isOwner(userId) {
-        return request.auth.uid == userId;
+        return isAuth() && getRole(request.auth.uid) == 'Technician';
     }
 
-    // Admins can read/write all data
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    // Admins can read and write all data
     match /{document=**} {
-      allow read, write: if isAdmin();
+        allow read, write: if isAdmin();
     }
     
-    // USERS collection
-    // Allow authenticated users to read any user profile (for name/avatar lookups)
-    // Allow users to update their own profile, but not change their role or ID
+    // Technicians need broad read access for the app to function
     match /users/{userId} {
-      allow read: if isAuth();
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role;
+        allow get: if isAuth();
+        allow list: if isAuth();
+        allow update: if isOwner(userId);
     }
-    
-    // TECHNICIANS collection
-    // Any authenticated user can read technician data (for maps, lists)
-    // Only admins can write
+
     match /technicians/{techId} {
-        allow read: if isAuth();
-        // write is handled by admin rule
+        allow get, list: if isAuth();
+        allow update: if isTechnician() && request.resource.data.id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
     }
     
-    // TASKS collection
-    // Any authenticated user can read tasks
-    // Technicians can only update tasks assigned to them
     match /tasks/{taskId} {
-      allow read: if isAuth();
-      allow update: if isTechnician() && request.resource.data.tech_id == getUserData(request.auth.uid).id;
-       // create/delete is handled by admin rule
-    }
-
-    // ALERTS collection
-    // Allow authenticated users to read alerts
-    match /alerts/{alertId} {
-        allow read: if isAuth();
-        // create/write is handled by admin rule (and AI flows via service account)
-    }
-
-    // INFRASTRUCTURE & CONNECTIONS collections
-    // Allow authenticated users to read network data
-    match /infrastructure/{infraId} {
-        allow read: if isAuth();
-    }
-    match /connections/{connId} {
-        allow read: if isAuth();
+        allow get, list: if isAuth();
+        // Allow a technician to update a task if their tech_id matches the one on the task
+        allow update: if isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
     }
     
-    // MATERIALS & ASSIGNMENTS collections
-    // Allow authenticated users to read materials data
-    // Technicians can create new assignments (requests), but not modify them further
+    match /alerts/{alertId} {
+        allow get, list: if isAuth();
+    }
+    
+    match /infrastructure/{infraId} {
+        allow get, list: if isAuth();
+    }
+    
+    match /connections/{connId} {
+        allow get, list: if isAuth();
+    }
+
     match /materials/{materialId} {
-        allow read: if isAuth();
+        allow get, list: if isAuth();
     }
+    
     match /assignments/{assignmentId} {
-        allow read: if isAuth();
-        allow create: if isTechnician() && request.resource.data.technicianId == getUserData(request.auth.uid).id;
+      allow get, list: if isAuth();
+      // Allow a technician to create a material request (assignment)
+      allow create: if isTechnician();
     }
 
-    // REFERRALS collection
-    // Authenticated users can read their own referrals
-    // Technicians can create new referrals for themselves
     match /referrals/{referralId} {
-        allow read: if isTechnician() && resource.data.tech_id == getUserData(request.auth.uid).id;
-        allow create: if isTechnician() && request.resource.data.tech_id == getUserData(request.auth.uid).id;
+        allow get, list: if isAuth();
+        // Allow a technician to create a referral
+        allow create: if isTechnician();
     }
 
-    // PLANS collection
-    // Authenticated users can read plans
-    match /plans/{planId} {
-      allow read: if isAuth();
+     match /plans/{planId} {
+        allow get, list: if isAuth();
     }
+
   }
 }
