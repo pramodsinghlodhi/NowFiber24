@@ -127,11 +127,9 @@ export default function TechniciansPage() {
                 return;
             }
             
-            // Comprehensive check to ensure the ID is unique across both collections
-            const idExistsInUsers = users.some(u => u.id === userData.id);
-            const idExistsInTechnicians = technicians.some(t => t.id === userData.id);
-
-            if (idExistsInUsers || idExistsInTechnicians) {
+            const idExistsQuery = query(collection(db, "users"), where("id", "==", userData.id));
+            const idExistsSnapshot = await getDocs(idExistsQuery);
+            if (!idExistsSnapshot.empty) {
                 toast({ title: 'ID already exists', description: 'This technician ID is already in use. Please choose another.', variant: 'destructive'});
                 return;
             }
