@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 interface TechnicianFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (technician: Omit<Technician, 'id'> & { id?: string }, user: Omit<User, 'uid'|'id'> & { id?: string }) => void;
+  onSave: (technician: Omit<Technician, 'id'> & { id?: string }, user: Omit<User, 'uid'|'id'> & { id?: string; password?: string }) => void;
   technician: (Technician & { uid: string }) | null;
   allUsers: User[];
 }
@@ -41,31 +41,32 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   const isEditing = !!technician;
 
   useEffect(() => {
-    if (technician) {
-      setName(technician.name);
-      setId(technician.id);
-      setRole(technician.role);
-      setContact(technician.contact);
-      setAvatarUrl(technician.avatarUrl || '');
-      // In a real app, you would not expose passwords like this.
-      // This is a simplification for the demo.
-      setPassword('********'); 
-    } else {
-      // Reset form for new entry
-      setName('');
-      setId('');
-      setPassword('');
-      setContact('');
-      setRole('Field Engineer');
-      setAvatarUrl(`https://i.pravatar.cc/150?u=`);
+    if (isOpen) {
+        if (technician) {
+            setName(technician.name);
+            setId(technician.id);
+            setRole(technician.role);
+            setContact(technician.contact);
+            setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
+            setPassword('********'); 
+        } else {
+            setName('');
+            setId('');
+            setPassword('');
+            setContact('');
+            setRole('Field Engineer');
+            setAvatarUrl('https://i.pravatar.cc/150?u=');
+        }
     }
   }, [technician, isOpen]);
 
-  useEffect(() => {
+  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newId = e.target.value;
+    setId(newId);
     if (!isEditing) {
-      setAvatarUrl(`https://i.pravatar.cc/150?u=${id}`);
+      setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
     }
-  }, [id, isEditing]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +99,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         status: technician?.status || 'available',
     };
     
-    const newOrUpdatedUser: Omit<User, 'uid' | 'id'> & { id?: string } = {
+    const newOrUpdatedUser: Omit<User, 'uid' | 'id'> & { id?: string; password?: string } = {
         id: isEditing ? technician.id : id,
         name,
         password: password === '********' ? undefined : password, // Don't pass dummy password
@@ -150,7 +151,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="id">Technician ID (Login ID)</Label>
-                    <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., tech-004" required disabled={isEditing} />
+                    <Input id="id" value={id} onChange={handleIdChange} placeholder="e.g., tech-004" required disabled={isEditing} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
