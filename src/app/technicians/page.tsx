@@ -333,7 +333,7 @@ export default function TechniciansPage() {
                                        {getStatusBadge(tech)}
                                     </TableCell>
                                     <TableCell>
-                                        {tech.isActive ? `${tech.lat.toFixed(4)}, ${tech.lng.toFixed(4)}` : 'N/A'}
+                                        {tech.isActive && typeof tech.lat === 'number' && typeof tech.lng === 'number' ? `${tech.lat.toFixed(4)}, ${tech.lng.toFixed(4)}` : 'N/A'}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>

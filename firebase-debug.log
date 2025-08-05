@@ -462,3 +462,13 @@ Issues? Report them at https://github.com/firebase/firebase-tools/issues and att
 [debug] [2025-08-05T04:56:55.656Z] Aug 05, 2025 4:56:55 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected non-HTTP/2 connection.
  {"metadata":{"emulator":{"name":"firestore"},"message":"Aug 05, 2025 4:56:55 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-08-05T04:56:56.498Z] Aug 05, 2025 4:56:56 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Aug 05, 2025 4:56:56 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected HTTP/2 connection.\n"}}
+[debug] [2025-08-05T04:57:00.663Z] <<< [apiv2][status] PUT http://127.0.0.1:8080/emulator/v1/projects/demo-app:securityRules 200
+[debug] [2025-08-05T04:57:00.665Z] <<< [apiv2][body] PUT http://127.0.0.1:8080/emulator/v1/projects/demo-app:securityRules {"issues":[{"sourcePosition":{"fileName":"security.rules","line":81,"column":11,"currentOffset":2810,"endOffset":2810},"description":"Missing 'match' keyword before path.","severity":"ERROR"},{"sourcePosition":{"fileName":"security.rules","line":81,"column":35,"currentOffset":2834,"endOffset":2838},"description":"Unexpected 'where'.","severity":"ERROR"},{"sourcePosition":{"fileName":"security.rules","line":81,"column":35,"currentOffset":2834,"endOffset":2838},"description":"mismatched input 'where' expecting {'{', '/', PATH_SEGMENT}","severity":"ERROR"},{"sourcePosition":{"fileName":"security.rules","line":133,"column":1,"currentOffset":4750,"endOffset":4750},"description":"Unexpected '}'.","severity":"ERROR"}]}
+[warn] ⚠  firestore.rules:81:11 - ERROR Missing 'match' keyword before path. 
+[warn] ⚠  firestore.rules:81:35 - ERROR Unexpected 'where'. 
+[warn] ⚠  firestore.rules:81:35 - ERROR mismatched input 'where' expecting {'{', '/', PATH_SEGMENT} 
+[warn] ⚠  firestore.rules:133:1 - ERROR Unexpected '}'. 
+[info] ✔  firestore: Rules updated. 
