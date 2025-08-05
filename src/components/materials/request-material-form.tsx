@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,8 +30,9 @@ export default function RequestMaterial() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-
-  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(collection(db, 'materials'));
+  
+  const materialsQuery = useMemo(() => collection(db, 'materials'), []);
+  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(materialsQuery);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

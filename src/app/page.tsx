@@ -31,10 +31,15 @@ export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
-  const { data: devices, loading: loadingDevices } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
-  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(collection(db, 'alerts'));
-  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(collection(db, 'connections'));
+  const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
+  const devicesQuery = useMemo(() => collection(db, 'infrastructure'), []);
+  const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
+  const connectionsQuery = useMemo(() => collection(db, 'connections'), []);
+
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+  const { data: devices, loading: loadingDevices } = useFirestoreQuery<Infrastructure>(devicesQuery);
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
+  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(connectionsQuery);
   
   const tasksQuery = useMemo(() => {
     if (!user) return null;

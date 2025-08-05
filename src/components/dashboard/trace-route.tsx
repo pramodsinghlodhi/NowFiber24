@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useMemo} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {
@@ -38,9 +38,12 @@ export default function TraceRoute({ startDevice, endDevice, onTraceComplete }: 
   const [endDeviceId, setEndDeviceId] = useState(endDevice || '');
   const {toast} = useToast();
   const router = useRouter();
+  
+  const oltsQuery = useMemo(() => query(collection(db, 'infrastructure'), where('type', '==', 'OLT')), []);
+  const onusQuery = useMemo(() => query(collection(db, 'infrastructure'), where('type', '==', 'ONU')), []);
 
-  const { data: olts, loading: loadingOlts } = useFirestoreQuery<Infrastructure>(query(collection(db, 'infrastructure'), where('type', '==', 'OLT')));
-  const { data: onus, loading: loadingOnus } = useFirestoreQuery<Infrastructure>(query(collection(db, 'infrastructure'), where('type', '==', 'ONU')));
+  const { data: olts, loading: loadingOlts } = useFirestoreQuery<Infrastructure>(oltsQuery);
+  const { data: onus, loading: loadingOnus } = useFirestoreQuery<Infrastructure>(onusQuery);
 
 
   useEffect(() => {

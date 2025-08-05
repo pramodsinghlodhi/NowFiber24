@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -36,8 +36,9 @@ export default function MaterialForm({ isOpen, onOpenChange, onSave, material }:
   const [quantityInStock, setQuantityInStock] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  const { data: materials } = useFirestoreQuery<Material>(collection(db, 'materials'));
+  
+  const materialsQuery = useMemo(() => collection(db, 'materials'), []);
+  const { data: materials } = useFirestoreQuery<Material>(materialsQuery);
 
   const isEditing = !!material;
 

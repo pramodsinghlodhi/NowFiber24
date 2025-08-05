@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -167,7 +167,8 @@ export default function MapView({ devices, technicians, alerts, connections, map
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const router = useRouter();
-  const { data: plans } = useFirestoreQuery<Plan>(collection(db, 'plans'));
+  const plansQuery = useMemo(() => collection(db, 'plans'), []);
+  const { data: plans } = useFirestoreQuery<Plan>(plansQuery);
 
 
   useEffect(() => {
@@ -290,5 +291,3 @@ export default function MapView({ devices, technicians, alerts, connections, map
     </div>
   );
 }
-
-    

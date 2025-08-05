@@ -11,7 +11,7 @@ import Header from '@/components/layout/header';
 import { Technician, User } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -51,9 +51,12 @@ export default function TechniciansPage() {
     const { toast } = useToast();
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    
+    const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
+    const usersQuery = useMemo(() => collection(db, 'users'), []);
 
-    const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
-    const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(collection(db, 'users'));
+    const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+    const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
 
     useEffect(() => {
         if (!currentUser) {
@@ -388,5 +391,3 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
-
-

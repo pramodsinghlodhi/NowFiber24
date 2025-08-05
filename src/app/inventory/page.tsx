@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -45,7 +45,8 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const { data: devices, loading } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
+  const devicesQuery = useMemo(() => collection(db, 'infrastructure'), []);
+  const { data: devices, loading } = useFirestoreQuery<Infrastructure>(devicesQuery);
 
   useEffect(() => {
     if (!user) {

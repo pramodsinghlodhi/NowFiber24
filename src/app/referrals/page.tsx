@@ -41,9 +41,12 @@ export default function ReferralsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  
+  const referralsQuery = useMemo(() => collection(db, 'referrals'), []);
+  const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
 
-  const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(collection(db, 'referrals'));
-  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+  const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {

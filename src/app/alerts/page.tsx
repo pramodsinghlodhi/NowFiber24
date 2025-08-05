@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -55,7 +55,8 @@ export default function AlertsPage() {
   const router = useRouter();
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
-  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<AlertType>(collection(db, 'alerts'));
+  const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<AlertType>(alertsQuery);
 
   useEffect(() => {
     if (!user) {

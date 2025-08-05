@@ -29,6 +29,7 @@ import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Alert as AlertType, MaterialAssignment } from '@/lib/types';
+import { useMemo } from 'react';
 
 const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
   ssr: false,
@@ -59,10 +60,10 @@ export default function AppSidebar() {
   const { setOpenMobile, state } = useSidebar();
   const router = useRouter();
   
-  const alertsQuery = query(collection(db, 'alerts'), where('severity', '==', 'Critical'));
+  const alertsQuery = useMemo(() => query(collection(db, 'alerts'), where('severity', '==', 'Critical')), []);
   const { data: criticalAlerts } = useFirestoreQuery<AlertType>(alertsQuery);
 
-  const assignmentsQuery = query(collection(db, 'assignments'), where('status', '==', 'Requested'));
+  const assignmentsQuery = useMemo(() => query(collection(db, 'assignments'), where('status', '==', 'Requested')), []);
   const { data: requestedAssignments } = useFirestoreQuery<MaterialAssignment>(assignmentsQuery);
 
   const handleLinkClick = () => {

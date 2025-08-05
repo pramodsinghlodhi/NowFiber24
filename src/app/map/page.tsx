@@ -51,10 +51,15 @@ function MapContent() {
   const [tracedPath, setTracedPath] = useState<Infrastructure[]>([]);
   const [isTracing, setIsTracing] = useState(false);
 
-  const { data: allInfrastructure, loading: loadingInfra } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
-  const { data: liveTechnicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
-  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(collection(db, 'alerts'));
-  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(collection(db, 'connections'));
+  const infraQuery = useMemo(() => collection(db, 'infrastructure'), []);
+  const techsQuery = useMemo(() => collection(db, 'technicians'), []);
+  const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
+  const connectionsQuery = useMemo(() => collection(db, 'connections'), []);
+
+  const { data: allInfrastructure, loading: loadingInfra } = useFirestoreQuery<Infrastructure>(infraQuery);
+  const { data: liveTechnicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techsQuery);
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
+  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(connectionsQuery);
 
   const allDeviceTypes = useMemo(() => Array.from(new Set(allInfrastructure.map(d => d.type))), [allInfrastructure]);
 

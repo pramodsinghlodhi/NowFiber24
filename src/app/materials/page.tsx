@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -50,9 +50,13 @@ export default function MaterialsPage() {
   const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
 
-  const { data: assignments, loading: loadingAssignments } = useFirestoreQuery<MaterialAssignment>(collection(db, 'assignments'));
-  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(collection(db, 'materials'));
-  const { data: technicians, loading: loadingTechnicians } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
+  const assignmentsQuery = useMemo(() => collection(db, 'assignments'), []);
+  const materialsQuery = useMemo(() => collection(db, 'materials'), []);
+  const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
+
+  const { data: assignments, loading: loadingAssignments } = useFirestoreQuery<MaterialAssignment>(assignmentsQuery);
+  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(materialsQuery);
+  const { data: technicians, loading: loadingTechnicians } = useFirestoreQuery<Technician>(techniciansQuery);
   
   useEffect(() => {
     if (!user) {

@@ -40,10 +40,15 @@ export default function ReportsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(collection(db, 'tasks'));
-  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(collection(db, 'technicians'));
-  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(collection(db, 'alerts'));
-  const { data: infrastructure, loading: loadingInfra } = useFirestoreQuery<Infrastructure>(collection(db, 'infrastructure'));
+  const tasksQuery = useMemo(() => collection(db, 'tasks'), []);
+  const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
+  const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
+  const infrastructureQuery = useMemo(() => collection(db, 'infrastructure'), []);
+
+  const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
+  const { data: infrastructure, loading: loadingInfra } = useFirestoreQuery<Infrastructure>(infrastructureQuery);
   
   useEffect(() => {
     if (!authLoading && !user) {
