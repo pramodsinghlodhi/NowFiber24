@@ -58,7 +58,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
       setLng(device.lng);
       setStatus(device.status);
       setAttributes(device.attributes || {});
-      setQuantity(device.quantity);
+      setQuantity(device.quantity ?? undefined);
     } else {
       // Reset form for new entry
       setId('');
@@ -91,7 +91,7 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
         lat,
         lng,
         status,
-        quantity: quantity === undefined ? null : quantity, // Ensure we don't send undefined
+        quantity: quantity === undefined ? null : quantity,
         attributes,
         connectedBy: isEditing ? device?.connectedBy : user?.name,
         connectionDate: isEditing ? device?.connectionDate : new Date().toISOString(),
@@ -120,17 +120,17 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="id">Device ID</Label>
-                <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing || isTechnician} />
+                <Input id="id" value={id} onChange={(e) => setId(e.target.value)} placeholder="e.g., ONU-106" required disabled={isEditing} />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="name">Device Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Customer ONU" required disabled={isTechnician}/>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Customer ONU" required />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="type">Device Type</Label>
-                    <Select value={type} onValueChange={(value) => setType(value as any)} required disabled={isTechnician}>
+                    <Select value={type} onValueChange={(value) => setType(value as any)} required>
                         <SelectTrigger id="type"><SelectValue placeholder="Select type" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Datacenter">Datacenter</SelectItem>
@@ -170,16 +170,16 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
              )}
             <div className="space-y-2">
                 <Label htmlFor="ip">IP Address</Label>
-                <Input id="ip" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="e.g., 10.0.1.106" disabled={isTechnician}/>
+                <Input id="ip" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="e.g., 10.0.1.106" />
             </div>
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="lat">Latitude</Label>
-                    <Input id="lat" type="number" value={lat} onChange={(e) => setLat(parseFloat(e.target.value))} placeholder="e.g., 34.0522" required disabled={isTechnician}/>
+                    <Input id="lat" type="number" value={lat} onChange={(e) => setLat(parseFloat(e.target.value))} placeholder="e.g., 34.0522" required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="lng">Longitude</Label>
-                    <Input id="lng" type="number" value={lng} onChange={(e) => setLng(parseFloat(e.target.value))} placeholder="e.g., -118.2437" required disabled={isTechnician}/>
+                    <Input id="lng" type="number" value={lng} onChange={(e) => setLng(parseFloat(e.target.value))} placeholder="e.g., -118.2437" required />
                 </div>
             </div>
 

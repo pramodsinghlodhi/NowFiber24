@@ -38,7 +38,6 @@ This is the **only manual step** required. You must create a user profile docume
     *   `role`: (string) `Admin`
     *   `isBlocked`: (boolean) `false`
     *   `avatarUrl`: (string) `https://i.pravatar.cc/150?u=admin`
-    *   `contact`: (string) `+15551234567`
 6.  Click **Save**.
 
 ---

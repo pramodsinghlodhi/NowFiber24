@@ -1,35 +1,24 @@
 
 {
-  "admin": {
-    "id": "admin",
-    "name": "Admin User",
-    "role": "Admin",
-    "isBlocked": false,
-    "avatarUrl": "https://i.pravatar.cc/150?u=admin",
-    "contact": "+15551234567"
-  },
   "tech-001": {
     "id": "tech-001",
     "name": "John Doe",
     "role": "Technician",
     "isBlocked": false,
-    "avatarUrl": "https://i.pravatar.cc/150?u=tech-001",
-    "contact": "+15558765432"
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-001"
   },
   "tech-002": {
     "id": "tech-002",
     "name": "Jane Smith",
     "role": "Technician",
     "isBlocked": false,
-    "avatarUrl": "https://i.pravatar.cc/150?u=tech-002",
-    "contact": "+15559876543"
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-002"
   },
   "tech-003": {
     "id": "tech-003",
     "name": "Mike Johnson",
     "role": "Technician",
     "isBlocked": true,
-    "avatarUrl": "https://i.pravatar.cc/150?u=tech-003",
-    "contact": "+15554567890"
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-003"
   }
 }

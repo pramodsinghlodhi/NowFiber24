@@ -111,9 +111,7 @@ export default function TechniciansPage() {
                 const batch = writeBatch(db);
                 
                 const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-                const techUpdateData = { ...techData };
-                delete (techUpdateData as any).uid; // Ensure uid is not written to technician doc
-                batch.update(techDocRef, techUpdateData);
+                batch.update(techDocRef, techData as any);
                 
                 const userDocRef = doc(db, 'users', techUser.uid);
                 batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
@@ -148,16 +146,14 @@ export default function TechniciansPage() {
                     id: userData.id, 
                     name: userData.name,
                     role: 'Technician',
-                    avatarUrl: userData.avatarUrl,
                     isBlocked: false,
+                    avatarUrl: userData.avatarUrl,
                 };
                 batch.set(userDocRef, finalUserData);
                 
                 // Document in 'technicians' collection, using the custom tech ID as the document ID
                 const techDocRef = doc(db, 'technicians', techData.id);
-                const finalTechData = { ...techData };
-                delete (finalTechData as any).uid; // Ensure uid is not written to technician doc
-                batch.set(techDocRef, finalTechData);
+                batch.set(techDocRef, techData);
 
                 // Commit the batch
                 await batch.commit();

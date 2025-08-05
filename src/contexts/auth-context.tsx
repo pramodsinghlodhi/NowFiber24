@@ -5,7 +5,6 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { useRouter, usePathname } from 'next/navigation'; 
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/lib/types'; 
 
@@ -44,21 +43,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUser({ uid: fbUser.uid, ...userData });
             }
         } else {
-          // If no user document exists, create a default one with 'Technician' role dynamically
-          const newUserDocRef = doc(db, 'users', fbUser.uid);
-          const defaultUserData: Omit<User, 'uid'> = {
-            id: fbUser.uid, // Using UID as a default ID for simplicity
-            name: 'New Technician', // Default name
-            role: 'Technician',
-            isBlocked: false, // New users are not blocked by default
-            avatarUrl: `https://i.pravatar.cc/150?u=${fbUser.uid}`, // Placeholder avatar URL
-          };
-
-          // Add the new document to Firestore
-          // You might want to use setDoc instead of addDoc for specific UID control
-          await setDoc(newUserDocRef, defaultUserData);
-          setUser({ uid: fbUser.uid, ...defaultUserData }); // Set the user in context after creation
           // This case can happen if a user is created in Auth but not in Firestore.
+          // This can be a race condition or a failed database write.
           console.error(`No user document found for UID: ${fbUser.uid}. Logging out.`);
           await signOut(auth);
           setUser(null);
@@ -143,4 +129,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-

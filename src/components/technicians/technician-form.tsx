@@ -77,7 +77,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     }
     
     if (!isEditing && !password) {
-        toast({ title: 'Missing Fields', description: 'Password is required for new technicians.', variant: 'destructive'});
+        toast({ title: 'Missing Password', description: 'Password is required for new technicians.', variant: 'destructive'});
         return;
     }
 
@@ -161,7 +161,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="contact">Contact Number</Label>
-                    <Input id="contact" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="e.g., +11234567890" required />
+                    <Input id="contact" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="e.g., +11234567890" />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="role">Role</Label>

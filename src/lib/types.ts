@@ -23,9 +23,8 @@ export type Infrastructure = {
   ip?: string;
   status: 'online' | 'offline' | 'maintenance' | 'planned' | 'installed';
   quantity?: number | null; // e.g., meters for fiber
-  connectedTo?: string;
-  connectedBy?: string;
-  connectionDate?: string;
+  connectedBy?: string | null;
+  connectionDate?: string | null;
   remarks?: string;
   attributes?: {
     assetLabel?: string; 
