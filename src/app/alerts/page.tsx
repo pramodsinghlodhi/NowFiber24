@@ -79,6 +79,18 @@ export default function AlertsPage() {
     fetchDevice();
   }, [selectedAlert]);
 
+  const renderTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return 'just now';
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      return 'just now';
+    }
+  };
+
   if (!user || loadingAlerts) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -113,7 +125,7 @@ export default function AlertsPage() {
                             </Badge>
                         </div>
                         <div className="text-xs text-muted-foreground mt-2">
-                           {alert.timestamp ? formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true }) : 'just now'}
+                           {renderTimestamp(alert.timestamp)}
                         </div>
                         <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)} className="w-full mt-4">View Details</Button>
                     </Card>
@@ -141,7 +153,7 @@ export default function AlertsPage() {
                       </TableCell>
                       <TableCell className="font-medium">{alert.device_id}</TableCell>
                       <TableCell>{alert.issue}</TableCell>
-                      <TableCell>{alert.timestamp ? formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true }) : 'just now'}</TableCell>
+                      <TableCell>{renderTimestamp(alert.timestamp)}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)}>View Details</Button>
                       </TableCell>
