@@ -80,7 +80,6 @@ export type Technician = {
   tasksAssigned?: string[]; // Array of infrastructure IDs
   path?: [number, number][];
   avatarUrl?: string;
-  uid?: string;
 };
 
 export type Task = {
@@ -157,6 +156,7 @@ export type AlertsBySeverity = {
 export type AlertsByType = {
     type: string;
     count: number;
+    fill: string;
 }
 
 export type TaskStatusDistribution = {

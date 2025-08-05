@@ -23,8 +23,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 interface TechnicianFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (technician: Omit<Technician, 'uid'> & { id: string }, user: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => void;
-  technician: (Technician & { uid: string }) | null;
+  onSave: (technician: Omit<Technician, 'id'> & { id: string }, user: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => void;
+  technician: Technician | null;
   allUsers: User[];
 }
 
@@ -87,7 +87,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
 
     setIsLoading(true);
 
-    const techData: Omit<Technician, 'uid'> & { id: string } = {
+    const techData: Omit<Technician, 'id'> & { id: string } = {
         id: isEditing ? technician.id : id,
         name,
         role,

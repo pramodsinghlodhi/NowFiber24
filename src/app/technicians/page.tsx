@@ -97,7 +97,7 @@ export default function TechniciansPage() {
         }
     }
 
-    const handleSave = async (techData: Omit<Technician, 'uid'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
+    const handleSave = async (techData: Omit<Technician, 'id'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
         const isEditing = !!selectedTechnician;
     
         if (isEditing && selectedTechnician) {
@@ -201,13 +201,8 @@ export default function TechniciansPage() {
     }
 
     const handleEdit = (tech: Technician) => {
-        const techUser = users.find(u => u.id === tech.id);
-        if (techUser) {
-            setSelectedTechnician({ ...tech, uid: techUser.uid });
-            setIsFormOpen(true);
-        } else {
-            toast({ title: 'Error', description: 'Could not find matching user for this technician.', variant: 'destructive'});
-        }
+        setSelectedTechnician(tech);
+        setIsFormOpen(true);
     }
     
     const loading = loadingTechs || loadingUsers;
@@ -389,7 +384,7 @@ export default function TechniciansPage() {
             isOpen={isFormOpen}
             onOpenChange={setIsFormOpen}
             onSave={handleSave}
-            technician={selectedTechnician as (Technician & { uid: string; }) | null}
+            technician={selectedTechnician}
             allUsers={users}
         />
     </SidebarProvider>
