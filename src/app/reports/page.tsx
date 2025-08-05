@@ -34,7 +34,10 @@ const chartConfigTaskStatus = {
     Completed: { label: 'Completed', color: 'hsl(var(--chart-2))' },
     'In Progress': { label: 'In Progress', color: 'hsl(var(--chart-4))' },
     Pending: { label: 'Pending', color: 'hsl(var(--muted-foreground))' },
-}
+};
+
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
+
 
 export default function ReportsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -100,7 +103,7 @@ export default function ReportsPage() {
           acc[type] = (acc[type] || 0) + 1;
           return acc;
       }, {} as Record<string, number>);
-      return Object.entries(typeCounts).map(([type, count]) => ({ type, count }));
+      return Object.entries(typeCounts).map(([type, count]) => ({ type, count, fill: COLORS[Object.keys(typeCounts).indexOf(type) % COLORS.length] }));
   }, [alerts, infrastructure]);
   
   const totalAlerts = useMemo(() => alerts.length, [alerts]);
@@ -113,6 +116,14 @@ export default function ReportsPage() {
       </div>
     );
   }
+
+  const chartConfigAlertType = useMemo(() => {
+    const config: any = { count: { label: 'Alerts'} };
+    alertsByType.forEach(item => {
+        config[item.type] = { label: item.type, color: item.fill };
+    });
+    return config;
+  }, [alertsByType]);
 
   return (
     <SidebarProvider>
@@ -229,11 +240,11 @@ export default function ReportsPage() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Alerts Breakdown by Type</CardTitle>
-                    <CardDescription>Frequency of different types of network alerts.</CardDescription>
+                    <CardTitle>Alerts Breakdown by Device Type</CardTitle>
+                    <CardDescription>Frequency of different types of network alerts based on device type.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <ChartContainer config={{}} className="h-[300px] w-full">
+                     <ChartContainer config={chartConfigAlertType} className="h-[300px] w-full">
                         <PieChart>
                              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                             <Pie 
@@ -245,6 +256,9 @@ export default function ReportsPage() {
                                 outerRadius={90}
                                 innerRadius={60}
                             >
+                                 {alertsByType.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
                                 <Label
                                     content={({viewBox}) => {
                                         if (viewBox && "cx" in viewBox && "cy" in viewBox) {
