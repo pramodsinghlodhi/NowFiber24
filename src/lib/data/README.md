@@ -33,6 +33,7 @@ This is the **only manual step** required. You must create a user profile docume
 3.  For **Collection ID**, enter `users`. Click **Next**.
 4.  Now, you'll create the first document. In the **Document ID** field, **paste the Admin User UID you just copied**. This links the login to the profile.
 5.  Add the following fields for the admin's profile:
+    *   `uid`: (string) Paste the UID again here.
     *   `id`: (string) `admin`
     *   `name`: (string) `Admin User`
     *   `role`: (string) `Admin`
@@ -41,8 +42,23 @@ This is the **only manual step** required. You must create a user profile docume
 6.  Click **Save**.
 
 ---
+## 2. Deploy Security Rules (CRITICAL STEP)
 
-## 2. Prepare the Environment for the Seeding Script
+Your database is currently locked down by default. You must deploy the included security rules to allow the app to access data.
+
+1.  Open the `firestore.rules` file in the root of your project and review the rules.
+2.  Open your terminal in the project's root directory.
+3.  If you haven't already, log in to Firebase: `firebase login`
+4.  Set the active project: `firebase use YOUR_PROJECT_ID` (replace `YOUR_PROJECT_ID` with the ID from your Firebase console).
+5.  Deploy the rules:
+    ```bash
+    firebase deploy --only firestore
+    ```
+    This command reads the `firestore.rules` file and applies them to your database. **The application will not work without this step.**
+
+---
+
+## 3. Prepare the Environment for the Seeding Script
 
 The script needs your admin credentials to log in. You will provide these in a local environment file that is safely ignored by Git.
 
@@ -57,7 +73,7 @@ The script needs your admin credentials to log in. You will provide these in a l
 
 ---
 
-## 3. Run the Automated Seeding Script
+## 4. Run the Automated Seeding Script
 
 Now you are ready to populate the entire database.
 

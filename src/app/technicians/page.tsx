@@ -163,6 +163,8 @@ export default function TechniciansPage() {
                      message = "This Technician ID is already in use.";
                  } else if (error.code === 'auth/weak-password') {
                      message = "The password must be at least 6 characters."
+                 } else if (error.code === 'permission-denied' || error.code === 'missing-permission') {
+                     message = "Permission denied. Make sure your Firestore security rules allow this action."
                  }
                  
                  // If auth user was created but firestore failed, delete the auth user
