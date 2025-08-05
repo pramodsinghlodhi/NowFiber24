@@ -18,6 +18,33 @@ import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
+function TaskColumnSkeleton() {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-4 w-48 mt-2" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-20" />
+                    </div>
+                </div>
+                 <div className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 export default function TasksPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
@@ -47,10 +74,10 @@ export default function TasksPage() {
 
     const loading = authLoading || loadingTasks || loadingTechs;
 
-    if (loading || !user) {
+    if (!user) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
-                <p>Loading Tasks...</p>
+                <p>Redirecting to login...</p>
             </div>
         );
     }
@@ -62,51 +89,61 @@ export default function TasksPage() {
         <Header />
         <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle>In Progress</CardTitle>
-                        <CardDescription>
-                            Tasks you are currently working on.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {inProgressTasks.length > 0 ? (
-                            <TasksList tasks={inProgressTasks} technicians={technicians} />
-                        ) : (
-                            <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
-                        )}
-                    </CardContent>
-                </Card>
-                 <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle>Pending Tasks</CardTitle>
-                        <CardDescription>
-                            Your queue of upcoming jobs.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {pendingTasks.length > 0 ? (
-                           <TasksList tasks={pendingTasks} technicians={technicians} />
-                        ) : (
-                            <p className="text-muted-foreground text-sm">No pending tasks.</p>
-                        )}
-                    </CardContent>
-                </Card>
-                 <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle>Completed</CardTitle>
-                        <CardDescription>
-                            Recently completed jobs.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {completedTasks.length > 0 ? (
-                           <TasksList tasks={completedTasks} technicians={technicians} />
-                        ) : (
-                            <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
-                        )}
-                    </CardContent>
-                </Card>
+                {loading ? (
+                    <>
+                        <TaskColumnSkeleton />
+                        <TaskColumnSkeleton />
+                        <TaskColumnSkeleton />
+                    </>
+                ) : (
+                    <>
+                         <Card className="lg:col-span-1">
+                            <CardHeader>
+                                <CardTitle>In Progress</CardTitle>
+                                <CardDescription>
+                                    Tasks you are currently working on.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {inProgressTasks.length > 0 ? (
+                                    <TasksList tasks={inProgressTasks} technicians={technicians} />
+                                ) : (
+                                    <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                         <Card className="lg:col-span-1">
+                            <CardHeader>
+                                <CardTitle>Pending Tasks</CardTitle>
+                                <CardDescription>
+                                    Your queue of upcoming jobs.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {pendingTasks.length > 0 ? (
+                                   <TasksList tasks={pendingTasks} technicians={technicians} />
+                                ) : (
+                                    <p className="text-muted-foreground text-sm">No pending tasks.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                         <Card className="lg:col-span-1">
+                            <CardHeader>
+                                <CardTitle>Completed</CardTitle>
+                                <CardDescription>
+                                    Recently completed jobs.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {completedTasks.length > 0 ? (
+                                   <TasksList tasks={completedTasks} technicians={technicians} />
+                                ) : (
+                                    <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
             </div>
         </main>
       </SidebarInset>

@@ -114,9 +114,6 @@ function TaskItem({ task, technicians }: TaskItemProps) {
 }
 
 export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: Technician[]}) {
-  if (!technicians) {
-    return null; // Or a loading indicator
-  }
   return (
     <div className="space-y-1">
         {tasks.map(task => (
