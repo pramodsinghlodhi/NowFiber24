@@ -97,7 +97,7 @@ export default function TechniciansPage() {
         }
     }
 
-    const handleSave = async (techData: Omit<Technician, 'id' | 'uid'> & { id?: string }, userData: Omit<User, 'uid' | 'id'> & { id?: string; password?: string }) => {
+    const handleSave = async (techData: Omit<Technician, 'id' | 'uid'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
         const isEditing = !!selectedTechnician;
     
         if (isEditing && selectedTechnician) {
@@ -113,7 +113,7 @@ export default function TechniciansPage() {
                 const batch = writeBatch(db);
                 
                 batch.update(techDocRef, { ...techData });
-                batch.update(userDocRef, { name: userData.name, contact: userData.contact, avatarUrl: userData.avatarUrl });
+                batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
 
                 await batch.commit();
                 toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
@@ -123,18 +123,11 @@ export default function TechniciansPage() {
             }
         } else {
             // Adding new technician
-            if (!userData.id || !userData.password) {
-                toast({title: "Missing Info", description: "Technician ID and Password are required for new users.", variant: "destructive"});
+            if (!userData.password) {
+                toast({title: "Missing Info", description: "Password is required for new users.", variant: "destructive"});
                 return;
             }
             
-            const idExistsQuery = query(collection(db, "users"), where("id", "==", userData.id));
-            const idExistsSnapshot = await getDocs(idExistsQuery);
-            if (!idExistsSnapshot.empty) {
-                toast({ title: 'ID already exists', description: 'This technician ID is already in use. Please choose another.', variant: 'destructive'});
-                return;
-            }
-
             const email = `${userData.id}@fibervision.com`;
             const auth = getAuth();
             try {
@@ -142,25 +135,26 @@ export default function TechniciansPage() {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, userData.password);
                 const newUserId = userCredential.user.uid;
 
-                // 2. Create user and technician documents in Firestore
+                // 2. Create user and technician documents in Firestore using a BATCH
                 const batch = writeBatch(db);
 
-                // Use the new Auth UID as the document ID in the 'users' collection
+                // Document in 'users' collection, using the new Auth UID as the document ID
                 const userDocRef = doc(db, 'users', newUserId);
-                const finalUserData: Partial<User> = { 
+                const finalUserData: User = { 
+                    uid: newUserId,
                     id: userData.id, 
                     name: userData.name,
                     role: 'Technician',
-                    contact: userData.contact,
                     avatarUrl: userData.avatarUrl,
                     isBlocked: false,
                 };
                 batch.set(userDocRef, finalUserData);
                 
-                // Use the custom tech ID as the document ID in the 'technicians' collection
+                // Document in 'technicians' collection, using the custom tech ID as the document ID
                 const techDocRef = doc(db, 'technicians', userData.id);
-                batch.set(techDocRef, { ...techData, id: userData.id });
+                batch.set(techDocRef, techData);
 
+                // Commit the batch
                 await batch.commit();
 
                 toast({ title: "Technician Added", description: `${userData.name} has been added to the team.` });
@@ -170,7 +164,7 @@ export default function TechniciansPage() {
                  if (error.code === 'auth/email-already-in-use') {
                      message = "This Technician ID is already in use.";
                  } else if (error.code === 'auth/weak-password') {
-                     message = "The password is too weak. It must be at least 6 characters."
+                     message = "The password must be at least 6 characters."
                  }
                 toast({ title: "Error", description: message, variant: "destructive"});
             }
@@ -400,5 +394,3 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
-
-

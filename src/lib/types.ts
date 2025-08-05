@@ -64,9 +64,7 @@ export type User = {
     id: string; // Custom login ID (e.g., 'admin', 'tech-001')
     name: string;
     role: 'Admin' | 'Technician';
-    password?: string;
-    isBlocked?: boolean;
-    contact?: string;
+    isBlocked: boolean;
     avatarUrl?: string;
 };
 

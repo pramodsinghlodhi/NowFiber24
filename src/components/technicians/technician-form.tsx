@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 interface TechnicianFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (technician: Omit<Technician, 'id'> & { id?: string }, user: Omit<User, 'uid'|'id'> & { id?: string; password?: string }) => void;
+  onSave: (technician: Omit<Technician, 'uid'> & { id: string }, user: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => void;
   technician: (Technician & { uid: string }) | null;
   allUsers: User[];
 }
@@ -70,7 +70,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !id || !contact) {
+    if (!name || !id) {
         toast({ title: 'Missing Fields', description: 'Please fill out all required fields.', variant: 'destructive'});
         return;
     }
@@ -87,7 +87,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
 
     setIsLoading(true);
 
-    const newOrUpdatedTechnician: Omit<Technician, 'id'> & { id?: string } = {
+    const techData: Omit<Technician, 'uid'> & { id: string } = {
         id: isEditing ? technician.id : id,
         name,
         role,
@@ -99,17 +99,16 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         status: technician?.status || 'available',
     };
     
-    const newOrUpdatedUser: Omit<User, 'uid' | 'id'> & { id?: string; password?: string } = {
+    const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string } = {
         id: isEditing ? technician.id : id,
         name,
         password: password === '********' ? undefined : password, // Don't pass dummy password
         role: 'Technician',
-        contact,
         avatarUrl,
         isBlocked: technician ? allUsers.find(u => u.id === technician.id)?.isBlocked || false : false,
     };
 
-    onSave(newOrUpdatedTechnician, newOrUpdatedUser);
+    onSave(techData, userData);
     setIsLoading(false);
   };
   
