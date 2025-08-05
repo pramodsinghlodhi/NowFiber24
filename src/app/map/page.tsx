@@ -58,15 +58,50 @@ function MapContent() {
 
   const allDeviceTypes = useMemo(() => Array.from(new Set(allInfrastructure.map(d => d.type))), [allInfrastructure]);
 
+  const pathParam = searchParams.get('path');
+  const traceStart = searchParams.get('traceStart');
+  const traceEnd = searchParams.get('traceEnd');
+
   useEffect(() => {
     if (!user) {
       router.push('/login');
       return;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, router]);
 
-    const pathParam = searchParams.get('path');
-    const traceStart = searchParams.get('traceStart');
-    const traceEnd = searchParams.get('traceEnd');
+
+  useEffect(() => {
+    const handleTrace = async (startDeviceId: string, endDeviceId: string) => {
+        setIsTracing(true);
+        try {
+            const traceResult = await runTraceRoute({ startDeviceId, endDeviceId });
+            if (traceResult.path.length > 0) {
+                setTracedPath(traceResult.path);
+                toast({
+                    title: 'Trace Complete!',
+                    description: `Path found with ${traceResult.path.length} hops.`,
+                });
+                const pathData = encodeURIComponent(JSON.stringify(traceResult.path));
+                router.replace(`/map?path=${pathData}`, { scroll: false });
+            } else {
+                toast({
+                    title: 'Trace Failed',
+                    description: traceResult.notes,
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to run trace route.',
+                variant: 'destructive',
+            });
+            console.error(error);
+        } finally {
+            setIsTracing(false);
+        }
+    };
 
     if (pathParam) {
       try {
@@ -82,40 +117,9 @@ function MapContent() {
      else {
       setTracedPath([]);
     }
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, router, searchParams]);
+  }, [pathParam, traceStart, traceEnd, router]);
 
-  const handleTrace = async (startDeviceId: string, endDeviceId: string) => {
-    setIsTracing(true);
-    try {
-        const traceResult = await runTraceRoute({ startDeviceId, endDeviceId });
-        if (traceResult.path.length > 0) {
-            setTracedPath(traceResult.path);
-            toast({
-                title: 'Trace Complete!',
-                description: `Path found with ${traceResult.path.length} hops.`,
-            });
-            const pathData = encodeURIComponent(JSON.stringify(traceResult.path));
-            router.replace(`/map?path=${pathData}`, { scroll: false });
-        } else {
-            toast({
-                title: 'Trace Failed',
-                description: traceResult.notes,
-                variant: 'destructive',
-            });
-        }
-    } catch (error) {
-        toast({
-            title: 'Error',
-            description: 'Failed to run trace route.',
-            variant: 'destructive',
-        });
-        console.error(error);
-    } finally {
-        setIsTracing(false);
-    }
-  };
 
   const handleFilterChange = (key: string, value: boolean) => {
     setFilters(prev => ({
