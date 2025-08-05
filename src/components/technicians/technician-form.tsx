@@ -155,7 +155,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditing} placeholder={isEditing ? "Unchanged" : ""} />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.g.value)} required={!isEditing} placeholder={isEditing ? "Unchanged" : ""} />
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
