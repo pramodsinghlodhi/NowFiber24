@@ -61,6 +61,12 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     }
   }, [technician, isOpen]);
 
+  useEffect(() => {
+    if (!isEditing) {
+      setAvatarUrl(`https://i.pravatar.cc/150?u=${id}`);
+    }
+  }, [id, isEditing]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !id || !contact) {
@@ -182,4 +188,3 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     </Dialog>
   );
 }
-
