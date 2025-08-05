@@ -97,7 +97,7 @@ export default function TechniciansPage() {
         }
     }
 
-    const handleSave = async (techData: Omit<Technician, 'id' | 'uid'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
+    const handleSave = async (techData: Omit<Technician, 'uid'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
         const isEditing = !!selectedTechnician;
     
         if (isEditing && selectedTechnician) {
@@ -106,13 +106,14 @@ export default function TechniciansPage() {
                  toast({ title: "Error", description: "Could not find associated user to update.", variant: "destructive"});
                  return;
             }
-            const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-            const userDocRef = doc(db, 'users', techUser.uid);
-             
+            
             try {
                 const batch = writeBatch(db);
                 
+                const techDocRef = doc(db, 'technicians', selectedTechnician.id);
                 batch.update(techDocRef, { ...techData });
+                
+                const userDocRef = doc(db, 'users', techUser.uid);
                 batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
 
                 await batch.commit();
@@ -133,15 +134,15 @@ export default function TechniciansPage() {
             try {
                 // 1. Create Firebase Auth user
                 const userCredential = await createUserWithEmailAndPassword(auth, email, userData.password);
-                const newUserId = userCredential.user.uid;
+                const newAuthUser = userCredential.user;
 
                 // 2. Create user and technician documents in Firestore using a BATCH
                 const batch = writeBatch(db);
 
                 // Document in 'users' collection, using the new Auth UID as the document ID
-                const userDocRef = doc(db, 'users', newUserId);
+                const userDocRef = doc(db, 'users', newAuthUser.uid);
                 const finalUserData: User = { 
-                    uid: newUserId,
+                    uid: newAuthUser.uid,
                     id: userData.id, 
                     name: userData.name,
                     role: 'Technician',
@@ -151,7 +152,7 @@ export default function TechniciansPage() {
                 batch.set(userDocRef, finalUserData);
                 
                 // Document in 'technicians' collection, using the custom tech ID as the document ID
-                const techDocRef = doc(db, 'technicians', userData.id);
+                const techDocRef = doc(db, 'technicians', techData.id);
                 batch.set(techDocRef, techData);
 
                 // Commit the batch
