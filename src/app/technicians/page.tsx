@@ -25,7 +25,7 @@ import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, doc, updateDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 
 
 const getStatusBadge = (tech: Technician) => {
@@ -127,10 +127,11 @@ export default function TechniciansPage() {
             
             const email = `${userData.id}@fibervision.com`;
             const auth = getAuth();
+            let newAuthUser;
             try {
                 // 1. Create Firebase Auth user
                 const userCredential = await createUserWithEmailAndPassword(auth, email, userData.password);
-                const newAuthUser = userCredential.user;
+                newAuthUser = userCredential.user;
 
                 // 2. Create user and technician documents in Firestore using a BATCH
                 const batch = writeBatch(db);
@@ -163,6 +164,13 @@ export default function TechniciansPage() {
                  } else if (error.code === 'auth/weak-password') {
                      message = "The password must be at least 6 characters."
                  }
+                 
+                 // If auth user was created but firestore failed, delete the auth user
+                 if (newAuthUser) {
+                    await deleteUser(newAuthUser);
+                    console.log("Rolled back auth user creation due to firestore error.");
+                 }
+
                 toast({ title: "Error", description: message, variant: "destructive"});
             }
         }
@@ -386,8 +394,3 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
-
-    
-
-    
-

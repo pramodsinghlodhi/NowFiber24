@@ -23,22 +23,24 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Technician ID is required.' }, { status: 400 });
         }
 
-        // 1. Find user by email (derived from techId) to get the UID
-        const email = `${techId}@fibervision.com`;
-        const userRecord = await auth.getUserByEmail(email).catch(() => null);
+        // 1. Find user by custom ID field in Firestore to get the UID
+        const usersRef = db.collection('users');
+        const userQuery = await usersRef.where('id', '==', techId).limit(1).get();
 
-        if (!userRecord) {
-            // If user doesn't exist in Auth, just clean up Firestore.
-            console.log(`No auth user found for ${email}. Cleaning up Firestore.`);
+        if (userQuery.empty) {
+            // If no user profile, just try to clean up technician doc.
+            console.log(`No user document found for techId ${techId}. Cleaning up technician document.`);
             const techDocRef = db.collection('technicians').doc(techId);
             await techDocRef.delete();
-            return NextResponse.json({ success: true, message: 'Technician data removed from Firestore.' });
+            return NextResponse.json({ success: true, message: 'Technician data removed from Firestore. No matching auth user found.' });
         }
-
-        const uid = userRecord.uid;
+        
+        const userDoc = userQuery.docs[0];
+        const uid = userDoc.id; // The document ID is the UID
 
         // 2. Delete user from Firebase Authentication
         await auth.deleteUser(uid);
+        console.log(`Successfully deleted auth user with UID: ${uid}`);
 
         // 3. Delete user and technician documents from Firestore in a batch
         const batch = db.batch();
@@ -49,6 +51,7 @@ export async function POST(request: NextRequest) {
         batch.delete(techDocRef);
 
         await batch.commit();
+        console.log(`Successfully deleted Firestore documents for techId: ${techId}`);
 
         return NextResponse.json({ success: true, message: `Technician ${techId} and associated auth user have been deleted.` });
 
@@ -60,6 +63,6 @@ export async function POST(request: NextRequest) {
              errorMessage = 'User not found in Firebase Authentication, but an error occurred during cleanup.';
         }
         
-        return NextResponse.json({ success: false, message: errorMessage }, { status: 500 });
+        return NextResponse.json({ success: false, message: errorMessage, error: error.message }, { status: 500 });
     }
 }
