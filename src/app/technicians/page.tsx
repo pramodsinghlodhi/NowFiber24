@@ -126,6 +126,16 @@ export default function TechniciansPage() {
                 toast({title: "Missing Info", description: "Technician ID and Password are required for new users.", variant: "destructive"});
                 return;
             }
+            
+            // Comprehensive check to ensure the ID is unique across both collections
+            const idExistsInUsers = users.some(u => u.id === userData.id);
+            const idExistsInTechnicians = technicians.some(t => t.id === userData.id);
+
+            if (idExistsInUsers || idExistsInTechnicians) {
+                toast({ title: 'ID already exists', description: 'This technician ID is already in use. Please choose another.', variant: 'destructive'});
+                return;
+            }
+
             const email = `${userData.id}@fibervision.com`;
             const auth = getAuth();
             try {
