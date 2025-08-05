@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -36,8 +37,8 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
   const [name, setName] = useState('');
   const [type, setType] = useState<Infrastructure['type']>('ONU');
   const [ip, setIp] = useState('');
-  const [lat, setLat] = useState(0);
-  const [lng, setLng] = useState(0);
+  const [lat, setLat] = useState<number | string>(0);
+  const [lng, setLng] = useState<number | string>(0);
   const [status, setStatus] = useState<Infrastructure['status']>('online');
   const [attributes, setAttributes] = useState<Infrastructure['attributes']>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -88,8 +89,8 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
         name,
         type,
         ip,
-        lat,
-        lng,
+        lat: parseFloat(String(lat)),
+        lng: parseFloat(String(lng)),
         status,
         quantity: quantity === undefined ? null : quantity,
         attributes,
@@ -175,11 +176,11 @@ export default function DeviceForm({ isOpen, onOpenChange, onSave, device }: Dev
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="lat">Latitude</Label>
-                    <Input id="lat" type="number" value={lat} onChange={(e) => setLat(parseFloat(e.target.value))} placeholder="e.g., 34.0522" required />
+                    <Input id="lat" type="number" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="e.g., 34.0522" required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="lng">Longitude</Label>
-                    <Input id="lng" type="number" value={lng} onChange={(e) => setLng(parseFloat(e.target.value))} placeholder="e.g., -118.2437" required />
+                    <Input id="lng" type="number" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="e.g., -118.2437" required />
                 </div>
             </div>
 

@@ -89,7 +89,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     setIsLoading(true);
 
     const techData: Omit<Technician, 'id'> & { id: string } = {
-        id: isEditing ? technician.id : id,
+        id: isEditing ? technician!.id : id,
         name,
         role,
         contact,
@@ -190,4 +190,3 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     </Dialog>
   );
 }
-
