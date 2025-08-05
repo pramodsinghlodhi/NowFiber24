@@ -20,7 +20,7 @@ import { MoreHorizontal, HardHat, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -71,6 +71,21 @@ export default function ReferralsPage() {
     }
   }
 
+  const renderTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    try {
+      // Firestore Timestamps have a toDate() method
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return 'Invalid Date';
+    }
+  };
+
   const loading = authLoading || loadingReferrals || loadingTechs;
 
   if (loading || !user) {
@@ -102,7 +117,7 @@ export default function ReferralsPage() {
                              <div className="flex justify-between items-start">
                                 <div>
                                     <p className="font-semibold">{referral.customer_name}</p>
-                                    <p className="text-sm text-muted-foreground">{format(new Date(referral.timestamp), 'MMM dd, yyyy')}</p>
+                                    <p className="text-sm text-muted-foreground">{renderTimestamp(referral.timestamp)}</p>
                                 </div>
                                 {getStatusBadge(referral.status)}
                             </div>
@@ -150,7 +165,7 @@ export default function ReferralsPage() {
                       <TableCell className="font-medium">{referral.customer_name}</TableCell>
                       <TableCell>{referral.phone}</TableCell>
                       <TableCell>{referral.address}</TableCell>
-                      <TableCell>{format(new Date(referral.timestamp), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
                       {user.role === 'Admin' && (
                         <TableCell>{technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
                       )}

@@ -94,7 +94,7 @@ export type Task = {
   lat: number;
   lng: number;
   completionTimestamp?: any;
-  device_id: string;
+  device_id?: string;
 };
 
 export type Alert = {
