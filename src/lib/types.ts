@@ -63,7 +63,7 @@ export type User = {
     uid: string; // Firebase Auth UID
     id: string; // Custom login ID (e.g., 'admin', 'tech-001')
     name: string;
-    role: 'Admin' | 'Technician' | 'Field Engineer';
+    role: 'Admin' | 'Technician';
     password?: string;
     isBlocked?: boolean;
     contact?: string;
@@ -123,6 +123,7 @@ export type Stats = {
   activeAlerts: number;
   techniciansOnDuty: number;
   tasksCompletedToday: number;
+  myOpenTasks?: number;
 }
 
 export type Material = {

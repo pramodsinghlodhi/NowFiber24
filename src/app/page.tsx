@@ -56,12 +56,11 @@ export default function Home() {
     }
   }, [authLoading, user, router]);
 
-  const stats: Stats = useMemo(() => {
+  const stats: Stats & { myOpenTasks?: number } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayTimestamp = Timestamp.fromDate(today);
 
-    return {
+    const baseStats = {
       techniciansOnDuty: technicians.filter(t => t.isActive).length,
       onlineDevices: devices.filter(d => d.status === 'online').length,
       activeAlerts: alerts.length,
@@ -73,7 +72,16 @@ export default function Home() {
           return false;
       }).length,
     };
-  }, [technicians, devices, alerts, tasks]);
+
+    if (user?.role === 'Technician') {
+        return {
+            ...baseStats,
+            myOpenTasks: tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length,
+        }
+    }
+
+    return baseStats;
+  }, [technicians, devices, alerts, tasks, user]);
 
 
   const loading = authLoading || loadingTechs || loadingDevices || loadingAlerts || loadingConnections || loadingTasks;
@@ -94,7 +102,11 @@ export default function Home() {
         <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
           <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatsCard title="Technicians On-duty" value={stats.techniciansOnDuty} icon={Users} />
+            {user.role === 'Admin' ? (
+                <StatsCard title="Technicians On-duty" value={stats.techniciansOnDuty} icon={Users} />
+            ) : (
+                <StatsCard title="My Open Tasks" value={stats.myOpenTasks ?? 0} icon={ListChecks} />
+            )}
             <StatsCard title="Online Devices" value={stats.onlineDevices} icon={Wifi} />
             <StatsCard title="Active Alerts" value={stats.activeAlerts} icon={Siren} />
             <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon={ListChecks} />
