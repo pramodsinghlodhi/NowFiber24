@@ -148,7 +148,7 @@ export default function InventoryPage() {
                              {getStatusIndicator(device.status)}
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
-                            <p className="flex items-center gap-2"><MapPin size={14}/> {device.lat.toFixed(4)}, {device.lng.toFixed(4)}</p>
+                            <p className="flex items-center gap-2"><MapPin size={14}/> {typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</p>
                             <p className="flex items-center gap-2"><Wifi size={14}/> {device.ip || "N/A"}</p>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
@@ -181,7 +181,7 @@ export default function InventoryPage() {
                       <TableCell>{device.name}</TableCell>
                       <TableCell>{device.type}</TableCell>
                       <TableCell>{device.ip || "N/A"}</TableCell>
-                      <TableCell>{device.lat.toFixed(4)}, {device.lng.toFixed(4)}</TableCell>
+                      <TableCell>{typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</TableCell>
                       <TableCell>
                         {getStatusIndicator(device.status)}
                       </TableCell>
