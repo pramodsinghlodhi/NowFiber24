@@ -102,12 +102,12 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     };
     
     const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string } = {
-        id: isEditing ? technician.id : id,
+        id,
         name,
-        password: password || undefined,
         role: 'Technician',
         avatarUrl,
-        isBlocked: technician ? allUsers.find(u => u.id === technician.id)?.isBlocked || false : false,
+        isBlocked: isEditing ? allUsers.find(u => u.id === technician!.id)?.isBlocked || false : false,
+        password: password || undefined,
     };
 
     onSave(techData, userData);
@@ -190,3 +190,4 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     </Dialog>
   );
 }
+
