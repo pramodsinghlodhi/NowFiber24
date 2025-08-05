@@ -94,10 +94,11 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         role,
         contact,
         avatarUrl,
-        lat: technician?.lat || 34.0522, // Default or existing
+        lat: technician?.lat || 34.0522,
         lng: technician?.lng || -118.2437,
         isActive: technician?.isActive || false,
         status: technician?.status || 'available',
+        path: technician?.path || [],
     };
     
     const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string } = {

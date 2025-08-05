@@ -23,7 +23,7 @@ import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } 
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, updateDoc, writeBatch, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 
