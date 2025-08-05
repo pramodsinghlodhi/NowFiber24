@@ -8,7 +8,7 @@ import MaterialsAnalyzer from './materials-analyzer';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -67,7 +67,9 @@ function TaskItem({ task, technicians }: TaskItemProps) {
     }
   }
 
-  const assignedTechnician = technicians.find(t => t.id === assignedTech);
+  const assignedTechnician = useMemo(() => {
+    return technicians.find(t => t.id === assignedTech);
+  }, [technicians, assignedTech]);
 
 
   return (
