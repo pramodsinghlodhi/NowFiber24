@@ -23,7 +23,7 @@ import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } 
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
@@ -111,7 +111,9 @@ export default function TechniciansPage() {
                 const batch = writeBatch(db);
                 
                 const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-                batch.update(techDocRef, { ...techData });
+                const techUpdateData = { ...techData };
+                delete (techUpdateData as any).uid; // Ensure uid is not written to technician doc
+                batch.update(techDocRef, techUpdateData);
                 
                 const userDocRef = doc(db, 'users', techUser.uid);
                 batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
@@ -153,7 +155,9 @@ export default function TechniciansPage() {
                 
                 // Document in 'technicians' collection, using the custom tech ID as the document ID
                 const techDocRef = doc(db, 'technicians', techData.id);
-                batch.set(techDocRef, techData);
+                const finalTechData = { ...techData };
+                delete (finalTechData as any).uid; // Ensure uid is not written to technician doc
+                batch.set(techDocRef, finalTechData);
 
                 // Commit the batch
                 await batch.commit();

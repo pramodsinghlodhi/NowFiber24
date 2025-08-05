@@ -2,9 +2,10 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; 
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/lib/types'; 
 
@@ -29,20 +30,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
-        // Fetch user profile from Firestore using the UID from Auth
+        // Fetch user profile from Firestore using the UID from Auth 
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          const userData = userDoc.data() as Omit<User, 'uid'>;
-          // Check if user is blocked before setting the state
-          if (userData.isBlocked) {
-             console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
-             await signOut(auth); // Force sign out for blocked user
-             setUser(null);
-          } else {
-             setUser({ uid: fbUser.uid, ...userData });
-          }
+            const userData = userDoc.data() as Omit<User, 'uid'>;
+            // Check if user is blocked before setting the state
+            if (userData.isBlocked) {
+                console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
+                await signOut(auth); // Force sign out for blocked user
+                setUser(null);
+            } else {
+                setUser({ uid: fbUser.uid, ...userData });
+            }
         } else {
+          // If no user document exists, create a default one with 'Technician' role dynamically
+          const newUserDocRef = doc(db, 'users', fbUser.uid);
+          const defaultUserData: Omit<User, 'uid'> = {
+            id: fbUser.uid, // Using UID as a default ID for simplicity
+            name: 'New Technician', // Default name
+            role: 'Technician',
+            isBlocked: false, // New users are not blocked by default
+            avatarUrl: `https://i.pravatar.cc/150?u=${fbUser.uid}`, // Placeholder avatar URL
+          };
+
+          // Add the new document to Firestore
+          // You might want to use setDoc instead of addDoc for specific UID control
+          await setDoc(newUserDocRef, defaultUserData);
+          setUser({ uid: fbUser.uid, ...defaultUserData }); // Set the user in context after creation
           // This case can happen if a user is created in Auth but not in Firestore.
           console.error(`No user document found for UID: ${fbUser.uid}. Logging out.`);
           await signOut(auth);
@@ -77,7 +92,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const email = `${userId}@fibervision.com`;
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Get the ID token after successful sign-in
+        const idToken = await user.getIdToken();
+
+        // Send the ID token to the session login API route
+        const response = await fetch('/api/sessionLogin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+        });
         // onAuthStateChanged listener will handle fetching user data and redirecting
         return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
@@ -117,3 +143,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

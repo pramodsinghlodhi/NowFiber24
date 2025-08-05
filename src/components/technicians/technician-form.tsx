@@ -48,17 +48,18 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
-            setPassword('********'); 
+            setPassword(''); 
         } else {
             setName('');
-            setId('');
+            const newId = `tech-${String(allUsers.filter(u => u.role === 'Technician').length + 1).padStart(3, '0')}`;
+            setId(newId);
             setPassword('');
             setContact('');
             setRole('Field Engineer');
-            setAvatarUrl('https://i.pravatar.cc/150?u=');
+            setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
         }
     }
-  }, [technician, isOpen]);
+  }, [technician, isOpen, allUsers]);
 
   const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newId = e.target.value;
@@ -75,7 +76,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         return;
     }
     
-    if (!isEditing && (!password || password === '********')) {
+    if (!isEditing && !password) {
         toast({ title: 'Missing Fields', description: 'Password is required for new technicians.', variant: 'destructive'});
         return;
     }
@@ -102,7 +103,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string } = {
         id: isEditing ? technician.id : id,
         name,
-        password: password === '********' ? undefined : password, // Don't pass dummy password
+        password: password || undefined,
         role: 'Technician',
         avatarUrl,
         isBlocked: technician ? allUsers.find(u => u.id === technician.id)?.isBlocked || false : false,
@@ -154,7 +155,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditing} placeholder={isEditing ? "Unchanged" : ""} />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditing} placeholder={isEditing ? "Leave blank to keep unchanged" : ""} />
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
