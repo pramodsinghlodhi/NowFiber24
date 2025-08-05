@@ -251,30 +251,36 @@ export default function MapView({ devices, technicians, alerts, connections, map
 
         devices.forEach(device => {
             const isTraced = tracedDeviceIds.has(device.id);
-            L.marker([device.lat, device.lng], { icon: getDeviceIcon(device, isTraced), zIndexOffset: isTraced ? 1000 : 0 })
-                .addTo(lg)
-                .bindPopup(createPopupContent(device, isTraced, plans), { className: 'custom-popup' });
+            if (typeof device.lat === 'number' && typeof device.lng === 'number') {
+                L.marker([device.lat, device.lng], { icon: getDeviceIcon(device, isTraced), zIndexOffset: isTraced ? 1000 : 0 })
+                    .addTo(lg)
+                    .bindPopup(createPopupContent(device, isTraced, plans), { className: 'custom-popup' });
+            }
         });
 
         alerts.forEach(alert => {
-            L.marker([alert.lat, alert.lng], { icon: getAlertIcon() })
-                .addTo(lg)
-                .bindTooltip(`${alert.device_id}: ${alert.issue}`, {
-                    permanent: true,
-                    direction: 'top',
-                    offset: [0, -15],
-                    className: 'custom-tooltip'
-                });
+             if (typeof alert.lat === 'number' && typeof alert.lng === 'number') {
+                L.marker([alert.lat, alert.lng], { icon: getAlertIcon() })
+                    .addTo(lg)
+                    .bindTooltip(`${alert.device_id}: ${alert.issue}`, {
+                        permanent: true,
+                        direction: 'top',
+                        offset: [0, -15],
+                        className: 'custom-tooltip'
+                    });
+            }
         });
 
         technicians.filter(t => t.isActive).forEach(tech => {
-            const pos: [number, number] = [tech.lat, tech.lng];
-            const marker = L.marker(pos, { icon: getTechnicianIcon() })
-                .addTo(lg)
-                .bindPopup(`<div class="p-2 font-semibold">${tech.name}</div>`, { className: 'custom-popup' });
-            
-            if (tech.path && tech.path.length > 1) {
-                L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7, dashArray: '5, 10' }).addTo(lg);
+            if (typeof tech.lat === 'number' && typeof tech.lng === 'number') {
+                const pos: [number, number] = [tech.lat, tech.lng];
+                const marker = L.marker(pos, { icon: getTechnicianIcon() })
+                    .addTo(lg)
+                    .bindPopup(`<div class="p-2 font-semibold">${tech.name}</div>`, { className: 'custom-popup' });
+                
+                if (tech.path && tech.path.length > 1) {
+                    L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7, dashArray: '5, 10' }).addTo(lg);
+                }
             }
         });
 
