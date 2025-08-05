@@ -1,115 +1,98 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions to make rules more readable and reusable.
+    // Helper functions
     function isAuth() {
       return request.auth != null;
     }
 
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
     function isAdmin() {
-      // An Admin user's role is stored in the 'users' collection,
-      // linked by their authentication UID.
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      return isAuth() && getUserData(request.auth.uid).role == 'Admin';
     }
 
     function isTechnician() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Technician';
-    }
-
-    function isOwner(userId) {
-      return isAuth() && request.auth.uid == userId;
+        return isAuth() && getUserData(request.auth.uid).role == 'Technician';
     }
     
-    function isTechnicianAssignedToTask() {
-        let techId = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
-        return resource.data.tech_id == techId;
+    function isOwner(userId) {
+        return request.auth.uid == userId;
     }
 
-    // Admins have full access to everything.
-    // This rule provides a blanket override for all collections below.
+    // Admins can read/write all data
     match /{document=**} {
       allow read, write: if isAdmin();
     }
     
-    // The 'users' collection stores roles and profile info.
-    // Any authenticated user can read profiles (e.g., to see names).
-    // Only the owner of the profile can update their own info. Admins can update any.
+    // USERS collection
+    // Allow authenticated users to read any user profile (for name/avatar lookups)
+    // Allow users to update their own profile, but not change their role or ID
     match /users/{userId} {
       allow read: if isAuth();
-      allow update: if isOwner(userId);
-      // Create/Delete is handled by Admin rule and backend functions.
+      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role;
     }
     
-    // Technicians collection contains public info about technicians.
+    // TECHNICIANS collection
+    // Any authenticated user can read technician data (for maps, lists)
+    // Only admins can write
     match /technicians/{techId} {
         allow read: if isAuth();
-        // Technicians can't update their own profiles directly from this collection.
-        // All technician writes are managed by Admins.
-        allow write: if false; // Covered by Admin rule
+        // write is handled by admin rule
     }
     
-    // Tasks can be read by any authenticated user (as technicians need to see all tasks on some views).
-    // Technicians can only update tasks assigned to them.
+    // TASKS collection
+    // Any authenticated user can read tasks
+    // Technicians can only update tasks assigned to them
     match /tasks/{taskId} {
-        allow read: if isAuth();
-        allow create: if false; // Only Admins can create tasks
-        allow update: if isTechnician() && isTechnicianAssignedToTask();
-        allow delete: if false; // Only Admins can delete
+      allow read: if isAuth();
+      allow update: if isTechnician() && request.resource.data.tech_id == getUserData(request.auth.uid).id;
+       // create/delete is handled by admin rule
     }
 
-    // Alerts can be read by any authenticated user.
-    // They are created by the AI fault detection flow (server-side), so client writes are disallowed except for Admins.
+    // ALERTS collection
+    // Allow authenticated users to read alerts
     match /alerts/{alertId} {
         allow read: if isAuth();
-        allow write: if false; // Covered by Admin rule
-    }
-    
-    // All users can read infrastructure data for the map and other displays.
-    // Only Admins can modify the infrastructure.
-    match /infrastructure/{deviceId} {
-        allow read: if isAuth();
-        allow write: if false; // Covered by Admin rule
+        // create/write is handled by admin rule (and AI flows via service account)
     }
 
-    // All users can read connections for drawing the map.
-    // Only Admins can modify connections.
+    // INFRASTRUCTURE & CONNECTIONS collections
+    // Allow authenticated users to read network data
+    match /infrastructure/{infraId} {
+        allow read: if isAuth();
+    }
     match /connections/{connId} {
         allow read: if isAuth();
-        allow write: if false; // Covered by Admin rule
     }
-
-    // Materials are read-only for technicians.
-    // Only Admins can manage the materials stock.
+    
+    // MATERIALS & ASSIGNMENTS collections
+    // Allow authenticated users to read materials data
+    // Technicians can create new assignments (requests), but not modify them further
     match /materials/{materialId} {
         allow read: if isAuth();
-        allow write: if false; // Covered by Admin rule
     }
-
-    // Assignments can be read by any authenticated user.
-    // Technicians can create new requests (assignments).
-    // Only Admins can update/approve them.
     match /assignments/{assignmentId} {
         allow read: if isAuth();
-        allow create: if isTechnician();
-        allow update, delete: if false; // Covered by Admin rule
+        allow create: if isTechnician() && request.resource.data.technicianId == getUserData(request.auth.uid).id;
     }
 
-    // Referrals can be read by any authenticated user.
-    // Technicians can create new referrals.
-    // Only Admins can update the status of referrals.
+    // REFERRALS collection
+    // Authenticated users can read their own referrals
+    // Technicians can create new referrals for themselves
     match /referrals/{referralId} {
-        allow read: if isAuth();
-        allow create: if isTechnician();
-        allow update, delete: if false; // Covered by Admin rule
+        allow read: if isTechnician() && resource.data.tech_id == getUserData(request.auth.uid).id;
+        allow create: if isTechnician() && request.resource.data.tech_id == getUserData(request.auth.uid).id;
     }
 
-    // Plans can be read by any authenticated user for displaying customer info on the map.
-    // Only Admins can modify plans.
+    // PLANS collection
+    // Authenticated users can read plans
     match /plans/{planId} {
-        allow read: if isAuth();
-        allow write: if false; // Covered by Admin rule
+      allow read: if isAuth();
     }
   }
 }

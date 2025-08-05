@@ -23,7 +23,7 @@ import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } 
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, writeBatch, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
@@ -74,6 +74,7 @@ export default function TechniciansPage() {
             // For now, we will just delete the Firestore documents.
             const batch = writeBatch(db);
             
+            // Find the user document by the technician ID.
             const userQuerySnapshot = await getDocs(query(collection(db, 'users'), where('id', '==', tech.id)));
             if (!userQuerySnapshot.empty) {
                 const userDocRef = userQuerySnapshot.docs[0].ref;
@@ -101,7 +102,7 @@ export default function TechniciansPage() {
     
         if (isEditing && selectedTechnician) {
             const techUser = users.find(u => u.id === selectedTechnician.id);
-            if (!techUser) {
+            if (!techUser || !techUser.uid) {
                  toast({ title: "Error", description: "Could not find associated user to update.", variant: "destructive"});
                  return;
             }
@@ -399,3 +400,4 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
+
