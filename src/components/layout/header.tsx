@@ -44,7 +44,7 @@ export default function Header() {
   const [isOnBreak, setIsOnBreak] = useState(false);
   const [isClockedIn, setIsClockedIn] = useState(true);
   const { setTheme } = useTheme();
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState(() => mockNotifications);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
