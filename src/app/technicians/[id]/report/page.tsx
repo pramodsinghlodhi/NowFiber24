@@ -71,6 +71,21 @@ export default function TechnicianReportPage() {
   const completedTasks = useMemo(() => tasks.filter(t => t.status === 'Completed').length, [tasks]);
   const completionRate = useMemo(() => (tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0), [tasks, completedTasks]);
 
+  const renderTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    try {
+      // Firestore Timestamps have a toDate() method
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return 'Invalid Date';
+    }
+  };
+  
   const loading = authLoading || loadingTechnician || loadingTasks || loadingAssignments || loadingReferrals || loadingMaterials;
   
   if (loading || !user || user.role !== 'Admin') {
@@ -227,7 +242,7 @@ export default function TechnicianReportPage() {
                                 {referrals.map(referral => (
                                     <TableRow key={referral.id}>
                                         <TableCell className="font-medium">{referral.customer_name}</TableCell>
-                                        <TableCell>{format(new Date(referral.timestamp), 'MMM dd, yyyy')}</TableCell>
+                                        <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
                                         <TableCell>{referral.status}</TableCell>
                                     </TableRow>
                                 ))}
