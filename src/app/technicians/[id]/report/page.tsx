@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
@@ -24,7 +24,6 @@ import { Progress } from '@/components/ui/progress';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useState } from 'react';
 
 export default function TechnicianReportPage() {
   const { user, loading: authLoading } = useAuth();
