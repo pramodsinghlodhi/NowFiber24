@@ -113,7 +113,7 @@ export default function AlertsPage() {
                             </Badge>
                         </div>
                         <div className="text-xs text-muted-foreground mt-2">
-                           {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
+                           {alert.timestamp ? formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true }) : 'just now'}
                         </div>
                         <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)} className="w-full mt-4">View Details</Button>
                     </Card>
@@ -141,7 +141,7 @@ export default function AlertsPage() {
                       </TableCell>
                       <TableCell className="font-medium">{alert.device_id}</TableCell>
                       <TableCell>{alert.issue}</TableCell>
-                      <TableCell>{formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}</TableCell>
+                      <TableCell>{alert.timestamp ? formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true }) : 'just now'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)}>View Details</Button>
                       </TableCell>
