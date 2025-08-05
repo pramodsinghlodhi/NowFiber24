@@ -1,95 +1,80 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if a user is authenticated
-    function isAuthenticated() {
+  
+    // --- Helper Functions ---
+    function isAuth() {
       return request.auth != null;
     }
 
-    // Helper function to get user data from the 'users' collection
-    function getUserData(uid) {
-      return get(/databases/$(database)/documents/users/$(uid)).data;
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
     }
-
-    // Helper function to check if the user is an Admin
+    
+    function getUserRole() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
     function isAdmin() {
-      return isAuthenticated() && getUserData(request.auth.uid).role == 'Admin';
-    }
-    
-    // Helper function to check if the user's account is active
-    function isNotBlocked() {
-        return isAuthenticated() && getUserData(request.auth.uid).isBlocked == false;
+        return isAuth() && getUserRole() == 'Admin';
     }
 
-    // Helper function to check if the user is a Technician
     function isTechnician() {
-      return isAuthenticated() && isNotBlocked() && getUserData(request.auth.uid).role == 'Technician';
+        return isAuth() && getUserRole() == 'Technician';
     }
 
-    // Default deny all access
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    // --- Collection Rules ---
 
-    // Admin Access: Admins can read and write everything.
-    // This is a broad but simple rule for administrative override.
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-    
-    // Technician Permissions
-
-    // Technicians can read all technicians' data (for lists, maps) but can't write.
-    match /technicians/{techId} {
-      allow read: if isTechnician();
-    }
-    
-    // Technicians can read all infrastructure data (for map display, etc) but cannot write.
-    match /infrastructure/{deviceId} {
-      allow read: if isTechnician();
-    }
-    
-     // Technicians can read all users' data (needed for name lookups etc.) but can't write.
+    // Users can read their own profile. Admins can read/write any profile.
+    // Technicians can read other user profiles for names/roles but cannot write.
     match /users/{userId} {
-      allow read: if isTechnician();
+      allow read: if isAuth(); // Admins and Technicians need to read user data for names etc.
+      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isOwner(userId);
     }
     
-    // Technicians can read all tasks, but can only update a task assigned to them.
+    // Technicians need to read all other technicians for context.
+    // Admins can manage the technician list.
+    match /technicians/{techId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+    }
+    
+    // Admins can manage everything.
+    // Technicians can only read infrastructure, connections, alerts, and materials.
+    match /{collection}/{docId} 
+        where collection in ['infrastructure', 'connections', 'alerts', 'materials', 'plans'] {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+    
+    // Tasks can be read by any authenticated user.
+    // Admins can create/write any task.
+    // Technicians can only update tasks assigned to them.
     match /tasks/{taskId} {
-      allow read: if isTechnician();
-      // Allow a tech to update a task if it is assigned to them
-      allow update: if isTechnician() && resource.data.tech_id == request.auth.uid;
-    }
-    
-    // Technicians can read all connections for map display
-    match /connections/{connId} {
-      allow read: if isTechnician();
-    }
-    
-    // Technicians can read all alerts
-    match /alerts/{alertId} {
-      allow read: if isTechnician();
-    }
-    
-    // Technicians can read all materials (to know what's available)
-    match /materials/{materialId} {
-      allow read: if isTechnician();
+        allow read: if isAuth();
+        allow create: if isAdmin();
+        // Allow update if admin OR if technician is the one assigned to the task.
+        allow update: if isAdmin() || (isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
+        allow delete: if isAdmin();
     }
 
-    // Technicians can create new referrals and material requests (assignments)
-    match /referrals/{referralId} {
-        allow read: if isTechnician(); // Can read their own or all for admins (covered by admin rule)
-        allow create: if isTechnician();
-    }
-    
+    // Admins manage assignments.
+    // Technicians can create new "Requested" assignments.
     match /assignments/{assignmentId} {
-        allow read: if isTechnician();
-        allow create: if isTechnician(); // For submitting requests
+        allow read: if isAuth();
+        allow create: if isTechnician(); // Techs can request materials
+        allow write: if isAdmin(); // Admins approve/manage them
     }
-    
-    match /plans/{planId} {
-        allow read: if isTechnician();
+
+    // Admins can manage all referrals.
+    // Technicians can create new referrals.
+    match /referrals/{referralId} {
+        allow read: if isAuth();
+        allow create: if isTechnician();
+        allow write: if isAdmin();
     }
   }
 }
