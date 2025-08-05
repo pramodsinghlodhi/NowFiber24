@@ -20,7 +20,7 @@ import { MoreHorizontal, HardHat, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, Timestamp, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -42,7 +42,7 @@ export default function ReferralsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const referralsQuery = useMemo(() => collection(db, 'referrals'), []);
+  const referralsQuery = useMemo(() => query(collection(db, 'referrals'), orderBy('timestamp', 'desc')), []);
   const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
 
   const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
@@ -156,7 +156,7 @@ export default function ReferralsPage() {
                     <TableHead>Date</TableHead>
                     {user.role === 'Admin' && <TableHead>Referred By</TableHead>}
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {user.role === 'Admin' && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>

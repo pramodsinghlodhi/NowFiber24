@@ -16,11 +16,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const getSeverityBadge = (severity: 'Critical' | 'High' | 'Medium' | 'Low') => {
@@ -55,7 +55,7 @@ export default function AlertsPage() {
   const router = useRouter();
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
-  const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
+  const alertsQuery = useMemo(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc')), []);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<AlertType>(alertsQuery);
 
   useEffect(() => {
@@ -79,15 +79,17 @@ export default function AlertsPage() {
     fetchDevice();
   }, [selectedAlert]);
 
-  const renderTimestamp = (timestamp: string) => {
+  const renderTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
     try {
-      const date = new Date(timestamp);
+      const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
       if (isNaN(date.getTime())) {
-        return 'just now';
+         return 'Invalid Date';
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
-      return 'just now';
+        console.error("Error formatting timestamp:", error);
+        return 'Invalid Date';
     }
   };
 

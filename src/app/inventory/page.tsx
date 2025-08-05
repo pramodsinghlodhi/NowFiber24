@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import DeviceForm from '@/components/inventory/device-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const getStatusIndicator = (status: Infrastructure['status']) => {
@@ -45,7 +45,7 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const devicesQuery = useMemo(() => collection(db, 'infrastructure'), []);
+  const devicesQuery = useMemo(() => query(collection(db, 'infrastructure'), orderBy('id')), []);
   const { data: devices, loading } = useFirestoreQuery<Infrastructure>(devicesQuery);
 
   useEffect(() => {

@@ -58,7 +58,7 @@ export default function TasksPage() {
     const tasksQuery = useMemo(() => {
         if (!user) return null;
         return user.role === 'Admin' 
-            ? collection(db, 'tasks') 
+            ? query(collection(db, 'tasks'))
             : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
     }, [user]);
     

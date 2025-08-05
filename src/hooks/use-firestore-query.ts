@@ -13,7 +13,11 @@ export function useFirestoreQuery<T>(query: Query | null) {
         return;
     }
 
-    setLoading(true);
+    // Only set loading to true if it's not already true, to avoid extra renders
+    if (!loading) {
+        setLoading(true);
+    }
+    
     // Setting up the listener. onSnapshot will return an unsubscribe function.
     const unsubscribe = onSnapshot(query, (querySnapshot) => {
       const docs = querySnapshot.docs.map(doc => ({
@@ -30,6 +34,7 @@ export function useFirestoreQuery<T>(query: Query | null) {
     // Cleanup function to unsubscribe from the listener when the component unmounts
     // or the query changes, to prevent memory leaks.
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]); // Re-run the effect if the query object itself changes.
 
   return { data, loading };

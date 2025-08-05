@@ -22,7 +22,7 @@ import Image from 'next/image';
 import AssignMaterialForm from '@/components/materials/assign-material-form';
 import MaterialForm from '@/components/materials/material-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const getStatusBadge = (status: MaterialAssignment['status']) => {
@@ -50,7 +50,7 @@ export default function MaterialsPage() {
   const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
 
-  const assignmentsQuery = useMemo(() => collection(db, 'assignments'), []);
+  const assignmentsQuery = useMemo(() => query(collection(db, 'assignments'), orderBy('timestamp', 'desc')), []);
   const materialsQuery = useMemo(() => collection(db, 'materials'), []);
   const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
 
@@ -72,7 +72,8 @@ export default function MaterialsPage() {
     try {
         await addDoc(collection(db, 'assignments'), {
             ...assignment,
-            status: 'Pending'
+            status: 'Pending',
+            timestamp: new Date(),
         });
         toast({ title: "Assignment Created", description: "The material assignment is pending issuance." });
     } catch (error) {

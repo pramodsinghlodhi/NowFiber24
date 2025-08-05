@@ -67,7 +67,8 @@ export default function Home() {
       activeAlerts: alerts.length,
       tasksCompletedToday: tasks.filter(t => {
           if (t.status === 'Completed' && t.completionTimestamp) {
-              return t.completionTimestamp >= todayTimestamp;
+              const completionDate = t.completionTimestamp.toDate ? t.completionTimestamp.toDate() : new Date(t.completionTimestamp);
+              return completionDate >= today;
           }
           return false;
       }).length,
