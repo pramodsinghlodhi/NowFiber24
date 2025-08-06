@@ -65,7 +65,7 @@ export default function SettingsPage() {
     setSettings(prev => prev ? { ...prev, [key]: value } : null);
   };
   
-  const handleSmtpChange = (key: keyof Settings['smtp'], value: string | number) => {
+  const handleSmtpChange = (key: keyof Settings['smtp'], value: string | number | boolean) => {
     setSettings(prev => prev ? { ...prev, smtp: { ...prev.smtp, [key]: value }} : null);
   }
 
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch 
                     id="auto-monitoring" 
-                    checked={settings?.automatedMonitoring.enabled}
+                    checked={settings?.automatedMonitoring?.enabled}
                     onCheckedChange={(checked) => handleSettingChange('automatedMonitoring', { ...settings?.automatedMonitoring, enabled: checked })}
                 />
                 </div>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                     <Label htmlFor="monitoring-frequency">Monitoring Frequency</Label>
                     <Select 
-                        value={String(settings?.automatedMonitoring.frequency)} 
+                        value={String(settings?.automatedMonitoring?.frequency)} 
                         onValueChange={(value) => handleSettingChange('automatedMonitoring', { ...settings?.automatedMonitoring, frequency: Number(value)})}
                     >
                     <SelectTrigger id="monitoring-frequency">
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                         </div>
                         <Switch 
                             id="snmp-monitoring" 
-                            checked={settings?.snmp.enabled}
+                            checked={settings?.snmp?.enabled}
                             onCheckedChange={(checked) => handleSettingChange('snmp', { ...settings?.snmp, enabled: checked })}
                         />
                     </div>
@@ -292,7 +292,7 @@ export default function SettingsPage() {
                         <Input 
                             id="snmp-community" 
                             type="password" 
-                            value={settings?.snmp.community || ''}
+                            value={settings?.snmp?.community || ''}
                             onChange={(e) => handleSettingChange('snmp', { ...settings?.snmp, community: e.target.value })}
                         />
                     </div>
@@ -303,7 +303,7 @@ export default function SettingsPage() {
                             <Input 
                                 id="snmp-port" 
                                 type="number" 
-                                value={settings?.snmp.port || 161}
+                                value={settings?.snmp?.port || 161}
                                 onChange={(e) => handleSettingChange('snmp', { ...settings?.snmp, port: Number(e.target.value) })}
                             />
                         </div>
@@ -337,28 +337,28 @@ export default function SettingsPage() {
                         </div>
                         <Switch 
                             id="email-notifications" 
-                            checked={settings?.smtp.enabled}
+                            checked={settings?.smtp?.enabled}
                             onCheckedChange={(checked) => handleSmtpChange('enabled', checked)}
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label htmlFor="smtp-host">SMTP Host</Label>
-                            <Input id="smtp-host" placeholder="smtp.example.com" value={settings?.smtp.host || ''} onChange={e => handleSmtpChange('host', e.target.value)} />
+                            <Input id="smtp-host" placeholder="smtp.example.com" value={settings?.smtp?.host || ''} onChange={e => handleSmtpChange('host', e.target.value)} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="smtp-port">SMTP Port</Label>
-                            <Input id="smtp-port" type="number" placeholder="587" value={settings?.smtp.port || 587} onChange={e => handleSmtpChange('port', Number(e.target.value))} />
+                            <Input id="smtp-port" type="number" placeholder="587" value={settings?.smtp?.port || 587} onChange={e => handleSmtpChange('port', Number(e.target.value))} />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label htmlFor="smtp-user">SMTP Username</Label>
-                            <Input id="smtp-user" placeholder="your@email.com" value={settings?.smtp.user || ''} onChange={e => handleSmtpChange('user', e.target.value)} />
+                            <Input id="smtp-user" placeholder="your@email.com" value={settings?.smtp?.user || ''} onChange={e => handleSmtpChange('user', e.target.value)} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="smtp-pass">SMTP Password</Label>
-                            <Input id="smtp-pass" type="password" value={settings?.smtp.pass || ''} onChange={e => handleSmtpChange('pass', e.target.value)} />
+                            <Input id="smtp-pass" type="password" value={settings?.smtp?.pass || ''} onChange={e => handleSmtpChange('pass', e.target.value)} />
                         </div>
                     </div>
                     <div>
@@ -391,7 +391,7 @@ export default function SettingsPage() {
                         <Input 
                             id="geofence-radius" 
                             type="number" 
-                            value={settings?.taskManagement.geofenceRadius}
+                            value={settings?.taskManagement?.geofenceRadius}
                             onChange={(e) => handleSettingChange('taskManagement', {...settings?.taskManagement, geofenceRadius: Number(e.target.value)})}
                             placeholder="e.g., 100" 
                         />
@@ -404,7 +404,7 @@ export default function SettingsPage() {
                         </div>
                         <Switch 
                             id="proof-of-work" 
-                            checked={settings?.taskManagement.requirePhotoOnCompletion}
+                            checked={settings?.taskManagement?.requirePhotoOnCompletion}
                             onCheckedChange={(checked) => handleSettingChange('taskManagement', {...settings?.taskManagement, requirePhotoOnCompletion: checked})}
                         />
                     </div>
@@ -415,7 +415,7 @@ export default function SettingsPage() {
                         </div>
                         <Switch 
                             id="gps-tracking"
-                            checked={settings?.technicianManagement.enableGpsTracking}
+                            checked={settings?.technicianManagement?.enableGpsTracking}
                             onCheckedChange={(checked) => handleSettingChange('technicianManagement', {...settings?.technicianManagement, enableGpsTracking: checked})}
                         />
                     </div>
@@ -470,8 +470,8 @@ export default function SettingsPage() {
                         </div>
                         <Switch 
                             id="sms-notifications" 
-                            checked={settings?.notifications.sms.enabled}
-                            onCheckedChange={(checked) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings.notifications.sms, enabled: checked}})}
+                            checked={settings?.notifications?.sms?.enabled}
+                            onCheckedChange={(checked) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings?.notifications?.sms, enabled: checked}})}
                         />
                     </div>
                     <div className="space-y-2">
@@ -479,8 +479,8 @@ export default function SettingsPage() {
                         <Input 
                             id="sms-api-key" 
                             type="password"
-                            value={settings?.notifications.sms.apiKey || ''}
-                            onChange={(e) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings.notifications.sms, apiKey: e.target.value}})}
+                            value={settings?.notifications?.sms?.apiKey || ''}
+                            onChange={(e) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings?.notifications?.sms, apiKey: e.target.value}})}
                             placeholder="Enter your SMS provider API key" 
                         />
                     </div>
@@ -488,8 +488,8 @@ export default function SettingsPage() {
                         <Label htmlFor="alert-template">SMS Alert Template</Label>
                         <Textarea 
                             id="alert-template" 
-                            value={settings?.notifications.sms.template || ''}
-                            onChange={(e) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings.notifications.sms, template: e.target.value}})}
+                            value={settings?.notifications?.sms?.template || ''}
+                            onChange={(e) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings?.notifications?.sms, template: e.target.value}})}
                             placeholder="e.g., [ALERT] Device {deviceId} offline. Please investigate."
                         />
                         <p className="text-xs text-muted-foreground">Use variables: {`{deviceId}`}, {`{deviceType}`}, {`{issue}`}, {`{location}`}.</p>
