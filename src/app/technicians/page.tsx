@@ -279,10 +279,6 @@ export default function TechniciansPage() {
                                                         </DropdownMenuItem>
                                                     )
                                                 )}
-                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                    <Trash className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
@@ -361,10 +357,6 @@ export default function TechniciansPage() {
                                                         </DropdownMenuItem>
                                                     )
                                                 )}
-                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                    <Trash className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -386,3 +378,5 @@ export default function TechniciansPage() {
     </SidebarProvider>
   );
 }
+
+    
