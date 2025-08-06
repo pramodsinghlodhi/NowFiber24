@@ -102,6 +102,15 @@ export default function ReportsPage() {
   }, [alerts, infrastructure]);
   
   const totalAlerts = useMemo(() => alerts.length, [alerts]);
+  
+  const chartConfigAlertType = useMemo(() => {
+    const config: any = { count: { label: 'Alerts'} };
+    alertsByType.forEach(item => {
+        config[item.type] = { label: item.type, color: item.fill };
+    });
+    return config;
+  }, [alertsByType]);
+
   const loading = authLoading || loadingTasks || loadingTechs || loadingAlerts || loadingInfra;
 
   if (loading || !user || user.role !== 'Admin') {
@@ -111,14 +120,6 @@ export default function ReportsPage() {
       </div>
     );
   }
-
-  const chartConfigAlertType = useMemo(() => {
-    const config: any = { count: { label: 'Alerts'} };
-    alertsByType.forEach(item => {
-        config[item.type] = { label: item.type, color: item.fill };
-    });
-    return config;
-  }, [alertsByType]);
 
   return (
     <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
