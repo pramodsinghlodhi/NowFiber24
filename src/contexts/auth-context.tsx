@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation'; 
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User, Technician, Settings } from '@/lib/types'; 
 
@@ -30,41 +30,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Listener for application-wide settings
-    const settingsDocRef = doc(db, 'settings', 'live');
-    const unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
-        if (doc.exists()) {
-            setSettings(doc.data() as Settings);
-        }
-    }, (error) => {
-        // This is a crucial listener. If it fails, it's likely due to security rules.
-        // We log the error but allow the app to continue, as public pages don't need settings.
-        console.error("Error fetching settings:", error.message);
-    });
+    let unsubscribeSettings: Unsubscribe | null = null;
+    let unsubscribeTechnician: Unsubscribe | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
+
+      // Stop any active listeners from previous user session
+      if (unsubscribeSettings) unsubscribeSettings();
+      if (unsubscribeTechnician) unsubscribeTechnician();
+
       if (fbUser) {
-        // Force refresh the token to get the latest custom claims.
         await fbUser.getIdToken(true);
-        // Fetch user profile from Firestore using the UID from Auth 
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
+
         if (userDoc.exists()) {
             const userData = userDoc.data() as Omit<User, 'uid'>;
-            // Check if user is blocked before setting the state
             if (userData.isBlocked) {
-                console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
-                await signOut(auth); // Force sign out for blocked user
+                await signOut(auth);
                 setUser(null);
                 setTechnician(null);
             } else {
                 const fullUser = { uid: fbUser.uid, ...userData };
                 setUser(fullUser);
-                // If user is a technician, set up a real-time listener for their technician data
-                if (fullUser.role === 'Technician') {
+
+                if (fullUser.role === 'Admin') {
+                    const settingsDocRef = doc(db, 'settings', 'live');
+                    unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
+                        if (doc.exists()) {
+                            setSettings(doc.data() as Settings);
+                        }
+                    }, (error) => {
+                        console.error("Error fetching admin settings:", error.message);
+                    });
+                } else if (fullUser.role === 'Technician') {
                     const techDocRef = doc(db, 'technicians', fullUser.id);
-                    onSnapshot(techDocRef, (techDoc) => {
+                    unsubscribeTechnician = onSnapshot(techDocRef, (techDoc) => {
                         if (techDoc.exists()) {
                             setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
                         } else {
@@ -72,11 +74,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         }
                     });
                 } else {
-                    setTechnician(null);
+                   setTechnician(null);
                 }
             }
         } else {
-          console.error(`No user document found for UID: ${fbUser.uid}. Logging out.`);
           await signOut(auth);
           setUser(null);
           setTechnician(null);
@@ -84,13 +85,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUser(null);
         setTechnician(null);
+        setSettings(null); // Clear settings on logout
       }
       setLoading(false);
     });
 
     return () => {
         unsubscribeAuth();
-        unsubscribeSettings();
+        if (unsubscribeSettings) unsubscribeSettings();
+        if (unsubscribeTechnician) unsubscribeTechnician();
     }
   }, []);
   
@@ -110,14 +113,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: 'Password is required for all users.' };
     }
     
-    // The email is constructed from the User ID. This must match the email in Firebase Auth.
     const email = `${userId}@fibervision.com`;
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const fbUser = userCredential.user;
 
-        // Verify user is not blocked before proceeding
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists() && userDoc.data()?.isBlocked) {
@@ -125,18 +126,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return { success: false, message: 'Your account has been blocked. Please contact an administrator.' };
         }
 
-        // Get the ID token after successful sign-in
         const idToken = await fbUser.getIdToken();
 
-        // Send the ID token to the session login API route
         await fetch('/api/sessionLogin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken }),
         });
         
-        // onAuthStateChanged listener will handle fetching user data,
-        // but we can manually redirect here for a faster user experience.
         router.push('/dashboard');
         
         return { success: true, message: 'Welcome back!' };
