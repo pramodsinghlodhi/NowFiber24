@@ -1,6 +1,7 @@
 
 
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -187,4 +188,38 @@ export type Notification = {
     read: boolean;
     timestamp: any;
     href?: string;
+}
+
+export type Settings = {
+    id: 'live'; // Singleton document
+    automatedMonitoring: {
+        enabled: boolean;
+        frequency: number; // in minutes
+    };
+    snmp: {
+        enabled: boolean;
+        community: string;
+        port: number;
+    };
+    smtp: {
+        enabled: boolean;
+        host: string;
+        port: number;
+        user: string;
+        pass: string;
+    };
+    technicianManagement: {
+        enableGpsTracking: boolean;
+    };
+    taskManagement: {
+        geofenceRadius: number; // in meters
+        requirePhotoOnCompletion: boolean;
+    };
+    notifications: {
+        sms: {
+            enabled: boolean;
+            apiKey: string;
+            template: string;
+        }
+    }
 }

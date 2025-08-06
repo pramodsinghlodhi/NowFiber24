@@ -1,0 +1,35 @@
+{
+    "live": {
+        "id": "live",
+        "automatedMonitoring": {
+            "enabled": true,
+            "frequency": 15
+        },
+        "snmp": {
+            "enabled": true,
+            "community": "public",
+            "port": 161
+        },
+        "smtp": {
+            "enabled": false,
+            "host": "",
+            "port": 587,
+            "user": "",
+            "pass": ""
+        },
+        "technicianManagement": {
+            "enableGpsTracking": true
+        },
+        "taskManagement": {
+            "geofenceRadius": 100,
+            "requirePhotoOnCompletion": true
+        },
+        "notifications": {
+            "sms": {
+                "enabled": true,
+                "apiKey": "",
+                "template": "ALERT: Device {deviceId} at {location} is offline. Issue: {issue}. Assigned to you."
+            }
+        }
+    }
+}

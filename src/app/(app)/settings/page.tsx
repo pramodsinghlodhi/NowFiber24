@@ -15,48 +15,78 @@ import {useToast} from '@/hooks/use-toast';
 import {runAutoFaultDetection, sendTestEmail, createBroadcast} from '@/app/actions';
 import {Loader2, Map, Bell, HardHat, Send, Network, Mail} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Notification } from '@/lib/types';
+import { Notification, Settings } from '@/lib/types';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function SettingsPage() {
   const {user} = useAuth();
   const router = useRouter();
   const {toast} = useToast();
+  
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isTestingSnmp, setIsTestingSnmp] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastType, setBroadcastType] = useState<Notification['type']>('System');
   const [broadcastTitle, setBroadcastTitle] = useState('System Announcement');
 
-  // SMTP State
-  const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState(587);
-  const [smtpUser, setSmtpUser] = useState('');
-  const [smtpPass, setSmtpPass] = useState('');
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
+    if (user?.role !== 'Admin') {
+      router.push('/dashboard');
       return;
     }
-    if (user.role !== 'Admin') {
-      router.push('/');
-    }
-  }, [user, router]);
 
-  const handleSave = () => {
+    const fetchSettings = async () => {
+      setLoading(true);
+      const settingsDocRef = doc(db, 'settings', 'live');
+      const settingsDoc = await getDoc(settingsDocRef);
+      if (settingsDoc.exists()) {
+        setSettings(settingsDoc.data() as Settings);
+      } else {
+        toast({ title: 'Could not load settings', description: 'Settings document not found.', variant: 'destructive'});
+      }
+      setLoading(false);
+    }
+    
+    fetchSettings();
+
+  }, [user, router, toast]);
+
+  const handleSettingChange = (key: keyof Settings, value: any) => {
+    setSettings(prev => prev ? { ...prev, [key]: value } : null);
+  };
+  
+  const handleSmtpChange = (key: keyof Settings['smtp'], value: string | number) => {
+    setSettings(prev => prev ? { ...prev, smtp: { ...prev.smtp, [key]: value }} : null);
+  }
+
+  const handleSave = async () => {
+    if (!settings) {
+        toast({title: "Error", description: "Settings not loaded.", variant: "destructive"});
+        return;
+    }
     setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-      toast({
-        title: 'Settings Saved',
-        description: 'Your new preferences have been saved.',
-      });
-    }, 1000);
+    try {
+        const settingsDocRef = doc(db, 'settings', 'live');
+        await setDoc(settingsDocRef, settings);
+        toast({
+            title: 'Settings Saved',
+            description: 'Your new preferences have been saved.',
+        });
+    } catch (error) {
+        toast({title: "Error", description: "Could not save settings.", variant: "destructive"});
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   const handleTestMonitoring = async () => {
@@ -100,9 +130,10 @@ export default function SettingsPage() {
   }
 
   const handleTestEmail = async () => {
+    if (!settings?.smtp) return;
     setIsTestingEmail(true);
     try {
-        const result = await sendTestEmail({ host: smtpHost, port: smtpPort, user: smtpUser, pass: smtpPass });
+        const result = await sendTestEmail({ host: settings.smtp.host, port: settings.smtp.port, user: settings.smtp.user, pass: settings.smtp.pass });
         if (result.success) {
             toast({ title: 'Email Test Successful', description: 'Check your inbox for a test email.'});
         } else {
@@ -145,11 +176,21 @@ export default function SettingsPage() {
     }
   }
 
-  if (!user || user.role !== 'Admin') {
+  if (loading || !user || user.role !== 'Admin') {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <p>Unauthorized. Redirecting...</p>
-      </div>
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+         <div className="flex items-center justify-between">
+            <div>
+                <Skeleton className="h-9 w-48" />
+                <Skeleton className="h-5 w-80 mt-2" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2 mt-4">
+            <Card><CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader><CardContent><Skeleton className="h-32 w-full" /></CardContent></Card>
+            <Card><CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader><CardContent><Skeleton className="h-24 w-full" /></CardContent></Card>
+        </div>
+      </main>
     );
   }
 
@@ -183,12 +224,19 @@ export default function SettingsPage() {
                     Automatically run scans to detect and alert on offline devices.
                     </p>
                 </div>
-                <Switch id="auto-monitoring" defaultChecked />
+                <Switch 
+                    id="auto-monitoring" 
+                    checked={settings?.automatedMonitoring.enabled}
+                    onCheckedChange={(checked) => handleSettingChange('automatedMonitoring', { ...settings?.automatedMonitoring, enabled: checked })}
+                />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="monitoring-frequency">Monitoring Frequency</Label>
-                    <Select defaultValue="15">
+                    <Select 
+                        value={String(settings?.automatedMonitoring.frequency)} 
+                        onValueChange={(value) => handleSettingChange('automatedMonitoring', { ...settings?.automatedMonitoring, frequency: Number(value)})}
+                    >
                     <SelectTrigger id="monitoring-frequency">
                         <SelectValue placeholder="Select interval" />
                     </SelectTrigger>
@@ -232,18 +280,32 @@ export default function SettingsPage() {
                             Use SNMP to poll devices for detailed status and metrics.
                             </p>
                         </div>
-                        <Switch id="snmp-monitoring" defaultChecked />
+                        <Switch 
+                            id="snmp-monitoring" 
+                            checked={settings?.snmp.enabled}
+                            onCheckedChange={(checked) => handleSettingChange('snmp', { ...settings?.snmp, enabled: checked })}
+                        />
                     </div>
 
                      <div className="space-y-2">
                         <Label htmlFor="snmp-community">SNMP Community String</Label>
-                        <Input id="snmp-community" type="password" defaultValue="public" />
+                        <Input 
+                            id="snmp-community" 
+                            type="password" 
+                            value={settings?.snmp.community || ''}
+                            onChange={(e) => handleSettingChange('snmp', { ...settings?.snmp, community: e.target.value })}
+                        />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label htmlFor="snmp-port">SNMP Port</Label>
-                            <Input id="snmp-port" type="number" defaultValue="161" />
+                            <Input 
+                                id="snmp-port" 
+                                type="number" 
+                                value={settings?.snmp.port || 161}
+                                onChange={(e) => handleSettingChange('snmp', { ...settings?.snmp, port: Number(e.target.value) })}
+                            />
                         </div>
                          <div>
                             <Label>Test Connection</Label>
@@ -273,26 +335,30 @@ export default function SettingsPage() {
                             <Label htmlFor="email-notifications" className="text-base">Enable Email Notifications</Label>
                             <p className="text-sm text-muted-foreground">Send detailed alert emails to admins for critical issues.</p>
                         </div>
-                        <Switch id="email-notifications" />
+                        <Switch 
+                            id="email-notifications" 
+                            checked={settings?.smtp.enabled}
+                            onCheckedChange={(checked) => handleSmtpChange('enabled', checked)}
+                        />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label htmlFor="smtp-host">SMTP Host</Label>
-                            <Input id="smtp-host" placeholder="smtp.example.com" value={smtpHost} onChange={e => setSmtpHost(e.target.value)} />
+                            <Input id="smtp-host" placeholder="smtp.example.com" value={settings?.smtp.host || ''} onChange={e => handleSmtpChange('host', e.target.value)} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="smtp-port">SMTP Port</Label>
-                            <Input id="smtp-port" type="number" placeholder="587" value={smtpPort} onChange={e => setSmtpPort(Number(e.target.value))} />
+                            <Input id="smtp-port" type="number" placeholder="587" value={settings?.smtp.port || 587} onChange={e => handleSmtpChange('port', Number(e.target.value))} />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label htmlFor="smtp-user">SMTP Username</Label>
-                            <Input id="smtp-user" placeholder="your@email.com" value={smtpUser} onChange={e => setSmtpUser(e.target.value)} />
+                            <Input id="smtp-user" placeholder="your@email.com" value={settings?.smtp.user || ''} onChange={e => handleSmtpChange('user', e.target.value)} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="smtp-pass">SMTP Password</Label>
-                            <Input id="smtp-pass" type="password" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
+                            <Input id="smtp-pass" type="password" value={settings?.smtp.pass || ''} onChange={e => handleSmtpChange('pass', e.target.value)} />
                         </div>
                     </div>
                     <div>
@@ -322,7 +388,13 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="geofence-radius">Geo-fence Radius (meters)</Label>
-                        <Input id="geofence-radius" type="number" defaultValue="100" placeholder="e.g., 100" />
+                        <Input 
+                            id="geofence-radius" 
+                            type="number" 
+                            value={settings?.taskManagement.geofenceRadius}
+                            onChange={(e) => handleSettingChange('taskManagement', {...settings?.taskManagement, geofenceRadius: Number(e.target.value)})}
+                            placeholder="e.g., 100" 
+                        />
                         <p className="text-xs text-muted-foreground">Distance from job site a tech must be within to check-in.</p>
                     </div>
                     <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
@@ -330,14 +402,22 @@ export default function SettingsPage() {
                             <Label htmlFor="proof-of-work" className="text-base">Require Photo for Task Completion</Label>
                             <p className="text-sm text-muted-foreground">Technicians must upload a photo to mark a task as complete.</p>
                         </div>
-                        <Switch id="proof-of-work" defaultChecked/>
+                        <Switch 
+                            id="proof-of-work" 
+                            checked={settings?.taskManagement.requirePhotoOnCompletion}
+                            onCheckedChange={(checked) => handleSettingChange('taskManagement', {...settings?.taskManagement, requirePhotoOnCompletion: checked})}
+                        />
                     </div>
                      <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
                         <div className="space-y-0.5">
                             <Label htmlFor="gps-tracking" className="text-base">Enable Real-time GPS Tracking</Label>
                             <p className="text-sm text-muted-foreground">Track on-duty technician locations every 30 seconds.</p>
                         </div>
-                        <Switch id="gps-tracking" defaultChecked/>
+                        <Switch 
+                            id="gps-tracking"
+                            checked={settings?.technicianManagement.enableGpsTracking}
+                            onCheckedChange={(checked) => handleSettingChange('technicianManagement', {...settings?.technicianManagement, enableGpsTracking: checked})}
+                        />
                     </div>
                 </CardContent>
             </Card>
@@ -388,15 +468,30 @@ export default function SettingsPage() {
                             <Label htmlFor="sms-notifications" className="text-base">Enable SMS Notifications</Label>
                             <p className="text-sm text-muted-foreground">Send alerts via SMS to assigned technicians.</p>
                         </div>
-                        <Switch id="sms-notifications" defaultChecked />
+                        <Switch 
+                            id="sms-notifications" 
+                            checked={settings?.notifications.sms.enabled}
+                            onCheckedChange={(checked) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings.notifications.sms, enabled: checked}})}
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="sms-api-key">SMS Service API Key</Label>
-                        <Input id="sms-api-key" type="password" placeholder="Enter your SMS provider API key" />
+                        <Input 
+                            id="sms-api-key" 
+                            type="password"
+                            value={settings?.notifications.sms.apiKey || ''}
+                            onChange={(e) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings.notifications.sms, apiKey: e.target.value}})}
+                            placeholder="Enter your SMS provider API key" 
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="alert-template">SMS Alert Template</Label>
-                        <Textarea id="alert-template" placeholder="e.g., [ALERT] Device {deviceId} offline. Please investigate." defaultValue="ALERT: Device {deviceId} at {location} is offline. Issue: {issue}. Assigned to you."/>
+                        <Textarea 
+                            id="alert-template" 
+                            value={settings?.notifications.sms.template || ''}
+                            onChange={(e) => handleSettingChange('notifications', {...settings?.notifications, sms: {...settings.notifications.sms, template: e.target.value}})}
+                            placeholder="e.g., [ALERT] Device {deviceId} offline. Please investigate."
+                        />
                         <p className="text-xs text-muted-foreground">Use variables: {`{deviceId}`}, {`{deviceType}`}, {`{issue}`}, {`{location}`}.</p>
                     </div>
                 </CardContent>
