@@ -28,8 +28,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function ReportSkeleton() {
     return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+            <Header />
+            <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
                 <div className="flex items-center gap-4">
                     <Skeleton className="h-20 w-20 rounded-full" />
                     <div className="space-y-2">
@@ -66,8 +69,9 @@ function ReportSkeleton() {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
-        </div>
+            </main>
+        </SidebarInset>
+    </SidebarProvider>
     )
 }
 
@@ -84,11 +88,12 @@ export default function TechnicianReportPage() {
   const tasksQuery = useMemo(() => techId ? query(collection(db, 'tasks'), where('tech_id', '==', techId)) : null, [techId]);
   const assignmentsQuery = useMemo(() => techId ? query(collection(db, 'assignments'), where('technicianId', '==', techId)) : null, [techId]);
   const referralsQuery = useMemo(() => techId ? query(collection(db, 'referrals'), where('tech_id', '==', techId)) : null, [techId]);
+  const materialsQuery = useMemo(() => collection(db, 'materials'), []);
   
   const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
   const { data: assignments, loading: loadingAssignments } = useFirestoreQuery<MaterialAssignment>(assignmentsQuery);
   const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
-  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(collection(db, 'materials'));
+  const { data: materials, loading: loadingMaterials } = useFirestoreQuery<Material>(materialsQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -321,5 +326,3 @@ export default function TechnicianReportPage() {
     </SidebarProvider>
   );
 }
-
-    
