@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useEffect } from 'react';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 
 export default function LandingPage() {
@@ -74,13 +75,4 @@ export default function LandingPage() {
       </main>
     </div>
   )
-}
-
-// We need a minimal link component until we get a router
-function Link({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  return (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  );
 }
