@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     if (isEditing) {
         // --- EDIT LOGIC ---
         try {
+            // Use oldTechId to find the user, as the tech ID is immutable
             const usersRef = db.collection('users');
             const userQuery = await usersRef.where('id', '==', oldTechId).limit(1).get();
             
@@ -42,9 +43,11 @@ export async function POST(request: NextRequest) {
 
             // Update Firestore docs in a batch
             const batch = db.batch();
-            const techDocRef = db.collection('technicians').doc(techData.id);
+            // Use oldTechId to reference the technician document
+            const techDocRef = db.collection('technicians').doc(oldTechId);
             const userDocRef = db.collection('users').doc(uid);
 
+            // techData contains the updated fields, but we use oldTechId for the document path
             batch.update(techDocRef, techData);
             batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
 
