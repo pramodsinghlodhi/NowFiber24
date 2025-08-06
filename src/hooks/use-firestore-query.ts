@@ -10,6 +10,10 @@ export function useFirestoreQuery<T>(query: Query<DocumentData> | null) {
   const [data, setData] = useState<WithId<T>[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Serialize the query to a stable string to use as a dependency.
+  // This prevents re-running the effect on every render if the query object is re-created.
+  const queryKey = query ? JSON.stringify((query as any)._query) : "null";
+
   useEffect(() => {
     if (!query) {
         setData([]);
@@ -47,7 +51,7 @@ export function useFirestoreQuery<T>(query: Query<DocumentData> | null) {
 
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]); 
+  }, [queryKey]); 
 
   return { data, loading };
 }
