@@ -25,6 +25,10 @@ export async function POST(request: NextRequest) {
     if (isEditing) {
         // --- EDIT LOGIC ---
         try {
+            if (!oldTechId) {
+                return NextResponse.json({ success: false, message: 'Original technician ID is required for editing.'}, { status: 400 });
+            }
+
             // The technician's ID (`oldTechId`) is immutable. We use it to find the user's UID.
             const usersRef = db.collection('users');
             const userQuery = await usersRef.where('id', '==', oldTechId).limit(1).get();
@@ -107,7 +111,20 @@ export async function POST(request: NextRequest) {
             batch.set(userDocRef, finalUserData);
             
             const techDocRef = db.collection('technicians').doc(techData.id);
-            batch.set(techDocRef, techData);
+            // Ensure all required fields are present for a new technician
+            const finalTechData: Technician = {
+                id: techData.id,
+                name: techData.name,
+                role: techData.role,
+                contact: techData.contact,
+                avatarUrl: techData.avatarUrl,
+                lat: techData.lat || 34.0522, // Default LA coordinates
+                lng: techData.lng || -118.2437,
+                isActive: false, // Default to inactive
+                status: 'available', // Default to available
+                path: [], // Default to empty path
+            };
+            batch.set(techDocRef, finalTechData);
 
             await batch.commit();
 
