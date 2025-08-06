@@ -1,115 +1,105 @@
+// This script populates the Firestore database with mock data.
+// It reads all .json files in the src/lib/data directory and uploads them.
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { readdir, readFile } from 'fs/promises';
+import { join }_from 'path';
+import { initializeApp as initializeAdminApp, cert, getApps as getAdminApps, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth as getClientAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { initializeApp as initializeClientApp, getApps as getClientApps } from 'firebase/app';
-import fs from 'fs/promises';
-import path from 'path';
-import 'dotenv/config';
+import { getAuth } from 'firebase-admin/auth';
 
+import { initializeApp, signInWithEmailAndPassword } from 'firebase/app';
+import { getAuth as getClientAuth } from 'firebase/auth';
 
-// This needs to match the config in src/lib/firebase.ts for the client SDK.
-const firebaseConfig = {
-  "projectId": "fibervision-k710i",
-  "appId": "1:172145809929:web:a23916b46c09cdc77b76d8",
-  "storageBucket": "fibervision-k710i.firebasestorage.app",
-  "apiKey": "AIzaSyDSJptmjeH4scK305Nz_rBqlfNa3MGF-u8",
-  "authDomain": "fibervision-k710i.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "172145809929"
-};
-
-// Initialize Admin SDK
-if (!getApps().length) {
-    try {
-        initializeApp({
-            credential: cert(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-        });
-        console.log("Firebase Admin SDK initialized with service account.");
-    } catch (e) {
-        console.warn("Could not initialize Admin SDK with service account, falling back to application default. Make sure you've run 'gcloud auth application-default login'.", e.message);
-        initializeApp();
-    }
-}
-const adminAuth = getAuth();
-const db = getFirestore();
-
-// Initialize Client SDK
-const clientApp = !getClientApps().length ? initializeClientApp(firebaseConfig) : getClientApps()[0];
-const clientAuth = getClientAuth(clientApp);
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
 
 async function main() {
-    console.log('Seeding database...');
-    
-    // Authenticate as Admin to get an ID token with custom claims
-    const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
-    const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
+  console.log('> Seeding database...');
 
-    if (!adminEmail || !adminPassword) {
-        console.error('FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in .env.local');
-        return;
-    }
-    
-    console.log('Authenticating as admin...');
-    try {
-        // First, set a custom claim on the admin user to ensure they have permissions
-        const adminUserRecord = await adminAuth.getUserByEmail(adminEmail);
-        await adminAuth.setCustomUserClaims(adminUserRecord.uid, { isAdmin: true });
-        console.log(`Custom claim { isAdmin: true } set for ${adminEmail}.`);
+  // --- Admin SDK Setup ---
+  const serviceAccount = process.env.GOOGLE_APPLICATION_CREDENTIALS ? 
+      JSON.parse(await readFile(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8')) : undefined;
 
-        // Now, sign in as that user to perform Firestore operations
-        await signInWithEmailAndPassword(clientAuth, adminEmail, adminPassword);
-        console.log('Admin authenticated successfully.');
+  if (!serviceAccount) {
+      console.error('ERROR: GOOGLE_APPLICATION_CREDENTIALS environment variable not set.');
+      console.error('Please download your service account key from Firebase and set the path.');
+      process.exit(1);
+  }
+  
+  // Ensure we have a clean slate for the admin app instance
+  if (getAdminApps().length) {
+    await Promise.all(getAdminApps().map(app => deleteApp(app)));
+  }
 
-    } catch (error) {
-        console.error('Error during admin authentication or claim setting:', error.message);
-        console.log("Please ensure the admin user exists in Firebase Auth and the credentials in .env.local are correct.");
-        return;
-    }
+  const adminApp = initializeAdminApp({
+    credential: cert(serviceAccount),
+  });
+
+  const db = getFirestore(adminApp);
+  const adminAuth = getAuth(adminApp);
+  
+  const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
+  
+  if (!adminEmail) {
+      console.error('ERROR: FIREBASE_ADMIN_EMAIL is not set in your .env.local file.');
+      process.exit(1);
+  }
+
+  // --- Set Admin Custom Claim ---
+  try {
+      console.log('> Setting custom claim for admin user...');
+      const adminUserRecord = await adminAuth.getUserByEmail(adminEmail);
+      await adminAuth.setCustomUserClaims(adminUserRecord.uid, { isAdmin: true, role: 'Admin', userId: 'admin' });
+      console.log(`> Custom claim { isAdmin: true } set for ${adminEmail}.`);
+  } catch(error) {
+      console.error("ERROR: Could not set custom claim. Ensure the admin user exists in Firebase Auth.", error);
+      process.exit(1);
+  }
 
 
-    const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
-    console.log(`Reading files from ${dataDir}...`);
-    
-    const files = await fs.readdir(dataDir);
+  // --- Client SDK Setup (for getting ID token) ---
+  const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  };
+  
+  // This step is no longer needed just for seeding, but keeping the structure
+  // in case we need client-level operations in the future.
+
+  // --- Data Uploading ---
+  const dataDir = join(process.cwd(), 'src', 'lib', 'data');
+  try {
+    const files = await readdir(dataDir);
     const jsonFiles = files.filter(file => file.endsWith('.json'));
+    
+    console.log(`> Reading files from ${dataDir}...`);
 
     for (const file of jsonFiles) {
-        const collectionName = path.basename(file, '.json');
+        if (file === 'users.json') continue; // Skip users.json as it's handled by user creation
         
-        // Skip the users file, as it's manually created and managed
-        if (collectionName === 'users') {
-            console.log("Skipping users.json as it's managed manually.");
-            continue;
-        }
-
-        const filePath = path.join(dataDir, file);
-        const fileContent = await fs.readFile(filePath, 'utf8');
+        console.log(`> Uploading ${file}...`);
+        const collectionName = file.replace('.json', '');
+        const filePath = join(dataDir, file);
+        const fileContent = await readFile(filePath, 'utf8');
         const data = JSON.parse(fileContent);
 
-        console.log(`Seeding collection: ${collectionName}`);
-        
+        const collectionRef = db.collection(collectionName);
         const batch = db.batch();
-        Object.entries(data).forEach(([docId, docData]) => {
-            const docRef = db.collection(collectionName).doc(docId);
-            batch.set(docRef, docData);
-        });
 
-        try {
-            await batch.commit();
-            console.log(`Successfully seeded ${Object.keys(data).length} documents into ${collectionName}.`);
-        } catch (error) {
-            console.error(`Error seeding collection ${collectionName}:`, error.message);
+        for (const docId in data) {
+            const docRef = collectionRef.doc(docId);
+            batch.set(docRef, data[docId]);
         }
+        await batch.commit();
     }
 
-    console.log('Database seeding completed successfully!');
-    process.exit(0);
+    console.log('> Database seeding completed successfully!');
+  } catch (error) {
+    console.error(`Error seeding database: ${error.message}`);
+    process.exit(1);
+  }
 }
 
-main().catch(e => {
-    console.error(e);
-    process.exit(1);
-});
+main().catch(console.error);

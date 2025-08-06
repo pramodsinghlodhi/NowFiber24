@@ -36,11 +36,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (doc.exists()) {
             setSettings(doc.data() as Settings);
         }
+    }, (error) => {
+        // This is a crucial listener. If it fails, it's likely due to security rules.
+        // We log the error but allow the app to continue, as public pages don't need settings.
+        console.error("Error fetching settings:", error.message);
     });
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
+        // Force refresh the token to get the latest custom claims.
+        await fbUser.getIdToken(true);
         // Fetch user profile from Firestore using the UID from Auth 
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);

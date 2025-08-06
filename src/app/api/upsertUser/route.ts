@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Password is required for new users.'}, { status: 400 });
         }
         
-        const email = userData.id; // The ID itself is the email now, e.g., "tech-001@fibervision.com"
+        const email = `${userData.id}@fibervision.com`;
         let newAuthUser;
 
         try {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
                 photoURL: userData.avatarUrl,
             });
             
-            await auth.setCustomUserClaims(newAuthUser.uid, { role: 'Technician' });
+            await auth.setCustomUserClaims(newAuthUser.uid, { role: 'Technician', userId: userData.id });
 
             const batch = db.batch();
             
