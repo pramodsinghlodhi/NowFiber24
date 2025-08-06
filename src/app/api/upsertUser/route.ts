@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Password is required for new users.'}, { status: 400 });
         }
         
-        const email = `${userData.id}@fibervision.com`;
+        const email = userData.id; // The ID itself is the email now, e.g., "tech-001@fibervision.com"
         let newAuthUser;
 
         try {
