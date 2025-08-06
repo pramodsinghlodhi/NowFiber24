@@ -2,9 +2,8 @@
 "use client";
 
 import { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { Technician, Infrastructure, Connection, Task, Alert, Stats } from '@/lib/types';
+import { useRouter }from 'next/navigation';
+import { Technician, Task, Alert, Stats } from '@/lib/types';
 import StatsCard from '@/components/dashboard/stats-card';
 import TasksList from '@/components/dashboard/tasks-list';
 import AlertsList from '@/components/dashboard/alerts-list';
@@ -13,27 +12,18 @@ import { useAuth } from '@/contexts/auth-context';
 import { Users, Wifi, Siren, ListChecks } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-const MapView = dynamic(() => import('@/components/dashboard/map-view'), {
-  ssr: false,
-  loading: () => <Skeleton className="h-full w-full rounded-xl" />,
-});
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
   const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
-  const devicesQuery = useMemo(() => collection(db, 'infrastructure'), []);
   const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
-  const connectionsQuery = useMemo(() => collection(db, 'connections'), []);
-
+  
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
-  const { data: devices, loading: loadingDevices } = useFirestoreQuery<Infrastructure>(devicesQuery);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
-  const { data: connections, loading: loadingConnections } = useFirestoreQuery<Connection>(connectionsQuery);
   
   const tasksQuery = useMemo(() => {
     if (!user) return null;
@@ -56,7 +46,7 @@ export default function DashboardPage() {
 
     const baseStats = {
       techniciansOnDuty: technicians.filter(t => t.isActive).length,
-      onlineDevices: devices.filter(d => d.status === 'online').length,
+      onlineDevices: 0, // This will be static since we removed the devices query for this view
       activeAlerts: alerts.length,
       tasksCompletedToday: tasks.filter(t => {
           if (t.status === 'Completed' && t.completionTimestamp) {
@@ -75,10 +65,10 @@ export default function DashboardPage() {
     }
 
     return baseStats;
-  }, [technicians, devices, alerts, tasks, user]);
+  }, [technicians, alerts, tasks, user]);
 
 
-  const loading = authLoading || loadingTechs || loadingDevices || loadingAlerts || loadingConnections || loadingTasks;
+  const loading = authLoading || loadingTechs || loadingAlerts || loadingTasks;
 
   if (loading || !user) {
     return (
@@ -87,39 +77,79 @@ export default function DashboardPage() {
         </div>
     );
   }
-
-  return (
-    <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
-        <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {user.role === 'Admin' ? (
-            <StatsCard title="Technicians On-duty" value={stats.techniciansOnDuty} icon={Users} />
-        ) : (
-            <StatsCard title="My Open Tasks" value={stats.myOpenTasks ?? 0} icon={ListChecks} />
-        )}
-        <StatsCard title="Online Devices" value={stats.onlineDevices} icon={Wifi} />
-        <StatsCard title="Active Alerts" value={stats.activeAlerts} icon={Siren} />
-        <StatsCard title="Tasks Completed" value={stats.tasksCompletedToday} icon={ListChecks} />
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 h-[400px] lg:h-[calc(100vh-340px)] w-full flex flex-col p-0 overflow-hidden">
-            <div className="flex-grow">
-                <MapView devices={devices} technicians={technicians} alerts={alerts} connections={connections} />
+  
+  if (user.role === 'Admin') {
+      return (
+        <main className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+            <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatsCard title="Technicians On-duty" value={stats.techniciansOnDuty} icon={Users} />
+                <StatsCard title="Active Alerts" value={stats.activeAlerts} icon={Siren} />
+                <StatsCard title="Tasks Completed Today" value={stats.tasksCompletedToday} icon={ListChecks} />
             </div>
-        </Card>
-        <div className="space-y-6">
-            <Card>
+             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Recent Tasks</CardTitle>
+                        <CardDescription>A summary of recently updated tasks.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <TasksList tasks={tasks.slice(0, 5)} technicians={technicians} />
+                    </CardContent>
+                </Card>
+                <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />
+             </div>
+        </main>
+      )
+  }
+
+  // Technician View
+  return (
+    <main className="flex-1 space-y-6 p-4 pt-6 md:p-6">
+        <h1 className="text-3xl font-bold font-headline">Welcome, {user.name}</h1>
+        
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">My Tasks</CardTitle>
-                    <CardDescription>Tasks assigned to you or your team.</CardDescription>
+                    <CardTitle className="font-headline">Task Summary</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <TasksList tasks={tasks.filter(t => t.status !== 'Completed').slice(0, 5)} technicians={technicians} />
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Open Tasks</span>
+                        <span className="font-bold text-2xl">{stats.myOpenTasks ?? 0}</span>
+                    </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Completed Today</span>
+                        <span className="font-bold text-2xl">{stats.tasksCompletedToday}</span>
+                    </div>
                 </CardContent>
-            </Card>
-            <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />
+             </Card>
+              <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Network Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Active Alerts</span>
+                        <span className="font-bold text-2xl text-destructive">{stats.activeAlerts}</span>
+                    </div>
+                     <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Technicians On Duty</span>
+                        <span className="font-bold text-2xl">{stats.techniciansOnDuty}</span>
+                    </div>
+                </CardContent>
+             </Card>
         </div>
-        </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">My Open Tasks</CardTitle>
+                <CardDescription>Your assigned tasks that are pending or in progress.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <TasksList tasks={tasks.filter(t => t.status !== 'Completed')} technicians={technicians} />
+            </CardContent>
+        </Card>
     </main>
   );
 }
