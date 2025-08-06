@@ -1,112 +1,166 @@
-import { readdir, readFile } from 'fs/promises';
-import { join } from 'path';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, collection, doc, writeBatch } from 'firebase/firestore';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import {initializeApp} from 'firebase/app';
+import {getAuth, signInWithEmailAndPassword} from 'firebase/auth';
+import {getFirestore, collection, doc, writeBatch} from 'firebase/firestore';
+import {getApps, initializeApp as initializeAdminApp, getApp as getAdminApp} from 'firebase-admin/app';
+import {getAuth as getAdminAuth} from 'firebase-admin/auth';
+import {credential} from 'firebase-admin';
+import fs from 'fs/promises';
+import path from 'path';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({path: '.env.local'});
 
-// --- Your Firebase Configuration ---
-// This configuration should ideally be loaded from a secure place,
-// but for a seeding script, it can be here. Ensure this matches your src/lib/firebase.ts
+// THIS IS THE CLIENT-SIDE CONFIG FOR THE SEEDER SCRIPT'S ADMIN USER
 const firebaseConfig = {
-    "projectId": "fibervision-k710i",
-    "appId": "1:172145809929:web:a23916b46c09cdc77b76d8",
-    "storageBucket": "fibervision-k710i.firebasestorage.app",
-    "apiKey": "AIzaSyDSJptmjeH4scK305Nz_rBqlfNa3MGF-u8",
-    "authDomain": "fibervision-k710i.firebaseapp.com",
-    "measurementId": "",
-    "messagingSenderId": "172145809929"
-  };
+  projectId: 'fibervision-k710i',
+  appId: '1:172145809929:web:a23916b46c09cdc77b76d8',
+  storageBucket: 'fibervision-k710i.firebasestorage.app',
+  apiKey: 'AIzaSyDSJptmjeH4scK305Nz_rBqlfNa3MGF-u8',
+  authDomain: 'fibervision-k710i.firebaseapp.com',
+  messagingSenderId: '172145809929',
+};
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// THIS IS THE ADMIN SDK CONFIG FOR CREATING USERS
+// Ensure you have the service account key file and GOOGLE_APPLICATION_CREDENTIALS set up
+if (!getApps().length) {
+  try {
+    initializeAdminApp({
+      credential: credential.applicationDefault(),
+      projectId: 'fibervision-k710i',
+    });
+    console.log('Firebase Admin SDK initialized successfully.');
+  } catch (e) {
+    console.error(
+      'ERROR: Could not initialize Firebase Admin SDK. \n' +
+        'Please ensure your GOOGLE_APPLICATION_CREDENTIALS environment variable is set correctly. \n',
+      e
+    );
+    process.exit(1);
+  }
+}
+
+const adminAuth = getAdminAuth();
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const dataDir = join(process.cwd(), 'src', 'lib', 'data');
+const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
 
 async function seedDatabase() {
-    console.log('Seeding database...');
-    
-    // Authenticate as an admin user to get permissions
-    const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
-    const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
+  console.log('> Seeding database...');
 
-    if (!adminEmail || !adminPassword) {
-        console.error('Error: FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in .env.local');
-        process.exit(1);
-    }
-    
-    try {
-        console.log('Authenticating as admin...');
-        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-        console.log('Admin authenticated successfully.');
-    } catch (error) {
-        console.error('Failed to authenticate admin user:', error.message);
-        console.error('Please ensure the admin user exists in Firebase Authentication and credentials in .env.local are correct.');
-        process.exit(1);
-    }
+  const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
+  const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
 
-    try {
-        console.log(`Reading files from ${dataDir}...`);
-        const files = await readdir(dataDir);
-        const jsonFiles = files.filter(file => file.endsWith('.json') && file !== 'users.json');
-        
-        // Always process users.json first to create Auth users
-        const allFiles = ['users.json', ...jsonFiles];
+  if (!adminEmail || !adminPassword) {
+    console.error(
+      'ERROR: FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in .env.local'
+    );
+    return;
+  }
 
-        console.log(`Found ${allFiles.length} files to process.`);
+  try {
+    console.log('> Authenticating as admin...');
+    await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+    console.log('> Admin authenticated successfully.');
+  } catch (error) {
+    console.error('ERROR: Failed to authenticate admin user.', error.message);
+    console.log(
+      'Please ensure the admin user exists in Firebase Auth and the credentials in .env.local are correct.'
+    );
+    return;
+  }
 
-        for (const file of allFiles) {
-            const collectionName = file.replace('.json', '');
-            console.log(`\nProcessing ${file}...`);
-            
-            const filePath = join(dataDir, file);
-            const fileContent = await readFile(filePath, 'utf-8');
-            const data = JSON.parse(fileContent);
+  // --- TECHNICIAN AND USER CREATION ---
+  try {
+    console.log('> Processing technicians.json to create users...');
+    const techniciansPath = path.join(dataDir, 'technicians.json');
+    const techniciansContent = await fs.readFile(techniciansPath, 'utf-8');
+    const techniciansData = JSON.parse(techniciansContent);
 
-            const batch = writeBatch(db);
-            let docCount = 0;
+    const batch = writeBatch(db);
 
-            for (const docId in data) {
-                if (Object.prototype.hasOwnProperty.call(data, docId)) {
-                    const docData = data[docId];
-                    let finalDocId = docId;
+    for (const key in techniciansData) {
+      const technician = techniciansData[key];
+      const techId = technician.id;
+      const email = `${techId}@fibervision.com`;
+      const password = 'password'; // Default password for all technicians
 
-                    // Special handling for the 'users' collection to create Auth users
-                    if (collectionName === 'users') {
-                        const email = `${docData.id}@fibervision.com`;
-                        // This part is for demonstration. In a real scenario, you'd want to avoid
-                        // creating users if they already exist, but this script assumes a fresh start.
-                        // The user document in Firestore itself will be created after this loop using the UID.
-                        // For now, we'll just log it. We can't create auth users here without the Admin SDK.
-                        // The manual step in README is the source of truth for user creation.
-                    } else {
-                        // For all other collections, the key from JSON is the document ID
-                        const docRef = doc(db, collectionName, finalDocId);
-                        batch.set(docRef, docData);
-                        docCount++;
-                    }
-                }
-            }
-
-            if (docCount > 0) {
-                await batch.commit();
-                console.log(` - Uploaded ${docCount} documents to '${collectionName}' collection.`);
-            } else if(collectionName !== 'users') {
-                 console.log(` - No documents to upload for '${collectionName}'.`);
-            } else {
-                 console.log(` - 'users.json' is skipped for direct upload. Ensure users are created in Firebase Auth and Firestore manually.`);
-            }
+      let userRecord;
+      try {
+        // Check if user already exists
+        userRecord = await adminAuth.getUserByEmail(email);
+        console.log(`- User ${email} already exists with UID: ${userRecord.uid}. Skipping creation.`);
+      } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+          // Create user if not found
+          userRecord = await adminAuth.createUser({
+            email: email,
+            password: password,
+            displayName: technician.name,
+          });
+          console.log(`- Created new user ${email} with UID: ${userRecord.uid}`);
+        } else {
+          throw error;
         }
-        
-        console.log('\nDatabase seeding completed successfully!');
-    } catch (error) {
-        console.error('\nAn error occurred during seeding:', error);
-        process.exit(1);
+      }
+
+      // Add user profile to 'users' collection
+      const userDocRef = doc(db, 'users', userRecord.uid);
+      const userData = {
+        uid: userRecord.uid,
+        id: techId,
+        name: technician.name,
+        role: 'Technician',
+        isBlocked: technician.isBlocked || false,
+        avatarUrl: technician.avatarUrl,
+      };
+      batch.set(userDocRef, userData);
+
+      // Add technician profile to 'technicians' collection
+      const techDocRef = doc(db, 'technicians', techId);
+      batch.set(techDocRef, technician);
     }
+    
+    await batch.commit();
+    console.log('> Successfully created/updated technician auth users and profiles.');
+
+  } catch (error) {
+    console.error('ERROR: Failed during technician and user creation phase.', error);
+    return;
+  }
+
+  // --- GENERIC DATA SEEDING ---
+  try {
+    console.log('> Reading files from src/lib/data...');
+    const files = await fs.readdir(dataDir);
+    const jsonFiles = files.filter(
+      (file) => file.endsWith('.json') && file !== 'technicians.json' && file !== 'users.json' // Exclude already processed files
+    );
+
+    console.log(`> Found ${jsonFiles.length} files to process.`);
+
+    for (const file of jsonFiles) {
+      console.log(`> Processing ${file}...`);
+      const collectionName = path.basename(file, '.json');
+      const filePath = path.join(dataDir, file);
+      const fileContent = await fs.readFile(filePath, 'utf-8');
+      const data = JSON.parse(fileContent);
+
+      const batch = writeBatch(db);
+      let count = 0;
+      for (const key in data) {
+        const docRef = doc(db, collectionName, key);
+        batch.set(docRef, data[key]);
+        count++;
+      }
+      await batch.commit();
+      console.log(` - Uploaded ${count} documents to ${collectionName} collection.`);
+    }
+    console.log('> Database seeding completed successfully!');
+  } catch (error) {
+    console.error('ERROR: Failed during generic data seeding phase.', error);
+  }
 }
 
 seedDatabase();
