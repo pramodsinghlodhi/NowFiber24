@@ -1,14 +1,9 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
 import { Material, MaterialAssignment, Technician } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -145,10 +140,7 @@ export default function MaterialsPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
+    <>
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-1 space-y-6">
@@ -303,7 +295,6 @@ export default function MaterialsPage() {
             </div>
           </div>
         </main>
-      </SidebarInset>
       <AssignMaterialForm 
         isOpen={isAssignFormOpen}
         onOpenChange={setIsAssignFormOpen}
@@ -317,6 +308,6 @@ export default function MaterialsPage() {
         onSave={handleSaveMaterial}
         material={selectedMaterial}
       />
-    </SidebarProvider>
+    </>
   );
 }

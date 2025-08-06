@@ -1,14 +1,9 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
 import { Referral, Technician } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -97,106 +92,100 @@ export default function ReferralsPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Referrals</CardTitle>
-              <CardDescription>
-                {user.role === 'Admin' ? 'View and manage all customer referrals from technicians.' : 'Track the status of your submitted referrals.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Mobile View */}
-                <div className="md:hidden space-y-4">
-                    {filteredReferrals.map((referral: Referral) => (
-                        <Card key={referral.id} className="p-4 space-y-3">
-                             <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-semibold">{referral.customer_name}</p>
-                                    <p className="text-sm text-muted-foreground">{renderTimestamp(referral.timestamp)}</p>
-                                </div>
-                                {getStatusBadge(referral.status)}
+    <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Customer Referrals</CardTitle>
+          <CardDescription>
+            {user.role === 'Admin' ? 'View and manage all customer referrals from technicians.' : 'Track the status of your submitted referrals.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+                {filteredReferrals.map((referral: Referral) => (
+                    <Card key={referral.id} className="p-4 space-y-3">
+                         <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-semibold">{referral.customer_name}</p>
+                                <p className="text-sm text-muted-foreground">{renderTimestamp(referral.timestamp)}</p>
                             </div>
-                            <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
-                                <p className="flex items-center gap-2"><Phone size={14}/> {referral.phone}</p>
-                                <p className="flex items-center gap-2"><MapPin size={14}/> {referral.address}</p>
-                                {user.role === 'Admin' && (
-                                     <p className="flex items-center gap-2"><HardHat size={14}/> {technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</p>
-                                )}
-                            </div>
+                            {getStatusBadge(referral.status)}
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
+                            <p className="flex items-center gap-2"><Phone size={14}/> {referral.phone}</p>
+                            <p className="flex items-center gap-2"><MapPin size={14}/> {referral.address}</p>
                             {user.role === 'Admin' && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="w-full mt-2">
-                                            Update Status
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-full">
-                                        <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Contacted')}>Mark as Contacted</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Closed')}>Mark as Closed</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Pending')}>Mark as Pending</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                 <p className="flex items-center gap-2"><HardHat size={14}/> {technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</p>
                             )}
-                        </Card>
-                    ))}
-                </div>
-
-              {/* Desktop View */}
-              <Table className="hidden md:table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Date</TableHead>
-                    {user.role === 'Admin' && <TableHead>Referred By</TableHead>}
-                    <TableHead>Status</TableHead>
-                    {user.role === 'Admin' && <TableHead className="text-right">Actions</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReferrals.map((referral: Referral) => (
-                    <TableRow key={referral.id}>
-                      <TableCell className="font-medium">{referral.customer_name}</TableCell>
-                      <TableCell>{referral.phone}</TableCell>
-                      <TableCell>{referral.address}</TableCell>
-                      <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
-                      {user.role === 'Admin' && (
-                        <TableCell>{technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
-                      )}
-                      <TableCell>{getStatusBadge(referral.status)}</TableCell>
-                       <TableCell className="text-right">
-                        {user.role === 'Admin' ? (
+                        </div>
+                        {user.role === 'Admin' && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
+                                    <Button variant="outline" size="sm" className="w-full mt-2">
+                                        Update Status
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="w-full">
                                     <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Contacted')}>Mark as Contacted</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Closed')}>Mark as Closed</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Pending')}>Mark as Pending</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        ) : (
-                             <Button variant="link" size="sm" disabled>No Actions</Button>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+                    </Card>
+                ))}
+            </div>
+
+          {/* Desktop View */}
+          <Table className="hidden md:table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>Date</TableHead>
+                {user.role === 'Admin' && <TableHead>Referred By</TableHead>}
+                <TableHead>Status</TableHead>
+                {user.role === 'Admin' && <TableHead className="text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredReferrals.map((referral: Referral) => (
+                <TableRow key={referral.id}>
+                  <TableCell className="font-medium">{referral.customer_name}</TableCell>
+                  <TableCell>{referral.phone}</TableCell>
+                  <TableCell>{referral.address}</TableCell>
+                  <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
+                  {user.role === 'Admin' && (
+                    <TableCell>{technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
+                  )}
+                  <TableCell>{getStatusBadge(referral.status)}</TableCell>
+                   <TableCell className="text-right">
+                    {user.role === 'Admin' ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Contacted')}>Mark as Contacted</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Closed')}>Mark as Closed</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(referral.id, 'Pending')}>Mark as Pending</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                         <Button variant="link" size="sm" disabled>No Actions</Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

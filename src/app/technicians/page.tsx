@@ -2,12 +2,6 @@
 
 "use client";
 
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
 import { Technician, User } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
@@ -19,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, UserX, UserCheck, BarChart2 } from 'lucide-react';
+import { MoreHorizontal, UserX, UserCheck, BarChart2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
@@ -222,10 +216,7 @@ export default function TechniciansPage() {
     }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
+    <>
         <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -367,7 +358,6 @@ export default function TechniciansPage() {
                 </CardContent>
             </Card>
         </main>
-      </SidebarInset>
        <TechnicianForm
             isOpen={isFormOpen}
             onOpenChange={setIsFormOpen}
@@ -375,8 +365,6 @@ export default function TechniciansPage() {
             technician={selectedTechnician}
             allUsers={users}
         />
-    </SidebarProvider>
+    </>
   );
 }
-
-    

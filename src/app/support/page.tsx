@@ -1,12 +1,6 @@
 
 'use client';
 
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -53,75 +47,69 @@ export default function SupportPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Support & Help Center</h2>
-                    <p className="text-muted-foreground">Find answers to your questions or get in touch with our support team.</p>
-                </div>
+    <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="flex items-center justify-between">
+            <div>
+                <h2 className="text-3xl font-bold tracking-tight">Support & Help Center</h2>
+                <p className="text-muted-foreground">Find answers to your questions or get in touch with our support team.</p>
             </div>
+        </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Frequently Asked Questions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Accordion type="single" collapsible className="w-full">
-                                {faqItems.map((item, index) => (
-                                    <AccordionItem value={`item-${index}`} key={index}>
-                                        <AccordionTrigger>{item.question}</AccordionTrigger>
-                                        <AccordionContent>
-                                            {item.answer}
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        </CardContent>
-                    </Card>
-                </div>
-                 <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Contact Support</CardTitle>
-                            <CardDescription>Can't find an answer? Reach out to us.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <Button className="w-full justify-start">
-                                <Mail className="mr-2" />
-                                Email Support
-                            </Button>
-                             <Button className="w-full justify-start">
-                                <Phone className="mr-2" />
-                                Call Help Desk
-                            </Button>
-                             <Button className="w-full justify-start">
-                                <MessageSquare className="mr-2" />
-                                Start Live Chat
-                            </Button>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Documentation</CardTitle>
-                            <CardDescription>Browse our comprehensive guides and manuals.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button variant="outline" className="w-full justify-start">
-                                <Book className="mr-2" />
-                                View Documentation
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Frequently Asked Questions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Accordion type="single" collapsible className="w-full">
+                            {faqItems.map((item, index) => (
+                                <AccordionItem value={`item-${index}`} key={index}>
+                                    <AccordionTrigger>{item.question}</AccordionTrigger>
+                                    <AccordionContent>
+                                        {item.answer}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    </CardContent>
+                </Card>
             </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+             <div className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Contact Support</CardTitle>
+                        <CardDescription>Can't find an answer? Reach out to us.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <Button className="w-full justify-start">
+                            <Mail className="mr-2" />
+                            Email Support
+                        </Button>
+                         <Button className="w-full justify-start">
+                            <Phone className="mr-2" />
+                            Call Help Desk
+                        </Button>
+                         <Button className="w-full justify-start">
+                            <MessageSquare className="mr-2" />
+                            Start Live Chat
+                        </Button>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Documentation</CardTitle>
+                        <CardDescription>Browse our comprehensive guides and manuals.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button variant="outline" className="w-full justify-start">
+                            <Book className="mr-2" />
+                            View Documentation
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    </main>
   );
 }
