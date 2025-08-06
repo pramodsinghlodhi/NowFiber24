@@ -1,27 +1,2 @@
 
-{
-  "tech-001_user": {
-    "uid": "PLEASE_REPLACE_WITH_UID_FOR_tech-001@fibervision.com",
-    "id": "tech-001",
-    "name": "John Doe",
-    "role": "Technician",
-    "isBlocked": false,
-    "avatarUrl": "https://i.pravatar.cc/150?u=tech-001"
-  },
-  "tech-002_user": {
-    "uid": "PLEASE_REPLACE_WITH_UID_FOR_tech-002@fibervision.com",
-    "id": "tech-002",
-    "name": "Jane Smith",
-    "role": "Technician",
-    "isBlocked": false,
-    "avatarUrl": "https://i.pravatar.cc/150?u=tech-002"
-  },
-  "tech-003_user": {
-    "uid": "PLEASE_REPLACE_WITH_UID_FOR_tech-003@fibervision.com",
-    "id": "tech-003",
-    "name": "Mike Johnson",
-    "role": "Technician",
-    "isBlocked": true,
-    "avatarUrl": "https://i.pravatar.cc/150?u=tech-003"
-  }
-}
+{}
