@@ -17,9 +17,7 @@ export function useFirestoreQuery<T>(query: Query<DocumentData> | null) {
         return;
     }
 
-    if (!loading) {
-        setLoading(true);
-    }
+    setLoading(true);
     
     // The collection name can be inferred from the query path
     const collectionName = (query as any)._query.path.segments[0];
