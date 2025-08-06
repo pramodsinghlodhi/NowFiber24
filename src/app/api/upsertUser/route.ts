@@ -3,11 +3,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
+import { initializeApp, getApps, App, credential, deleteApp } from 'firebase-admin/app';
 import { User, Technician } from '@/lib/types';
 
 
-// Initialize Firebase Admin SDK if not already initialized
+// Securely initialize the Firebase Admin SDK.
+// This is the recommended pattern for Next.js API routes.
 if (!getApps().length) {
     initializeApp({
         credential: credential.applicationDefault(),
@@ -19,13 +20,12 @@ const db = getFirestore();
 
 export async function POST(request: NextRequest) {
     // TODO: Add robust authentication check to ensure only admins can call this.
-
     const { isEditing, techData, userData, oldTechId } = await request.json();
 
     if (isEditing) {
         // --- EDIT LOGIC ---
         try {
-            // Use oldTechId to find the user, as the tech ID is immutable
+            // The technician's ID (`oldTechId`) is immutable. We use it to find the user's UID.
             const usersRef = db.collection('users');
             const userQuery = await usersRef.where('id', '==', oldTechId).limit(1).get();
             
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: false, message: 'Original user profile not found.'}, { status: 404 });
             }
             const userDoc = userQuery.docs[0];
-            const uid = userDoc.id;
+            const uid = userDoc.id; // The document ID is the UID
 
             // Update Auth user
             await auth.updateUser(uid, {
@@ -43,13 +43,24 @@ export async function POST(request: NextRequest) {
 
             // Update Firestore docs in a batch
             const batch = db.batch();
-            // Use oldTechId to reference the technician document
             const techDocRef = db.collection('technicians').doc(oldTechId);
             const userDocRef = db.collection('users').doc(uid);
+            
+            // Only update the fields that can be changed
+            const techUpdateData: Partial<Technician> = {
+                name: techData.name,
+                role: techData.role,
+                contact: techData.contact,
+                avatarUrl: techData.avatarUrl
+            };
+            
+            const userUpdateData: Partial<User> = {
+                name: userData.name,
+                avatarUrl: userData.avatarUrl
+            };
 
-            // techData contains the updated fields, but we use oldTechId for the document path
-            batch.update(techDocRef, techData);
-            batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
+            batch.update(techDocRef, techUpdateData);
+            batch.update(userDocRef, userUpdateData);
 
             await batch.commit();
 
@@ -78,7 +89,7 @@ export async function POST(request: NextRequest) {
                 photoURL: userData.avatarUrl,
             });
             
-            // Set custom claim for role-based access if needed in future
+            // Set custom claim for role-based access
             await auth.setCustomUserClaims(newAuthUser.uid, { role: 'Technician' });
 
             // 2. Create user and technician documents in Firestore using a BATCH
