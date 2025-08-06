@@ -1,5 +1,4 @@
 
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -29,7 +28,6 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: false, message: 'Original technician ID is required for editing.'}, { status: 400 });
             }
 
-            // The technician's ID (`oldTechId`) is immutable. We use it to find the user's UID.
             const usersRef = db.collection('users');
             const userQuery = await usersRef.where('id', '==', oldTechId).limit(1).get();
             
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: false, message: 'Original user profile not found.'}, { status: 404 });
             }
             const userDoc = userQuery.docs[0];
-            const uid = userDoc.id; // The document ID is the UID
+            const uid = userDoc.id; 
 
             // Update Auth user
             await auth.updateUser(uid, {
@@ -50,7 +48,6 @@ export async function POST(request: NextRequest) {
             const techDocRef = db.collection('technicians').doc(oldTechId);
             const userDocRef = db.collection('users').doc(uid);
             
-            // Only update the fields that can be changed
             const techUpdateData: Partial<Technician> = {
                 name: techData.name,
                 role: techData.role,
@@ -85,7 +82,6 @@ export async function POST(request: NextRequest) {
         let newAuthUser;
 
         try {
-            // 1. Create Firebase Auth user
             newAuthUser = await auth.createUser({
                 email,
                 password: userData.password,
@@ -93,10 +89,8 @@ export async function POST(request: NextRequest) {
                 photoURL: userData.avatarUrl,
             });
             
-            // Set custom claim for role-based access
             await auth.setCustomUserClaims(newAuthUser.uid, { role: 'Technician' });
 
-            // 2. Create user and technician documents in Firestore using a BATCH
             const batch = db.batch();
             
             const userDocRef = db.collection('users').doc(newAuthUser.uid);
@@ -111,18 +105,17 @@ export async function POST(request: NextRequest) {
             batch.set(userDocRef, finalUserData);
             
             const techDocRef = db.collection('technicians').doc(techData.id);
-            // Ensure all required fields are present for a new technician
             const finalTechData: Technician = {
                 id: techData.id,
                 name: techData.name,
                 role: techData.role,
                 contact: techData.contact,
                 avatarUrl: techData.avatarUrl,
-                lat: techData.lat || 34.0522, // Default LA coordinates
+                lat: techData.lat || 34.0522,
                 lng: techData.lng || -118.2437,
-                isActive: false, // Default to inactive
-                status: 'available', // Default to available
-                path: [], // Default to empty path
+                isActive: false, 
+                status: 'available',
+                path: [],
             };
             batch.set(techDocRef, finalTechData);
 
@@ -133,7 +126,6 @@ export async function POST(request: NextRequest) {
         } catch (error: any) {
             console.error("Error adding new technician:", error);
             
-            // If auth user was created but firestore failed, roll back by deleting the auth user
             if (newAuthUser) {
                 await auth.deleteUser(newAuthUser.uid);
                 console.log("Rolled back auth user creation due to Firestore error.");
