@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 
 const menuItems = [
-    { href: '/', icon: LayoutDashboard, label: 'Dashboard', tech: true, admin: true },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', tech: true, admin: true },
     { href: '/map', icon: Map, label: 'Map', tech: true, admin: true },
     { href: '/tasks', icon: ListTodo, label: 'Tasks', tech: true, admin: true },
     { href: '/alerts', icon: AlertTriangle, label: 'Alerts', tech: true, admin: true },
@@ -18,7 +18,12 @@ export default function MobileNav() {
     const pathname = usePathname();
     const { user } = useAuth();
 
-    if (!user || user.role !== 'Technician') {
+    if (!user) {
+        return null;
+    }
+    
+    // Only show mobile nav for technicians on app pages
+    if (user.role !== 'Technician' || pathname === '/') {
         return null;
     }
     

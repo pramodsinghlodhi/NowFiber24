@@ -3,12 +3,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
 import { useAuth } from '@/contexts/auth-context';
 import { Infrastructure } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -41,19 +35,11 @@ const getStatusIndicator = (status: Infrastructure['status']) => {
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const devicesQuery = useMemo(() => query(collection(db, 'infrastructure'), orderBy('id')), []);
   const { data: devices, loading } = useFirestoreQuery<Infrastructure>(devicesQuery);
-
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-  }, [user, router]);
 
   const handleDelete = async (deviceId: string) => {
     if (user?.role !== 'Admin') {
@@ -110,7 +96,7 @@ export default function InventoryPage() {
     setIsFormOpen(true);
   }
 
-  if (!user || loading) {
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <p>Loading...</p>
@@ -119,108 +105,104 @@ export default function InventoryPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Network Inventory</CardTitle>
-                    <CardDescription>Manage all network devices and equipment.</CardDescription>
-                </div>
-                <Button onClick={handleAddNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Device
-                </Button>
-            </CardHeader>
-            <CardContent>
-              {/* Mobile View */}
-              <div className="md:hidden space-y-4">
-                {devices.map((device) => (
-                    <Card key={device.id} className="p-4 space-y-2">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="font-semibold">{device.name}</p>
-                                <p className="text-sm text-muted-foreground">{device.id} | {device.type}</p>
-                            </div>
-                             {getStatusIndicator(device.status)}
-                        </div>
-                        <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
-                            <p className="flex items-center gap-2"><MapPin size={14}/> {typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</p>
-                            <p className="flex items-center gap-2"><Wifi size={14}/> {device.ip || "N/A"}</p>
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                             <Button variant="outline" size="sm" onClick={() => handleEdit(device)}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
-                             {user?.role === 'Admin' && (
-                                <Button variant="destructive" size="sm" onClick={() => handleDelete(device.id)}><Trash className="mr-2 h-4 w-4" /> Delete</Button>
-                             )}
-                        </div>
-                    </Card>
-                ))}
+    <>
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                  <CardTitle>Network Inventory</CardTitle>
+                  <CardDescription>Manage all network devices and equipment.</CardDescription>
               </div>
+              <Button onClick={handleAddNew}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Device
+              </Button>
+          </CardHeader>
+          <CardContent>
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+              {devices.map((device) => (
+                  <Card key={device.id} className="p-4 space-y-2">
+                      <div className="flex justify-between items-start">
+                          <div>
+                              <p className="font-semibold">{device.name}</p>
+                              <p className="text-sm text-muted-foreground">{device.id} | {device.type}</p>
+                          </div>
+                            {getStatusIndicator(device.status)}
+                      </div>
+                      <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
+                          <p className="flex items-center gap-2"><MapPin size={14}/> {typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</p>
+                          <p className="flex items-center gap-2"><Wifi size={14}/> {device.ip || "N/A"}</p>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(device)}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
+                            {user?.role === 'Admin' && (
+                              <Button variant="destructive" size="sm" onClick={() => handleDelete(device.id)}><Trash className="mr-2 h-4 w-4" /> Delete</Button>
+                            )}
+                      </div>
+                  </Card>
+              ))}
+            </div>
 
-              {/* Desktop View */}
-              <Table className="hidden md:table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Device ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+            {/* Desktop View */}
+            <Table className="hidden md:table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Device ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>IP Address</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {devices.map((device: Infrastructure) => (
+                  <TableRow key={device.id}>
+                    <TableCell className="font-medium">{device.id}</TableCell>
+                    <TableCell>{device.name}</TableCell>
+                    <TableCell>{device.type}</TableCell>
+                    <TableCell>{device.ip || "N/A"}</TableCell>
+                    <TableCell>{typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</TableCell>
+                    <TableCell>
+                      {getStatusIndicator(device.status)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(device)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                              </DropdownMenuItem>
+                              {user.role === 'Admin' && (
+                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(device.id)}>
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete
+                                  </DropdownMenuItem>
+                              )}
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {devices.map((device: Infrastructure) => (
-                    <TableRow key={device.id}>
-                      <TableCell className="font-medium">{device.id}</TableCell>
-                      <TableCell>{device.name}</TableCell>
-                      <TableCell>{device.type}</TableCell>
-                      <TableCell>{device.ip || "N/A"}</TableCell>
-                      <TableCell>{typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</TableCell>
-                      <TableCell>
-                        {getStatusIndicator(device.status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEdit(device)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                </DropdownMenuItem>
-                                {user.role === 'Admin' && (
-                                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(device.id)}>
-                                        <Trash className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </main>
-      </SidebarInset>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </main>
       <DeviceForm
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSave={handleSave}
         device={selectedDevice}
       />
-    </SidebarProvider>
+    </>
   );
 }

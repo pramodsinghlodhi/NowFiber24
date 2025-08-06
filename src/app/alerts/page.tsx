@@ -3,13 +3,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
-import { useAuth } from '@/contexts/auth-context';
 import { Alert as AlertType, Infrastructure } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -51,18 +44,11 @@ const getSeverityClass = (severity: 'Critical' | 'High' | 'Medium' | 'Low') => {
 
 
 export default function AlertsPage() {
-  const { user } = useAuth();
-  const router = useRouter();
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const alertsQuery = useMemo(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc')), []);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<AlertType>(alertsQuery);
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-    }
-  }, [user, router]);
 
   useEffect(() => {
     const fetchDevice = async () => {
@@ -93,7 +79,7 @@ export default function AlertsPage() {
     }
   };
 
-  if (!user || loadingAlerts) {
+  if (loadingAlerts) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <p>Loading...</p>
@@ -102,99 +88,95 @@ export default function AlertsPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Alerts</CardTitle>
-              <CardDescription>View and manage all network alerts.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Mobile View */}
-               <div className="md:hidden space-y-4">
-                 {alerts.map((alert: AlertType) => (
-                    <Card key={alert.id} className={cn('p-4', getSeverityClass(alert.severity))}>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="font-semibold">{alert.device_id}</p>
-                                <p className="text-sm text-muted-foreground">{alert.issue}</p>
-                            </div>
-                            <Badge variant={getSeverityBadge(alert.severity)} className={cn(alert.severity === 'High' && 'bg-orange-500 text-white')}>
-                              {alert.severity}
-                            </Badge>
+    <>
+    <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <Card>
+        <CardHeader>
+            <CardTitle>All Alerts</CardTitle>
+            <CardDescription>View and manage all network alerts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+                {alerts.map((alert: AlertType) => (
+                <Card key={alert.id} className={cn('p-4', getSeverityClass(alert.severity))}>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="font-semibold">{alert.device_id}</p>
+                            <p className="text-sm text-muted-foreground">{alert.issue}</p>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                           {renderTimestamp(alert.timestamp)}
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)} className="w-full mt-4">View Details</Button>
-                    </Card>
-                 ))}
-               </div>
-
-              {/* Desktop View */}
-              <Table className="hidden md:table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Severity</TableHead>
-                    <TableHead>Device ID</TableHead>
-                    <TableHead>Issue</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {alerts.map((alert: AlertType) => (
-                    <TableRow key={alert.id} className={cn(getSeverityClass(alert.severity))}>
-                      <TableCell>
                         <Badge variant={getSeverityBadge(alert.severity)} className={cn(alert.severity === 'High' && 'bg-orange-500 text-white')}>
-                          {alert.severity}
+                            {alert.severity}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{alert.device_id}</TableCell>
-                      <TableCell>{alert.issue}</TableCell>
-                      <TableCell>{renderTimestamp(alert.timestamp)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)}>View Details</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </main>
-      </SidebarInset>
-
-       <Dialog open={!!selectedAlert} onOpenChange={(open) => !open && setSelectedAlert(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Alert Details</DialogTitle>
-            <DialogDescription>
-              Detailed information for alert #{selectedAlert?.id}.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedAlert && (
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold">Issue</h4>
-                <p>{selectedAlert.issue}</p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold">Device</h4>
-                <p>{selectedDevice ? `${selectedDevice.name} (${selectedDevice.id})` : selectedAlert.device_id}</p>
-                {selectedDevice && <p className="text-sm text-muted-foreground">IP: {selectedDevice.ip}</p>}
-              </div>
-               <div className="space-y-2">
-                <h4 className="font-semibold">Location</h4>
-                 <p className="text-sm text-muted-foreground">{selectedAlert.lat}, {selectedAlert.lng}</p>
-              </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                        {renderTimestamp(alert.timestamp)}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)} className="w-full mt-4">View Details</Button>
+                </Card>
+                ))}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </SidebarProvider>
+
+            {/* Desktop View */}
+            <Table className="hidden md:table">
+            <TableHeader>
+                <TableRow>
+                <TableHead>Severity</TableHead>
+                <TableHead>Device ID</TableHead>
+                <TableHead>Issue</TableHead>
+                <TableHead>Timestamp</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {alerts.map((alert: AlertType) => (
+                <TableRow key={alert.id} className={cn(getSeverityClass(alert.severity))}>
+                    <TableCell>
+                    <Badge variant={getSeverityBadge(alert.severity)} className={cn(alert.severity === 'High' && 'bg-orange-500 text-white')}>
+                        {alert.severity}
+                    </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{alert.device_id}</TableCell>
+                    <TableCell>{alert.issue}</TableCell>
+                    <TableCell>{renderTimestamp(alert.timestamp)}</TableCell>
+                    <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedAlert(alert)}>View Details</Button>
+                    </TableCell>
+                </TableRow>
+                ))}
+            </TableBody>
+            </Table>
+        </CardContent>
+        </Card>
+    </main>
+
+    <Dialog open={!!selectedAlert} onOpenChange={(open) => !open && setSelectedAlert(null)}>
+    <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+        <DialogTitle>Alert Details</DialogTitle>
+        <DialogDescription>
+            Detailed information for alert #{selectedAlert?.id}.
+        </DialogDescription>
+        </DialogHeader>
+        {selectedAlert && (
+        <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+            <h4 className="font-semibold">Issue</h4>
+            <p>{selectedAlert.issue}</p>
+            </div>
+            <div className="space-y-2">
+            <h4 className="font-semibold">Device</h4>
+            <p>{selectedDevice ? `${selectedDevice.name} (${selectedDevice.id})` : selectedAlert.device_id}</p>
+            {selectedDevice && <p className="text-sm text-muted-foreground">IP: {selectedDevice.ip}</p>}
+            </div>
+            <div className="space-y-2">
+            <h4 className="font-semibold">Location</h4>
+                <p className="text-sm text-muted-foreground">{selectedAlert.lat}, {selectedAlert.lng}</p>
+            </div>
+        </div>
+        )}
+    </DialogContent>
+    </Dialog>
+    </>
   );
 }

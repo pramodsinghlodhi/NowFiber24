@@ -60,8 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   // This effect handles redirection based on auth state.
   useEffect(() => {
-    if (!loading && !user && pathname !== '/login') {
-      router.push('/login');
+    if (!loading && !user && !['/login', '/'].includes(pathname)) {
+        router.push('/login');
     }
   }, [loading, user, pathname, router]);
 
@@ -79,18 +79,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const fbUser = userCredential.user;
+
+        // Verify user is not blocked before proceeding
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data()?.isBlocked) {
+            await signOut(auth);
+            return { success: false, message: 'Your account has been blocked. Please contact an administrator.' };
+        }
 
         // Get the ID token after successful sign-in
-        const idToken = await user.getIdToken();
+        const idToken = await fbUser.getIdToken();
 
         // Send the ID token to the session login API route
-        const response = await fetch('/api/sessionLogin', {
+        await fetch('/api/sessionLogin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken }),
         });
-        // onAuthStateChanged listener will handle fetching user data and redirecting
+        
+        // onAuthStateChanged listener will handle fetching user data,
+        // but we can manually redirect here for a faster user experience.
+        router.push('/dashboard');
+        
         return { success: true, message: 'Welcome back!' };
     } catch (error: any) {
        console.error("Login Error:", error.code, error.message);
@@ -108,10 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
     setUser(null);
     setFirebaseUser(null);
-    router.push('/login');
+    router.push('/');
   };
   
-   if (loading) {
+   if (loading && !['/login', '/'].includes(pathname)) {
     return <div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>;
   }
 

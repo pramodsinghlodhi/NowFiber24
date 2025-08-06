@@ -26,7 +26,7 @@ export default function LoginPage() {
     const { success, message } = await login(userId, password);
     if (success) {
       toast({ title: 'Login Successful', description: message });
-      router.push('/');
+      // The login function now handles redirection
     } else {
       toast({ title: 'Login Failed', description: message, variant: 'destructive' });
       setIsLoading(false);

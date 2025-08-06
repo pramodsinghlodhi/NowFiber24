@@ -4,14 +4,7 @@
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/sidebar';
-import Header from '@/components/layout/header';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Map as MapIcon, Satellite, Filter as FilterIcon, Route, Loader2 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -41,7 +34,6 @@ const initialFilters = {
 };
 
 function MapContent() {
-  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -66,15 +58,6 @@ function MapContent() {
   const pathParam = searchParams.get('path');
   const traceStart = searchParams.get('traceStart');
   const traceEnd = searchParams.get('traceEnd');
-
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, router]);
-
 
   useEffect(() => {
     const handleTrace = async (startDeviceId: string, endDeviceId: string) => {
@@ -143,7 +126,7 @@ function MapContent() {
 
   const loading = loadingInfra || loadingTechs || loadingAlerts || loadingConnections;
 
-  if (!user || loading) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Skeleton className="h-full w-full" />
@@ -152,87 +135,81 @@ function MapContent() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        <main className="flex-grow flex-shrink flex-basis-0 flex-col h-[calc(100vh-4rem)]">
-          <div className="relative h-full w-full">
-             <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} tracedPath={tracedPath}/>
-             <div className="absolute top-4 left-4 z-[100] flex gap-2">
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="secondary" className="shadow-md">
-                            <FilterIcon className="mr-2 h-4 w-4" />
-                            Filter
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
-                        <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuCheckboxItem
-                            checked={filters.technicians}
-                            onCheckedChange={(value) => handleFilterChange('technicians', !!value)}
-                        >
-                            Technicians
-                        </DropdownMenuCheckboxItem>
-                         <DropdownMenuCheckboxItem
-                            checked={filters.alerts}
-                            onCheckedChange={(value) => handleFilterChange('alerts', !!value)}
-                        >
-                            Alerts
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem
-                            checked={filters.connections}
-                            onCheckedChange={(value) => handleFilterChange('connections', !!value)}
-                        >
-                            Fiber Lines
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Device Types</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {allDeviceTypes.map(type => (
-                             <DropdownMenuCheckboxItem
-                                key={type}
-                                checked={!!filters[type]}
-                                onCheckedChange={(value) => handleFilterChange(type, !!value)}
-                                className="capitalize"
-                            >
-                                {type.replace(/_/g, ' ')}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                {tracedPath.length > 0 && (
-                    <Button variant="secondary" className="shadow-md" onClick={() => {
-                        setTracedPath([]);
-                        router.replace('/map', { scroll: false });
-                    }}>
-                        <Route className="mr-2 h-4 w-4" />
-                        Clear Trace
+    <main className="flex-grow flex-shrink flex-basis-0 flex-col h-[calc(100vh-4rem)]">
+        <div className="relative h-full w-full">
+            <MapView devices={filteredData.filteredDevices} technicians={filteredData.filteredTechnicians} alerts={filteredData.filteredAlerts} connections={filteredData.filteredConnections} mapStyle={mapStyle} tracedPath={tracedPath}/>
+            <div className="absolute top-4 left-4 z-[100] flex gap-2">
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" className="shadow-md">
+                        <FilterIcon className="mr-2 h-4 w-4" />
+                        Filter
                     </Button>
-                )}
-                 {isTracing && (
-                    <Button variant="secondary" disabled className="shadow-md">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Tracing...
-                    </Button>
-                )}
-             </div>
-             <div className="absolute bottom-4 right-4 z-[100]">
-                <ToggleGroup type="single" value={mapStyle} onValueChange={(value) => { if(value) setMapStyle(value)}} className="bg-background rounded-lg shadow-md border p-1">
-                    <ToggleGroupItem value="map" aria-label="Map view">
-                        <MapIcon className="h-4 w-4" />
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="satellite" aria-label="Satellite view">
-                        <Satellite className="h-4 w-4" />
-                    </ToggleGroupItem>
-                </ToggleGroup>
-             </div>
-          </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Map Layers</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                        checked={filters.technicians}
+                        onCheckedChange={(value) => handleFilterChange('technicians', !!value)}
+                    >
+                        Technicians
+                    </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                        checked={filters.alerts}
+                        onCheckedChange={(value) => handleFilterChange('alerts', !!value)}
+                    >
+                        Alerts
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                        checked={filters.connections}
+                        onCheckedChange={(value) => handleFilterChange('connections', !!value)}
+                    >
+                        Fiber Lines
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Device Types</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {allDeviceTypes.map(type => (
+                            <DropdownMenuCheckboxItem
+                            key={type}
+                            checked={!!filters[type]}
+                            onCheckedChange={(value) => handleFilterChange(type, !!value)}
+                            className="capitalize"
+                        >
+                            {type.replace(/_/g, ' ')}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            {tracedPath.length > 0 && (
+                <Button variant="secondary" className="shadow-md" onClick={() => {
+                    setTracedPath([]);
+                    router.replace('/map', { scroll: false });
+                }}>
+                    <Route className="mr-2 h-4 w-4" />
+                    Clear Trace
+                </Button>
+            )}
+                {isTracing && (
+                <Button variant="secondary" disabled className="shadow-md">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Tracing...
+                </Button>
+            )}
+            </div>
+            <div className="absolute bottom-4 right-4 z-[100]">
+            <ToggleGroup type="single" value={mapStyle} onValueChange={(value) => { if(value) setMapStyle(value)}} className="bg-background rounded-lg shadow-md border p-1">
+                <ToggleGroupItem value="map" aria-label="Map view">
+                    <MapIcon className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="satellite" aria-label="Satellite view">
+                    <Satellite className="h-4 w-4" />
+                </ToggleGroupItem>
+            </ToggleGroup>
+            </div>
+        </div>
+    </main>
   );
 }
 

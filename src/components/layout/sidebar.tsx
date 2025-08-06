@@ -38,7 +38,7 @@ const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
 
 
 const menuItemsTop = [
-    {href: '/', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
+    {href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
     {href: '/map', icon: Map, label: 'Fullscreen Map', admin: true, tech: true},
     {href: '/alerts', icon: AlertTriangle, label: 'Alerts', admin: true, tech: true},
     {href: '/inventory', icon: Network, label: 'Inventory', admin: true, tech: false},

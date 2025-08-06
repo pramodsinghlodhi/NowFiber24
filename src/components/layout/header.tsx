@@ -54,7 +54,7 @@ export default function Header() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/');
   };
   
   const getInitials = (name: string) => {
@@ -67,9 +67,9 @@ export default function Header() {
   };
 
   const getPageTitle = () => {
-    if (pathname === '/') return 'Dashboard';
-    const page = pathname.split('/')[1];
-    return page.charAt(0).toUpperCase() + page.slice(1);
+    const pageName = pathname.split('/').pop() || 'dashboard';
+    if(pageName === 'dashboard') return 'Dashboard';
+    return pageName.charAt(0).toUpperCase() + pageName.slice(1);
   }
 
   const handleToggleBreak = () => {
