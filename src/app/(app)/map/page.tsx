@@ -198,7 +198,7 @@ function MapContent() {
                 </Button>
             )}
             </div>
-            <div className="absolute bottom-4 right-4 z-[100]">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100]" style={{ margin: "70px 0"}}>
             <ToggleGroup type="single" value={mapStyle} onValueChange={(value) => { if(value) setMapStyle(value)}} className="bg-background rounded-lg shadow-md border p-1">
                 <ToggleGroupItem value="map" aria-label="Map view">
                     <MapIcon className="h-4 w-4" />
