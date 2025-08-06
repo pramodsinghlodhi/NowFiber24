@@ -52,8 +52,8 @@ export default function TechniciansPage() {
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
-    const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
-    const usersQuery = useMemo(() => collection(db, 'users'), []);
+    const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
+    const usersQuery = useMemo(() => query(collection(db, 'users')), []);
 
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
     const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
@@ -234,8 +234,7 @@ export default function TechniciansPage() {
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
                     <Button onClick={handleAddNew}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Technician
+                        display done
                     </Button>
                 </CardHeader>
                 <CardContent>
