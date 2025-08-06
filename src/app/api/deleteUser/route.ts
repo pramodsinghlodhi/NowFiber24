@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -7,9 +8,13 @@ import { credential } from 'firebase-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-    initializeApp({
-        credential: credential.applicationDefault(),
-    });
+    try {
+        initializeApp({
+            credential: credential.applicationDefault(),
+        });
+    } catch (error) {
+        console.error("Firebase Admin initialization error:", error);
+    }
 }
 
 const auth = getAuth();
@@ -17,6 +22,7 @@ const db = getFirestore();
 
 export async function POST(request: NextRequest) {
     try {
+        // TODO: Verify if the request comes from an authenticated admin user
         const { techId } = await request.json();
 
         if (!techId) {
@@ -28,19 +34,30 @@ export async function POST(request: NextRequest) {
         const userQuery = await usersRef.where('id', '==', techId).limit(1).get();
 
         if (userQuery.empty) {
-            // If no user profile, just try to clean up technician doc.
+            // If no user profile, still try to clean up the technician doc as a fallback.
             console.log(`No user document found for techId ${techId}. Cleaning up technician document.`);
             const techDocRef = db.collection('technicians').doc(techId);
-            await techDocRef.delete();
-            return NextResponse.json({ success: true, message: 'Technician data removed from Firestore. No matching auth user found.' });
+            const techDoc = await techDocRef.get();
+            if (techDoc.exists) {
+                await techDocRef.delete();
+            }
+            return NextResponse.json({ success: true, message: 'Technician data removed from Firestore. No matching authentication user found.' });
         }
         
         const userDoc = userQuery.docs[0];
         const uid = userDoc.id; // The document ID is the UID
 
         // 2. Delete user from Firebase Authentication
-        await auth.deleteUser(uid);
-        console.log(`Successfully deleted auth user with UID: ${uid}`);
+        try {
+            await auth.deleteUser(uid);
+            console.log(`Successfully deleted auth user with UID: ${uid}`);
+        } catch(authError: any) {
+             if (authError.code === 'auth/user-not-found') {
+                console.warn(`Auth user with UID: ${uid} not found. Proceeding with Firestore cleanup.`);
+             } else {
+                throw authError; // Re-throw other auth errors
+             }
+        }
 
         // 3. Delete user and technician documents from Firestore in a batch
         const batch = db.batch();
@@ -53,14 +70,14 @@ export async function POST(request: NextRequest) {
         await batch.commit();
         console.log(`Successfully deleted Firestore documents for techId: ${techId}`);
 
-        return NextResponse.json({ success: true, message: `Technician ${techId} and associated auth user have been deleted.` });
+        return NextResponse.json({ success: true, message: `Technician ${techId} and associated user data have been deleted.` });
 
     } catch (error: any) {
         console.error('Error deleting user:', error);
         
-        let errorMessage = 'An unexpected error occurred.';
-        if (error.code === 'auth/user-not-found') {
-             errorMessage = 'User not found in Firebase Authentication, but an error occurred during cleanup.';
+        let errorMessage = 'An unexpected error occurred while deleting the technician.';
+        if (error.code === 'permission-denied') {
+            errorMessage = "Permission denied. You don't have the rights to perform this action.";
         }
         
         return NextResponse.json({ success: false, message: errorMessage, error: error.message }, { status: 500 });

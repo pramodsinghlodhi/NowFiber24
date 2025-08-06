@@ -13,13 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, UserX, UserCheck, BarChart2 } from 'lucide-react';
+import { MoreHorizontal, UserX, UserCheck, BarChart2, Edit, Trash, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, writeBatch, query } from 'firebase/firestore';
+import { collection, doc, updateDoc, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { getAuth, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 
 
 const getActivityBadge = (tech: Technician) => {
@@ -63,6 +62,8 @@ export default function TechniciansPage() {
     }, [currentUser, router]);
 
     const handleDelete = async (tech: Technician) => {
+        if (!window.confirm(`Are you sure you want to delete ${tech.name}? This will permanently remove their login and data.`)) return;
+
         try {
             const response = await fetch('/api/deleteUser', {
                 method: 'POST',
@@ -72,9 +73,9 @@ export default function TechniciansPage() {
 
             const result = await response.json();
 
-            if (result.success) {
+            if (response.ok) {
                 toast({
-                    title: `Deleted Technician ${tech.id}`,
+                    title: `Deleted Technician`,
                     description: result.message,
                     variant: "destructive"
                 });
@@ -83,95 +84,33 @@ export default function TechniciansPage() {
             }
         } catch (error) {
             console.error("Error deleting technician: ", error);
-            toast({ title: "Error", description: "Could not delete technician. A network error occurred.", variant: "destructive" });
+            toast({ title: "Network Error", description: "Could not delete technician. Please check your connection.", variant: "destructive" });
         }
     }
 
     const handleSave = async (techData: Omit<Technician, 'id'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
         const isEditing = !!selectedTechnician;
-    
-        if (isEditing && selectedTechnician) {
-            const techUser = users.find(u => u.id === selectedTechnician.id);
-            if (!techUser?.uid) { 
-                 toast({ title: "Error", description: "Could not find associated user to update.", variant: "destructive"});
-                 return;
+        
+        try {
+            const response = await fetch('/api/upsertUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isEditing, techData, userData, oldTechId: selectedTechnician?.id }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: result.title, description: result.message });
+                setIsFormOpen(false);
+                setSelectedTechnician(null);
+            } else {
+                 toast({ title: "Error", description: result.message, variant: "destructive" });
             }
-            
-            try {
-                const batch = writeBatch(db);
-                
-                const techDocRef = doc(db, 'technicians', selectedTechnician.id);
-                batch.update(techDocRef, techData as any);
-                
-                const userDocRef = doc(db, 'users', techUser.uid);
-                batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
-
-                await batch.commit();
-                toast({ title: "Technician Updated", description: `${techData.name}'s details have been updated.` });
-            } catch (error) {
-                console.error("Error updating technician: ", error);
-                toast({ title: "Error", description: "Could not update technician.", variant: "destructive"});
-            }
-        } else {
-            // Adding new technician
-            if (!userData.password) {
-                toast({title: "Missing Info", description: "Password is required for new users.", variant: "destructive"});
-                return;
-            }
-            
-            const email = `${userData.id}@fibervision.com`;
-            const auth = getAuth();
-            let newAuthUser;
-            try {
-                // 1. Create Firebase Auth user
-                const userCredential = await createUserWithEmailAndPassword(auth, email, userData.password);
-                newAuthUser = userCredential.user;
-
-                // 2. Create user and technician documents in Firestore using a BATCH
-                const batch = writeBatch(db);
-
-                // Document in 'users' collection, using the new Auth UID as the document ID
-                const userDocRef = doc(db, 'users', newAuthUser.uid);
-                const finalUserData: User = { 
-                    uid: newAuthUser.uid,
-                    id: userData.id, 
-                    name: userData.name,
-                    role: 'Technician',
-                    isBlocked: false,
-                    avatarUrl: userData.avatarUrl,
-                };
-                batch.set(userDocRef, finalUserData);
-                
-                // Document in 'technicians' collection, using the custom tech ID as the document ID
-                const techDocRef = doc(db, 'technicians', techData.id);
-                batch.set(techDocRef, techData);
-
-                // Commit the batch
-                await batch.commit();
-
-                toast({ title: "Technician Added", description: `${userData.name} has been added to the team.` });
-            } catch (error: any) {
-                 console.error("Error adding new technician: ", error);
-                 let message = "Could not add new technician.";
-                 if (error.code === 'auth/email-already-in-use') {
-                     message = "This Technician ID is already in use.";
-                 } else if (error.code === 'auth/weak-password') {
-                     message = "The password must be at least 6 characters."
-                 } else if (error.code === 'permission-denied' || error.code === 'missing-permission') {
-                     message = "Permission denied. Make sure your Firestore security rules allow this action."
-                 }
-                 
-                 // If auth user was created but firestore failed, delete the auth user
-                 if (newAuthUser) {
-                    await deleteUser(newAuthUser);
-                    console.log("Rolled back auth user creation due to firestore error.");
-                 }
-
-                toast({ title: "Error", description: message, variant: "destructive"});
-            }
+        } catch (error) {
+            console.error("Error saving technician: ", error);
+            toast({ title: "Network Error", description: "Could not save technician. Please check your connection.", variant: "destructive" });
         }
-        setIsFormOpen(false);
-        setSelectedTechnician(null);
     }
     
     const handleToggleBlock = async (userToToggle: User) => {
@@ -224,6 +163,10 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
+                     <Button onClick={handleAddNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Technician
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     {/* Mobile View */}
@@ -251,6 +194,10 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
@@ -270,6 +217,11 @@ export default function TechniciansPage() {
                                                         </DropdownMenuItem>
                                                     )
                                                 )}
+                                                <DropdownMenuSeparator/>
+                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
@@ -329,6 +281,10 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
@@ -348,6 +304,11 @@ export default function TechniciansPage() {
                                                         </DropdownMenuItem>
                                                     )
                                                 )}
+                                                <DropdownMenuSeparator/>
+                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
