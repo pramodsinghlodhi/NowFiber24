@@ -18,12 +18,59 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, Clock, UserPlus, ListChecks, Star } from 'lucide-react';
+import { CheckCircle, ListChecks, Star, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function ReportSkeleton() {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-20 w-20 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-4 w-48" />
+                    </div>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-6">
+                    <Card><CardHeader><Skeleton className="h-4 w-24 mb-2"/><Skeleton className="h-8 w-12"/></CardHeader></Card>
+                    <Card><CardHeader><Skeleton className="h-4 w-24 mb-2"/><Skeleton className="h-8 w-12"/></CardHeader></Card>
+                    <Card><CardHeader><Skeleton className="h-4 w-24 mb-2"/><Skeleton className="h-8 w-12"/></CardHeader></Card>
+                    <Card><CardHeader><Skeleton className="h-4 w-24 mb-2"/><Skeleton className="h-8 w-12"/></CardHeader></Card>
+                </div>
+                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-6">
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-4 w-48 mt-2" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                           <div className="flex items-center justify-between"><Skeleton className="h-5 w-40" /><Skeleton className="h-5 w-20" /></div>
+                           <div className="flex items-center justify-between"><Skeleton className="h-5 w-48" /><Skeleton className="h-5 w-20" /></div>
+                           <div className="flex items-center justify-between"><Skeleton className="h-5 w-32" /><Skeleton className="h-5 w-20" /></div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-4 w-48 mt-2" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                           <div className="flex items-center justify-between"><Skeleton className="h-5 w-40" /><Skeleton className="h-5 w-20" /></div>
+                           <div className="flex items-center justify-between"><Skeleton className="h-5 w-48" /><Skeleton className="h-5 w-20" /></div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 
 export default function TechnicianReportPage() {
   const { user, loading: authLoading } = useAuth();
@@ -61,6 +108,8 @@ export default function TechnicianReportPage() {
         const techDoc = await getDoc(techDocRef);
         if (techDoc.exists()) {
           setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+        } else {
+          setTechnician(null);
         }
         setLoadingTechnician(false);
       };
@@ -74,7 +123,6 @@ export default function TechnicianReportPage() {
   const renderTimestamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
     try {
-      // Firestore Timestamps have a toDate() method
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
       if (isNaN(date.getTime())) {
         return 'Invalid Date';
@@ -89,18 +137,28 @@ export default function TechnicianReportPage() {
   const loading = authLoading || loadingTechnician || loadingTasks || loadingAssignments || loadingReferrals || loadingMaterials;
   
   if (loading || !user || user.role !== 'Admin') {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <p>Loading Report...</p>
-      </div>
-    );
+    return <ReportSkeleton />;
   }
 
   if (!technician) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <p>Technician not found.</p>
-      </div>
+       <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+                 <Header />
+                 <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Error</CardTitle>
+                            <CardDescription>Technician not found.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p>The technician with ID "{techId}" could not be found. They may have been deleted.</p>
+                        </CardContent>
+                    </Card>
+                </main>
+            </SidebarInset>
+        </SidebarProvider>
     );
   }
 
@@ -176,7 +234,7 @@ export default function TechnicianReportPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tasks.map(task => (
+                            {tasks.length > 0 ? tasks.map(task => (
                                 <TableRow key={task.id}>
                                     <TableCell>
                                         <div className="font-medium">{task.title}</div>
@@ -189,7 +247,9 @@ export default function TechnicianReportPage() {
                                         }>{task.status}</Badge>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow><TableCell colSpan={2} className="text-center">No tasks found for this technician.</TableCell></TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
@@ -210,7 +270,7 @@ export default function TechnicianReportPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {assignments.map(assignment => {
+                                {assignments.length > 0 ? assignments.map(assignment => {
                                     const material = materials.find(m => m.id === assignment.materialId);
                                     return (
                                         <TableRow key={assignment.id}>
@@ -219,7 +279,9 @@ export default function TechnicianReportPage() {
                                             <TableCell>{assignment.status}</TableCell>
                                         </TableRow>
                                     )
-                                })}
+                                }) : (
+                                     <TableRow><TableCell colSpan={3} className="text-center">No material assignments found.</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -239,13 +301,15 @@ export default function TechnicianReportPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {referrals.map(referral => (
+                                {referrals.length > 0 ? referrals.map(referral => (
                                     <TableRow key={referral.id}>
                                         <TableCell className="font-medium">{referral.customer_name}</TableCell>
                                         <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
                                         <TableCell>{referral.status}</TableCell>
                                     </TableRow>
-                                ))}
+                                )) : (
+                                    <TableRow><TableCell colSpan={3} className="text-center">No referrals found.</TableCell></TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -257,3 +321,5 @@ export default function TechnicianReportPage() {
     </SidebarProvider>
   );
 }
+
+    
