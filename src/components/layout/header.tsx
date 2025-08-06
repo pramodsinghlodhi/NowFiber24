@@ -17,12 +17,15 @@ import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "../ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { mockNotifications, Notification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLocationTracker } from "@/hooks/use-location-tracker";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -38,15 +41,15 @@ const getNotificationIcon = (type: Notification['type']) => {
 }
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user, technician, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
-  const [isOnBreak, setIsOnBreak] = useState(false);
-  const [isClockedIn, setIsClockedIn] = useState(true);
   const { setTheme } = useTheme();
   const [notifications, setNotifications] = useState(() => mockNotifications);
   
+  const isClockedIn = technician?.isActive ?? false;
+
   // Activate location tracking for technicians
   useLocationTracker(user?.role === 'Technician' ? user.id : null, isClockedIn);
 
@@ -78,22 +81,34 @@ export default function Header() {
     return pageName.charAt(0).toUpperCase() + pageName.slice(1);
   }
 
-  const handleToggleBreak = () => {
-    const onBreak = !isOnBreak;
-    setIsOnBreak(onBreak);
-    toast({
-        title: onBreak ? "You are now on break" : "You are back from break",
-        description: onBreak ? "Enjoy your coffee!" : "Welcome back to work.",
-    })
+  const handleToggleBreak = async () => {
+    if (!technician) return;
+    const newStatus = technician.status === 'on-break' ? 'available' : 'on-break';
+    const techDocRef = doc(db, 'technicians', technician.id);
+    try {
+      await updateDoc(techDocRef, { status: newStatus });
+      toast({
+        title: newStatus === 'on-break' ? "You are now on break" : "You are back from break",
+        description: newStatus === 'on-break' ? "Enjoy your coffee!" : "Welcome back to work.",
+      });
+    } catch (error) {
+      toast({ title: "Error", description: "Could not update your break status.", variant: "destructive" });
+    }
   }
 
-  const handleClockInOut = () => {
-    const clockedIn = !isClockedIn;
-    setIsClockedIn(clockedIn);
-    toast({
-        title: clockedIn ? "Clocked In" : "Clocked Out",
-        description: clockedIn ? "Your 8-hour shift has started." : "You have successfully clocked out.",
-    })
+  const handleClockInOut = async () => {
+    if (!technician) return;
+    const newIsActive = !technician.isActive;
+    const techDocRef = doc(db, 'technicians', technician.id);
+    try {
+        await updateDoc(techDocRef, { isActive: newIsActive });
+        toast({
+            title: newIsActive ? "Clocked In" : "Clocked Out",
+            description: newIsActive ? "Your 8-hour shift has started." : "You have successfully clocked out.",
+        });
+    } catch (error) {
+        toast({ title: "Error", description: "Could not update your clock-in status.", variant: "destructive" });
+    }
   }
 
   const handleNotificationClick = (notification: Notification) => {
@@ -111,16 +126,16 @@ export default function Header() {
       <SidebarTrigger className="md:hidden" />
       <div className="flex w-full items-center gap-2 md:ml-auto">
         <div className="flex-1 md:flex-grow-0 ml-auto">
-          {user?.role === 'Technician' && (
+          {user?.role === 'Technician' && technician && (
               <div className="flex items-center gap-2">
                     <Button variant={isClockedIn ? 'destructive' : 'default'} size="sm" onClick={handleClockInOut}>
                       <Timer className="mr-0 md:mr-2" />
                       <span className="hidden md:inline">{isClockedIn ? 'Clock Out' : 'Clock In'}</span>
                   </Button>
                     {isClockedIn && (
-                      <Button variant={isOnBreak ? 'secondary' : 'outline'} size="sm" onClick={handleToggleBreak}>
+                      <Button variant={technician.status === 'on-break' ? 'secondary' : 'outline'} size="sm" onClick={handleToggleBreak}>
                           <Coffee className="mr-0 md:mr-2"/>
-                          <span className="hidden md:inline">{isOnBreak ? 'End Break' : 'Take a Break'}</span>
+                          <span className="hidden md:inline">{technician.status === 'on-break' ? 'End Break' : 'Take a Break'}</span>
                       </Button>
                   )}
               </div>
@@ -230,3 +245,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

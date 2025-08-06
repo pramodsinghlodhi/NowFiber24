@@ -4,12 +4,13 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation'; 
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { User } from '@/lib/types'; 
+import { User, Technician } from '@/lib/types'; 
 
 interface AuthContextType {
   user: User | null;
+  technician: Technician | null;
   firebaseUser: FirebaseAuthUser | null;
   login: (userId: string, password?: string) => Promise<{ success: boolean, message: string }>;
   logout: () => void;
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [technician, setTechnician] = useState<Technician | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -39,18 +41,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.warn(`Blocked user with UID ${fbUser.uid} attempted to sign in.`);
                 await signOut(auth); // Force sign out for blocked user
                 setUser(null);
+                setTechnician(null);
             } else {
-                setUser({ uid: fbUser.uid, ...userData });
+                const fullUser = { uid: fbUser.uid, ...userData };
+                setUser(fullUser);
+                // If user is a technician, set up a real-time listener for their technician data
+                if (fullUser.role === 'Technician') {
+                    const techDocRef = doc(db, 'technicians', fullUser.id);
+                    onSnapshot(techDocRef, (techDoc) => {
+                        if (techDoc.exists()) {
+                            setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+                        } else {
+                            setTechnician(null);
+                        }
+                    });
+                } else {
+                    setTechnician(null);
+                }
             }
         } else {
-          // This case can happen if a user is created in Auth but not in Firestore.
-          // This can be a race condition or a failed database write.
           console.error(`No user document found for UID: ${fbUser.uid}. Logging out.`);
           await signOut(auth);
           setUser(null);
+          setTechnician(null);
         }
       } else {
         setUser(null);
+        setTechnician(null);
       }
       setLoading(false);
     });
@@ -120,6 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
     setUser(null);
     setFirebaseUser(null);
+    setTechnician(null);
     router.push('/');
   };
   
@@ -128,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, technician, firebaseUser, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -141,3 +159,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    

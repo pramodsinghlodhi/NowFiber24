@@ -175,7 +175,7 @@ export default function TechniciansPage() {
     }
     
     const handleToggleBlock = async (userToToggle: User) => {
-        if (!userToToggle.uid) {
+        if (!userToToggle?.uid) {
              toast({ title: "Error", description: "User UID not found.", variant: "destructive"});
              return;
         };
@@ -368,3 +368,5 @@ export default function TechniciansPage() {
     </>
   );
 }
+
+    
