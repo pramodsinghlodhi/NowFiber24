@@ -18,6 +18,7 @@ import { Task, Technician } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface CreateTaskFormProps {
   isOpen: boolean;
@@ -25,6 +26,20 @@ interface CreateTaskFormProps {
   onSave: (task: Omit<Task, 'id' | 'completionTimestamp'>) => void;
   technicians: Technician[];
 }
+
+const getStatusColor = (tech: Technician) => {
+    if (!tech.isActive) return 'bg-gray-400';
+    switch (tech.status) {
+      case 'available':
+        return 'bg-green-500';
+      case 'on-task':
+        return 'bg-blue-500';
+      case 'on-break':
+        return 'bg-yellow-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
 
 export default function CreateTaskForm({ isOpen, onOpenChange, onSave, technicians }: CreateTaskFormProps) {
   const [title, setTitle] = useState('');
@@ -94,7 +109,15 @@ export default function CreateTaskForm({ isOpen, onOpenChange, onSave, technicia
                     <SelectTrigger id="techId"><SelectValue placeholder="Select a technician" /></SelectTrigger>
                     <SelectContent>
                         {technicians.map(tech => (
-                            <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
+                            <SelectItem key={tech.id} value={tech.id}>
+                               <div className="flex items-center gap-2">
+                                    <span className={cn("h-2 w-2 rounded-full", getStatusColor(tech))}></span>
+                                    <span>{tech.name}</span>
+                                    <span className="ml-auto text-xs text-muted-foreground capitalize">
+                                        {tech.isActive ? tech.status.replace(/-/g, ' ') : 'Inactive'}
+                                    </span>
+                               </div>
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
