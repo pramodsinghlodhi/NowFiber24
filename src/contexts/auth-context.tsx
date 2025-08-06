@@ -6,11 +6,12 @@ import { useRouter, usePathname } from 'next/navigation';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { User, Technician } from '@/lib/types'; 
+import { User, Technician, Settings } from '@/lib/types'; 
 
 interface AuthContextType {
   user: User | null;
   technician: Technician | null;
+  settings: Settings | null;
   firebaseUser: FirebaseAuthUser | null;
   login: (userId: string, password?: string) => Promise<{ success: boolean, message: string }>;
   logout: () => void;
@@ -22,13 +23,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [technician, setTechnician] = useState<Technician | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    // Listener for application-wide settings
+    const settingsDocRef = doc(db, 'settings', 'live');
+    const unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
+        if (doc.exists()) {
+            setSettings(doc.data() as Settings);
+        }
+    });
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
         // Fetch user profile from Firestore using the UID from Auth 
@@ -72,7 +82,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribeAuth();
+        unsubscribeSettings();
+    }
   }, []);
   
   // This effect handles redirection based on auth state.
@@ -146,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, technician, firebaseUser, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, technician, settings, firebaseUser, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -159,5 +172,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

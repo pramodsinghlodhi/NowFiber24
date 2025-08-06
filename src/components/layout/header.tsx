@@ -44,7 +44,7 @@ const getNotificationIcon = (type: Notification['type']) => {
 }
 
 export default function Header() {
-  const { user, technician, logout } = useAuth();
+  const { user, technician, logout, settings } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -52,9 +52,10 @@ export default function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const isClockedIn = technician?.isActive ?? false;
+  const isGpsTrackingEnabled = settings?.technicianManagement?.enableGpsTracking ?? false;
 
-  // Activate location tracking for technicians
-  useLocationTracker(user?.role === 'Technician' ? user.id : null, isClockedIn);
+  // Activate location tracking for technicians only if the setting is enabled and they are clocked in
+  useLocationTracker(user?.role === 'Technician' ? user.id : null, isClockedIn && isGpsTrackingEnabled);
 
   useEffect(() => {
     if (user?.uid) {
