@@ -255,6 +255,10 @@ export default function ProofOfWorkPage() {
     {/* Lightbox Dialog */}
     <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
         <DialogContent className="max-w-4xl h-[90vh] p-2" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader className="sr-only">
+                <DialogTitle>Proof of Work Image</DialogTitle>
+                <DialogDescription>A larger view of the submitted proof of work image.</DialogDescription>
+            </DialogHeader>
             {selectedProof && (
                  <Image src={selectedProof.imageDataUri} alt="Lightbox" layout="fill" objectFit="contain" className="rounded-md" />
             )}
@@ -308,3 +312,5 @@ export default function ProofOfWorkPage() {
     </>
   );
 }
+
+    
