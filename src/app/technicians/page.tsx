@@ -233,9 +233,9 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
-                    <Button onClick={handleAddNew}>
+                    {/* <Button onClick={handleAddNew}>
                         display done
-                    </Button>
+                    </Button> */}
                 </CardHeader>
                 <CardContent>
                     {/* Mobile View */}
