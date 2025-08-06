@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map, Route, Camera} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map, Route, Camera, Undo2} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
@@ -30,6 +30,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Alert as AlertType, MaterialAssignment } from '@/lib/types';
 import { useMemo } from 'react';
+import ProofOfReturnForm from '../materials/proof-of-return-form';
 
 const MiniMap = dynamic(() => import('@/components/dashboard/mini-map'), {
   ssr: false,
@@ -138,6 +139,7 @@ export default function AppSidebar() {
       <SidebarFooter className="flex flex-col gap-2 p-2">
         {user?.role === 'Technician' && (
           <>
+            <ProofOfReturnForm />
             <RequestMaterial />
             <ReferCustomer />
           </>

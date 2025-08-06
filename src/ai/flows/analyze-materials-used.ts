@@ -39,6 +39,7 @@ const AnalyzeMaterialsUsedOutputSchema = z.object({
         reason: z.string().describe('The reason why this material is considered unauthorized.')
     })
   ).describe('A list of any detected materials that are non-standard, from a different company, or not on the issued list.'),
+  technicianPresent: z.boolean().describe('Whether a person, presumably the technician, is visible in the photo as proof of work.'),
   notes: z.string().describe('Any notes or observations about the materials or their usage.'),
 });
 export type AnalyzeMaterialsUsedOutput = z.infer<typeof AnalyzeMaterialsUsedOutputSchema>;
@@ -63,7 +64,8 @@ Your instructions are:
     - Items that appear to be from a different brand or of a different specification than the company standard (e.g., wrong type of fiber cable, non-standard connectors, different colored wiring or tubes).
     - Any other visual anomalies that suggest a deviation from standard procedure.
 4. For each non-compliant item you detect, add it to the 'unauthorizedItems' field with a clear 'reason' for why it's being flagged (e.g., "Unrecognized brand", "Item not on issued list", "Incorrect cable type detected").
-5. Provide overall notes and observations in the 'notes' field.
+5. Analyze the photo to determine if a person (the technician) is present in the image. This serves as part of the proof of work. Set the 'technicianPresent' field to true if a person is visible, otherwise set it to false.
+6. Provide overall notes and observations in the 'notes' field.
 
 Task Details: {{{taskDetails}}}
 Materials Issued: {{{materialsIssued}}}

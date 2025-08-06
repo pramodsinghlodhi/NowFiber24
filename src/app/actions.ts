@@ -4,6 +4,7 @@
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
+import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { collection, getDocs, query, where, limit, doc, getDoc, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Technician, Infrastructure, Task, MaterialAssignment } from '@/lib/types';
@@ -77,6 +78,10 @@ export async function runTraceRoute(input: TraceRouteInput) {
     return result;
 }
 
+export async function returnMaterials(photoDataUri: string) {
+    const result = await returnMaterialsFlow({ photoDataUri });
+    return result;
+}
 
 export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestamp'>) {
   try {

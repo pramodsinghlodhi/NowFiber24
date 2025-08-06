@@ -12,17 +12,14 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {Bot, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw} from 'lucide-react';
+import {Bot, Upload, Loader2, Camera, Check, RefreshCw, Undo2} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import Image from 'next/image';
-import {analyzeMaterials} from '@/app/actions';
-import {Task} from '@/lib/types';
 import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
 import {Badge} from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
+import { returnMaterials } from '@/app/actions';
 
 const toDataURL = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -32,7 +29,7 @@ const toDataURL = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-export default function ProofOfWorkForm({task}: {task: Task}) {
+export default function ProofOfReturnForm() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +44,6 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
   const {toast} = useToast();
 
   useEffect(() => {
-    // Stop stream when component unmounts or dialog closes
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -57,7 +53,7 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
 
   const getCameraPermission = () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({ title: "Camera not supported", description: "Your browser does not support camera access.", variant: "destructive" });
+        toast({ title: "Camera not supported", variant: "destructive" });
         return;
     }
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -67,7 +63,6 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
         if (videoRef.current) {
            videoRef.current.srcObject = s;
         }
-        // Get location
         navigator.geolocation.getCurrentPosition(
             (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
             (err) => console.warn(`Could not get location: ${err.message}`)
@@ -96,63 +91,29 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
       if (!context) return;
-      
-      // Draw video frame
       context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-
-      // Prepare overlay text
-      const now = new Date();
-      const dateStr = now.toLocaleDateString();
-      const timeStr = now.toLocaleTimeString();
-      const locationStr = location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Location not available';
-      
-      // Style and draw overlay
-      context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      context.fillRect(0, canvas.height - 60, canvas.width, 60);
-      context.font = '20px Arial';
-      context.fillStyle = 'white';
-      context.textAlign = 'left';
-      context.fillText(`${dateStr} ${timeStr}`, 10, canvas.height - 35);
-      context.textAlign = 'right';
-      context.fillText(locationStr, canvas.width - 10, canvas.height - 35);
-
       const dataUrl = canvas.toDataURL('image/jpeg');
       setPreview(dataUrl);
-
       if (stream) {
-        stream.getTracks().forEach(track => track.stop()); // Turn off camera
+        stream.getTracks().forEach(track => track.stop());
       }
       setStream(null);
     }
   };
 
-
   const handleAnalyze = async () => {
     if (!preview || !user) {
-      toast({title: 'No image provided or user not found', description: 'Please upload or capture a photo of the materials.', variant: 'destructive'});
+      toast({title: 'No image provided or user not found', variant: 'destructive'});
       return;
     }
     setIsLoading(true);
     setResult(null);
-
     try {
-      const analysisResult = await analyzeMaterials(preview, task.id);
+      const analysisResult = await returnMaterials(preview);
       setResult(analysisResult);
-      toast({title: 'Analysis Complete', description: 'Successfully analyzed materials photo.'});
-      
-      // Save to Firestore
-      await addDoc(collection(db, "proofOfWork"), {
-        technicianId: user.id,
-        taskId: task.id,
-        imageDataUri: preview,
-        location: location,
-        analysisResult: analysisResult,
-        timestamp: new Date().toISOString()
-      });
-       toast({title: 'Proof of Work Saved', description: 'Your photo and analysis have been saved.'});
-
+      toast({title: 'Analysis Complete', description: 'Successfully analyzed returned materials.'});
     } catch (error) {
-      toast({title: 'Analysis Failed', description: 'Could not analyze the image or save the result.', variant: 'destructive'});
+      toast({title: 'Analysis Failed', description: 'Could not analyze the image.', variant: 'destructive'});
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -186,18 +147,18 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Camera className="mr-2 h-4 w-4" />
-          Submit Proof
+        <Button variant="outline" className="w-full justify-start">
+          <Undo2 className="mr-2 h-4 w-4" />
+          Proof of Return
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle className="font-headline flex items-center gap-2">
-            <Bot className="text-primary" /> AI Proof of Work
+            <Bot className="text-primary" /> AI Proof of Return
           </DialogTitle>
           <DialogDescription>
-            Upload or capture a photo of the completed work. The AI will identify materials and your location will be logged.
+            Take a photo of your remaining materials at the end of the day. The AI will identify them to update your inventory.
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="camera" onValueChange={resetState}>
@@ -255,63 +216,23 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
 
           {result && (
             <div className="space-y-4">
-              
-              {result.technicianPresent === false && (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle className="font-bold">Technician Not Detected</AlertTitle>
-                    <AlertDescription>
-                       The AI could not detect a person in the photo. Please ensure you are in the shot for valid proof of work.
-                    </AlertDescription>
-                </Alert>
-              )}
-
-              {result.unauthorizedItems?.length > 0 && (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle className="font-bold">Unauthorized Materials Detected!</AlertTitle>
-                    <AlertDescription>
-                        The following non-standard items were identified:
-                         <ul className="list-disc list-inside mt-2 space-y-1">
-                            {result.unauthorizedItems.map((item: any, index: number) => (
-                                <li key={index}>
-                                    <strong>{item.item}:</strong> {item.reason}
-                                </li>
-                            ))}
-                        </ul>
-                    </AlertDescription>
-                </Alert>
-              )}
-                <Alert>
-                    <AlertTitle className="font-bold">Analysis Notes</AlertTitle>
-                    <AlertDescription>{result.notes || 'Analysis complete.'}</AlertDescription>
+              <Alert>
+                <AlertTitle className="font-bold">Analysis Notes</AlertTitle>
+                <AlertDescription>{result.notes || 'Analysis complete.'}</AlertDescription>
               </Alert>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Materials Used:</h4>
+              <div>
+                  <h4 className="font-semibold mb-2">Materials Identified for Return:</h4>
                   <ul className="list-disc list-inside space-y-1">
-                    {result.materialsUsed?.map((item: any, index: number) => (
+                    {result.materialsToReturn?.map((item: any, index: number) => (
                       <li key={index}>
                         {item.item}: <Badge variant="secondary">{item.quantity}</Badge>
                       </li>
                     ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Missing Items from Issued List:</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {result.missingItems?.length > 0 ? (
-                      result.missingItems.map((item: string, index: number) => (
-                        <li key={index}>
-                          {item}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="text-muted-foreground">None</li>
+                    {result.materialsToReturn?.length === 0 && (
+                        <li className="text-muted-foreground">No materials identified.</li>
                     )}
                   </ul>
                 </div>
-              </div>
             </div>
           )}
         </div>
@@ -327,7 +248,7 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
               </>
             ) : (
               <>
-                <Bot className="mr-2 h-4 w-4" /> Analyze & Save
+                <Bot className="mr-2 h-4 w-4" /> Analyze & Submit
               </>
             )}
           </Button>
