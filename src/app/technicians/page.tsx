@@ -264,10 +264,7 @@ export default function TechniciansPage() {
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
+                                                
                                                 <DropdownMenuSeparator/>
                                                 {techUser && (
                                                     techUser.isBlocked ? (
@@ -349,10 +346,7 @@ export default function TechniciansPage() {
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
+                                                
                                                 <DropdownMenuSeparator/>
                                                 {techUser && (
                                                     techUser.isBlocked ? (
