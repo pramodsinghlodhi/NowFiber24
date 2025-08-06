@@ -41,7 +41,7 @@ const menuItemsTop = [
     {href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', admin: true, tech: true},
     {href: '/map', icon: Map, label: 'Fullscreen Map', admin: true, tech: true},
     {href: '/alerts', icon: AlertTriangle, label: 'Alerts', admin: true, tech: true},
-    {href: '/inventory', icon: Network, label: 'Inventory', admin: true, tech: false},
+    {href: '/inventory', icon: Network, label: 'Inventory', admin: true, tech: true},
     {href: '/tasks', icon: ListTodo, label: 'Tasks', admin: true, tech: true},
     {href: '/technicians', icon: HardHat, label: 'Technicians', admin: true, tech: false},
     {href: '/materials', icon: Wrench, label: 'Materials', admin: true, tech: false, notificationKey: 'materials'},

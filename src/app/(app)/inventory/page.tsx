@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Circle, MoreHorizontal, PlusCircle, Trash, Edit, MapPin, Wifi } from 'lucide-react';
+import { Circle, MoreHorizontal, PlusCircle, Trash, Edit, MapPin, Wifi, HardHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import DeviceForm from '@/components/inventory/device-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, doc, updateDoc, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { formatDistanceToNow } from 'date-fns';
 
 const getStatusIndicator = (status: Infrastructure['status']) => {
     switch (status) {
@@ -69,10 +70,6 @@ export default function InventoryPage() {
             toast({ title: "Error", description: "Could not update device.", variant: "destructive" });
         }
     } else {
-        if (user?.role !== 'Admin') {
-            toast({ title: 'Permission Denied', description: 'You do not have permission to add new devices.', variant: 'destructive' });
-            return;
-        }
         try {
             const docRef = doc(db, 'infrastructure', deviceData.id);
             await setDoc(docRef, deviceData);
@@ -95,6 +92,20 @@ export default function InventoryPage() {
     setSelectedDevice(device);
     setIsFormOpen(true);
   }
+  
+  const renderTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+         return 'Invalid Date';
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+        console.error("Error formatting timestamp:", error);
+        return 'Invalid Date';
+    }
+  };
 
   if (loading) {
     return (
@@ -133,6 +144,9 @@ export default function InventoryPage() {
                       <div className="text-sm text-muted-foreground space-y-1 pt-2 border-t">
                           <p className="flex items-center gap-2"><MapPin size={14}/> {typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</p>
                           <p className="flex items-center gap-2"><Wifi size={14}/> {device.ip || "N/A"}</p>
+                           {device.connectedBy && (
+                              <p className="flex items-center gap-2"><HardHat size={14}/>Added by {device.connectedBy} {renderTimestamp(device.connectionDate)}</p>
+                          )}
                       </div>
                       <div className="flex justify-end gap-2 pt-2">
                             <Button variant="outline" size="sm" onClick={() => handleEdit(device)}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
@@ -151,8 +165,7 @@ export default function InventoryPage() {
                   <TableHead>Device ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead>Location</TableHead>
+                  <TableHead>Added By</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -163,8 +176,14 @@ export default function InventoryPage() {
                     <TableCell className="font-medium">{device.id}</TableCell>
                     <TableCell>{device.name}</TableCell>
                     <TableCell>{device.type}</TableCell>
-                    <TableCell>{device.ip || "N/A"}</TableCell>
-                    <TableCell>{typeof device.lat === 'number' && typeof device.lng === 'number' ? `${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}` : 'N/A'}</TableCell>
+                    <TableCell>
+                        {device.connectedBy ? (
+                           <div className="flex flex-col">
+                                <span className="font-medium">{device.connectedBy}</span>
+                                <span className="text-xs text-muted-foreground">{renderTimestamp(device.connectionDate)}</span>
+                           </div>
+                        ) : 'N/A'}
+                    </TableCell>
                     <TableCell>
                       {getStatusIndicator(device.status)}
                     </TableCell>
@@ -181,7 +200,7 @@ export default function InventoryPage() {
                                   <Edit className="mr-2 h-4 w-4" />
                                   Edit
                               </DropdownMenuItem>
-                              {user.role === 'Admin' && (
+                              {user?.role === 'Admin' && (
                                   <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(device.id)}>
                                       <Trash className="mr-2 h-4 w-4" />
                                       Delete
