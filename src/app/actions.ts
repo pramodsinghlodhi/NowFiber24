@@ -37,8 +37,8 @@ export async function runAutoFaultDetection() {
     deviceId: faultyDevice.id,
     deviceIp: faultyDevice.ip || 'N/A',
     deviceType: faultyDevice.type,
-    latitude: faultyDevice.lat,
-    longitude: faultyDevice.lng,
+    latitude: parseFloat(String(faultyDevice.lat)),
+    longitude: parseFloat(String(faultyDevice.lng)),
     assignedTechs: techniciansWithLocation,
   });
 
