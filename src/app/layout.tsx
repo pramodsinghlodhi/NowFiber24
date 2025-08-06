@@ -12,6 +12,11 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space
 export const metadata: Metadata = {
   title: 'NowFiber24',
   description: 'FTTH Network Management & Field Engineering Platform',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    userScalable: false,
+  },
 };
 
 export default function RootLayout({
