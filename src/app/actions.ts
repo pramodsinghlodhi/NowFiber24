@@ -53,20 +53,19 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     }
     const taskData = taskDoc.data() as Task;
 
-    const assignmentsQuery = query(collection(db, 'assignments'), where('technicianId', '==', taskData.tech_id));
+    // This query is now more specific, but for this app, we assume any material issued to a tech could be for any of their tasks.
+    // A more complex app might have a direct task-to-assignment link.
+    const assignmentsQuery = query(collection(db, 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
     const assignmentsSnapshot = await getDocs(assignmentsQuery);
     const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
-    // This is a simplification. A real app would likely link assignments to specific tasks.
-    // For now, we'll just create a string of all materials issued to the tech.
     const materialsIssuedString = assignments
-        .filter(a => a.status === 'Issued')
         .map(a => `${a.quantityAssigned}x ${a.materialId}`)
         .join(', ');
 
     const result = await analyzeMaterialsUsed({
         photoDataUri,
-        taskDetails: `${taskData.title}: ${taskData.description}`,
+        taskDetails: `Task: ${taskData.title}. Description: ${taskData.description}`,
         materialsIssued: materialsIssuedString || "No materials were formally issued for this task.",
     });
 
