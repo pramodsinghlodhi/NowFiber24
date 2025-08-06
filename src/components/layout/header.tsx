@@ -22,6 +22,7 @@ import { useTheme } from "next-themes";
 import { mockNotifications, Notification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useLocationTracker } from "@/hooks/use-location-tracker";
 
 const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -45,6 +46,9 @@ export default function Header() {
   const [isClockedIn, setIsClockedIn] = useState(true);
   const { setTheme } = useTheme();
   const [notifications, setNotifications] = useState(() => mockNotifications);
+  
+  // Activate location tracking for technicians
+  useLocationTracker(user?.role === 'Technician' ? user.id : null, isClockedIn);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

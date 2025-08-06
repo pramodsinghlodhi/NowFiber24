@@ -1,103 +1,91 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // =================================================================
-    // Helper Functions
-    // =================================================================
-    
-    // Check if the user is authenticated
-    function isAuthenticated() {
+    // Helper functions to improve readability
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    // Get the user's role from their profile in the 'users' collection
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    
-    // Check if the user is an Admin
+
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'Admin';
+      return isSignedIn() && getUserData().role == 'Admin';
     }
-    
-    // Check if the user is a Technician
+
     function isTechnician() {
-      return isAuthenticated() && getUserRole() == 'Technician';
+      return isSignedIn() && getUserData().role == 'Technician';
     }
 
-    // Check if the user is the assigned technician for a resource
-    // (e.g., a task or an assignment)
-    function isAssignedTechnician(resource) {
-        return isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
-    }
-    
-    function isOwner(userId) {
-        return request.auth.uid == userId;
-    }
-
-    // =================================================================
-    // Collection-specific Rules
-    // =================================================================
-
-    // Users Collection
-    // Admins can read/write any user.
-    // Users can only read/update their own profile.
-    match /users/{userId} {
-      allow read, update: if isAdmin() || isOwner(userId);
-      allow create, delete: if isAdmin();
-    }
-    
-    // Technicians Collection
-    // Admins can manage all technician data.
-    // Technicians can update their own data (e.g., location, status).
-    match /technicians/{techId} {
-        allow read: if isAuthenticated();
-        allow update: if isAdmin() || (isTechnician() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId);
-        allow create, delete: if isAdmin();
-    }
-    
-    // Tasks Collection
-    // Admins can manage all tasks.
-    // Technicians can read all tasks and update tasks assigned to them.
-    match /tasks/{taskId} {
-        allow read: if isAuthenticated();
-        allow update: if isAdmin() || isAssignedTechnician(resource);
-        allow create, delete: if isAdmin();
-    }
-
-    // Proof of Work Collection
-    // Admins can read all proofs.
-    // Technicians can create new proofs.
-    match /proofOfWork/{proofId} {
-        allow read: if isAdmin();
-        allow create: if isTechnician();
-        // No updates or deletes allowed for data integrity
-        allow update, delete: if false;
-    }
-    
-    // Assignments Collection (Material Requests/Issues)
-    // Admins can manage all assignments.
-    // Technicians can create new requests (assignments) and read their own.
-    match /assignments/{assignmentId} {
-      allow read, update, delete: if isAdmin();
-      allow create: if isTechnician();
-    }
-    
-    // Referrals Collection
-    // Admins can manage all referrals.
-    // Technicians can create new referrals and read their own.
-     match /referrals/{referralId} {
-      allow read, update: if isAdmin() || isAssignedTechnician(resource);
-      allow create: if isTechnician();
-      allow delete: if isAdmin();
-    }
-
-    // Default deny for all other collections unless explicitly allowed
-    // Admins get full access to all other collections
+    // Admins have full access to everything. This is a simple, powerful rule.
     match /{document=**} {
       allow read, write: if isAdmin();
+    }
+    
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Any signed-in user can read their own profile
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // Admins can create/update/delete any user profile
+      allow write: if isAdmin();
+    }
+    
+    // Technicians need to read from many collections to do their job
+    match /technicians/{techId} {
+       // Technicians can read all technician data (for maps, etc.)
+      allow read: if isTechnician();
+      // A technician can ONLY update their own document
+      allow update: if isTechnician() && request.auth.uid == getUserData().uid && techId == getUserData().id;
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isTechnician();
+      // A technician can only update a task assigned to them
+      allow update: if isTechnician() && get(/databases/$(database)/documents/tasks/$(taskId)).data.tech_id == getUserData().id;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isTechnician();
+    }
+    
+    match /infrastructure/{deviceId} {
+       allow read: if isTechnician();
+    }
+
+    match /connections/{connId} {
+       allow read: if isTechnician();
+    }
+    
+    match /materials/{materialId} {
+        allow read: if isTechnician();
+    }
+
+    match /assignments/{assignmentId} {
+        // Technicians can create new material requests
+        allow create: if isTechnician();
+        // Technicians can read their own assignments
+        allow read: if isTechnician() && resource.data.technicianId == getUserData().id;
+    }
+    
+    match /referrals/{referralId} {
+        // Technicians can create new referrals
+        allow create: if isTechnician();
+        // Technicians can read their own referrals
+        allow read: if isTechnician() && resource.data.tech_id == getUserData().id;
+    }
+    
+    match /proofOfWork/{proofId} {
+        // Technicians can create new proof of work submissions
+        allow create: if isTechnician();
+    }
+
+    // Fallback security rule - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

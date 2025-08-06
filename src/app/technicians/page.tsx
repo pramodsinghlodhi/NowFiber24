@@ -28,7 +28,7 @@ import { db } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 
 
-const getStatusBadge = (tech: Technician) => {
+const getActivityBadge = (tech: Technician) => {
     if (!tech.isActive) {
         return <Badge variant="secondary">Inactive</Badge>;
     }
@@ -297,7 +297,7 @@ export default function TechniciansPage() {
                                         <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', techUser?.isBlocked && 'bg-gray-500')}>
                                             {techUser?.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
                                         </Badge>
-                                        {getStatusBadge(tech)}
+                                        {getActivityBadge(tech)}
                                     </div>
                                 </Card>
                              )
@@ -309,7 +309,7 @@ export default function TechniciansPage() {
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Current Activity</TableHead>
+                                <TableHead>Activity</TableHead>
                                 <TableHead>Current Location</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -335,7 +335,7 @@ export default function TechniciansPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                       {getStatusBadge(tech)}
+                                       {getActivityBadge(tech)}
                                     </TableCell>
                                     <TableCell>
                                         {tech.isActive && typeof tech.lat === 'number' && typeof tech.lng === 'number' ? `${tech.lat.toFixed(4)}, ${tech.lng.toFixed(4)}` : 'N/A'}
