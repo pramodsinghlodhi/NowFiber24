@@ -1,90 +1,103 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Helper functions to check user roles
-    function isAuth() {
+    // =================================================================
+    // Helper Functions
+    // =================================================================
+    
+    // Check if the user is authenticated
+    function isAuthenticated() {
       return request.auth != null;
     }
 
+    // Get the user's role from their profile in the 'users' collection
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Check if the user is an Admin
     function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      return isAuthenticated() && getUserRole() == 'Admin';
     }
-
+    
+    // Check if the user is a Technician
     function isTechnician() {
-        return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Technician';
+      return isAuthenticated() && getUserRole() == 'Technician';
     }
 
+    // Check if the user is the assigned technician for a resource
+    // (e.g., a task or an assignment)
+    function isAssignedTechnician(resource) {
+        return isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
+    }
+    
     function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    // Admins have full access to everything. This is the simplest, most reliable rule.
-    match /{document=**} {
-      allow read, write: if isAdmin();
+        return request.auth.uid == userId;
     }
 
-    // Rules for the 'users' collection
+    // =================================================================
+    // Collection-specific Rules
+    // =================================================================
+
+    // Users Collection
+    // Admins can read/write any user.
+    // Users can only read/update their own profile.
     match /users/{userId} {
-      // Any authenticated user can read their own profile
-      allow get: if isAuth() && isOwner(userId);
-      // Technicians can't create users, only admins (covered by the rule above)
-      // Admins can update any user profile (covered by the rule above)
-      allow list: if isAdmin();
-    }
-
-    // Rules for Technicians data
-    match /technicians/{techId} {
-        // Technicians can read all technician data (for maps, etc.)
-        allow read: if isTechnician();
-        // Technicians can update their OWN document (for location, status, etc.)
-        allow update: if isTechnician() && techId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
-    }
-
-    // Rules for Tasks
-    match /tasks/{taskId} {
-        allow read: if isTechnician();
-        // A tech can update a task if it's assigned to them.
-        allow update: if isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
-    }
-
-    // Rules for Referrals
-    match /referrals/{referralId} {
-        allow read: if isTechnician();
-        // A tech can create a referral.
-        allow create: if isTechnician();
+      allow read, update: if isAdmin() || isOwner(userId);
+      allow create, delete: if isAdmin();
     }
     
-    // Rules for Material Assignments
+    // Technicians Collection
+    // Admins can manage all technician data.
+    // Technicians can update their own data (e.g., location, status).
+    match /technicians/{techId} {
+        allow read: if isAuthenticated();
+        allow update: if isAdmin() || (isTechnician() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId);
+        allow create, delete: if isAdmin();
+    }
+    
+    // Tasks Collection
+    // Admins can manage all tasks.
+    // Technicians can read all tasks and update tasks assigned to them.
+    match /tasks/{taskId} {
+        allow read: if isAuthenticated();
+        allow update: if isAdmin() || isAssignedTechnician(resource);
+        allow create, delete: if isAdmin();
+    }
+
+    // Proof of Work Collection
+    // Admins can read all proofs.
+    // Technicians can create new proofs.
+    match /proofOfWork/{proofId} {
+        allow read: if isAdmin();
+        allow create: if isTechnician();
+        // No updates or deletes allowed for data integrity
+        allow update, delete: if false;
+    }
+    
+    // Assignments Collection (Material Requests/Issues)
+    // Admins can manage all assignments.
+    // Technicians can create new requests (assignments) and read their own.
     match /assignments/{assignmentId} {
-      allow read: if isTechnician();
-      // Techs can create new requests
+      allow read, update, delete: if isAdmin();
       allow create: if isTechnician();
     }
-
-    // Rules for Proof of Work
-    match /proofOfWork/{proofId} {
-        // A tech can create a proof of work record
-        allow create: if isTechnician();
+    
+    // Referrals Collection
+    // Admins can manage all referrals.
+    // Technicians can create new referrals and read their own.
+     match /referrals/{referralId} {
+      allow read, update: if isAdmin() || isAssignedTechnician(resource);
+      allow create: if isTechnician();
+      allow delete: if isAdmin();
     }
 
-    // Default read access for other collections needed by technicians
-    match /infrastructure/{deviceId} {
-      allow read: if isTechnician();
-    }
-     match /connections/{connectionId} {
-      allow read: if isTechnician();
-    }
-     match /alerts/{alertId} {
-      allow read: if isTechnician();
-    }
-    match /materials/{materialId} {
-      allow read: if isTechnician();
-    }
-     match /plans/{planId} {
-      allow read: if isTechnician();
+    // Default deny for all other collections unless explicitly allowed
+    // Admins get full access to all other collections
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
