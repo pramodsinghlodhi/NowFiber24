@@ -1,46 +1,41 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Admin can do anything
+    
+    // Helper function to check if the user is an admin
     function isAdmin() {
-      return request.auth.token.isAdmin == true;
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
-    
-    // Users can read their own user profile.
+
+    // Rules for the 'users' collection
     match /users/{userId} {
-      allow read: if request.auth.uid == userId;
-      allow write: if isAdmin(); // Only admins can write to user profiles
+      // Admins can read/write any user document
+      allow read, write: if isAdmin();
+      // Any authenticated user can read their OWN user document
+      allow get: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Technicians can update their own status and location if their UID matches.
+
+    // Rules for the 'technicians' collection
     match /technicians/{techId} {
-        allow read: if request.auth != null; // Any authenticated user can read technician data
-        allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId;
-        allow write: if isAdmin(); // Admins can create/delete
+      // Admins can read/write any technician document
+      allow read, write: if isAdmin();
+      // An authenticated user can update their own technician document
+      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId;
     }
 
-    match /referrals/{referralId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if isAdmin();
+    // Rules for the 'tasks' collection
+    match /tasks/{taskId} {
+      // Admins can read/write any task document
+      allow read, write: if isAdmin();
+      // Any authenticated user can read any task.
+      allow list: if request.auth != null;
     }
     
-    match /assignments/{assignmentId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if isAdmin();
-    }
-
-    // Default read access for authenticated users to other collections.
-    match /{collection}/{docId} {
-      allow read: if request.auth != null;
-    }
-    
-    // Default write access for admins to any document.
+    // Generic read-only access for most other collections
     match /{document=**} {
-      allow write: if isAdmin();
+      allow read: if request.auth != null;
     }
   }
 }

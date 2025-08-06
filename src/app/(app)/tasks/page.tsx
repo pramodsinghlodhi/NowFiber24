@@ -58,16 +58,21 @@ export default function TasksPage() {
 
     const tasksQuery = useMemo(() => {
         if (!user) return null;
-        const q = user.role === 'Admin' 
-            ? collection(db, 'tasks')
-            : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
-        return query(q, orderBy('status')); // Simple ordering
+        return query(collection(db, 'tasks'), orderBy('status'));
     }, [user]);
     
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
 
-    const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
+    const { data: allTasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+
+    const tasks = useMemo(() => {
+        if (user?.role === 'Admin') {
+            return allTasks;
+        }
+        return allTasks.filter(task => task.tech_id === user?.id);
+    }, [allTasks, user]);
+
 
     const { inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
         const inProgress = tasks.filter(task => task.status === 'In Progress');
