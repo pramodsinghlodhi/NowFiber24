@@ -1,105 +1,94 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions to check user roles
+    
+    // Helper Functions
     function isLoggedIn() {
       return request.auth != null;
     }
 
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
+    function isDataOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    function isRole(role) {
-      return isLoggedIn() && getUserData(request.auth.uid).role == role;
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
     function isAdmin() {
-      return isRole('Admin');
+      return isLoggedIn() && getUserRole() == 'Admin';
     }
 
     function isTechnician() {
-      return isRole('Technician');
+      return isLoggedIn() && getUserRole() == 'Technician';
     }
 
-    // Admins can do anything.
-    // This rule being at the top level for each collection ensures it's checked first.
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-    
-    // Users Collection: 
-    // - Admins can manage all users (covered by global rule).
-    // - Logged-in users can read other user profiles (e.g., to see names).
-    // - Logged-in users can update their own profile.
+    // Collection Rules
     match /users/{userId} {
       allow read: if isLoggedIn();
-      allow update: if isLoggedIn() && request.auth.uid == userId;
-      // Create and delete are admin-only operations handled by the global rule.
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isTechnician() && isDataOwner(userId));
+      allow delete: if isAdmin();
     }
 
-    // Technicians Collection:
-    // - Admins can manage all technicians (covered by global rule).
-    // - All logged-in users can read technician data (for maps, task assignments).
-    // - Technicians can update their own document (e.g., for location, status).
     match /technicians/{techId} {
       allow read: if isLoggedIn();
-      // A user can update a technician document if they are an admin OR if the techId matches their own custom ID.
-      allow update: if isLoggedIn() && (getUserData(request.auth.uid).id == techId);
-       // Create and delete are admin-only operations handled by the global rule.
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isTechnician() && request.resource.data.id == techId);
+      allow delete: if isAdmin();
     }
-
-    // Tasks Collection:
-    // - Admins can manage all tasks (covered by global rule).
-    // - Technicians can read all tasks.
-    // - Technicians can only update tasks that are assigned to them.
+    
     match /tasks/{taskId} {
       allow read: if isLoggedIn();
-      allow update: if isTechnician() && resource.data.tech_id == getUserData(request.auth.uid).id;
-      // Create is admin-only.
+      allow create: if isAdmin();
+      // Allow admin to update anything, allow technician to update only if the task is assigned to them.
+      allow update: if isAdmin() || (isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
+      allow delete: if isAdmin();
     }
     
-    // Alerts, Infrastructure, Connections, Plans can be read by any logged-in user.
-    // Write access is admin-only.
     match /alerts/{alertId} {
       allow read: if isLoggedIn();
-    }
-    match /infrastructure/{infraId} {
-      allow read: if isLoggedIn();
-    }
-    match /connections/{connId} {
-        allow read: if isLoggedIn();
-    }
-    match /plans/{planId} {
-        allow read: if isLoggedIn();
+      // Only Admins (or backend processes with admin credentials) can create, update, or delete alerts.
+      allow write: if isAdmin();
     }
 
-    // Materials can be read by any logged-in user.
-    // Write access is admin-only.
+    match /infrastructure/{deviceId} {
+      allow read: if isLoggedIn();
+      // Only Admins can manage the core infrastructure records.
+      allow write: if isAdmin();
+    }
+
+    match /connections/{connectionId} {
+      allow read: if isLoggedIn();
+      // Only Admins can manage network connections.
+      allow write: if isAdmin();
+    }
+
     match /materials/{materialId} {
-        allow read: if isLoggedIn();
+      allow read: if isLoggedIn();
+      // Only Admins can manage the master materials list.
+      allow write: if isAdmin();
     }
-    
-    // Assignments (Material Requests/Issues):
-    // - Admins can manage all assignments (covered by global rule).
-    // - Technicians can read their own assignments.
-    // - Technicians can create new assignments (requests).
+
     match /assignments/{assignmentId} {
-      allow read: if isTechnician() && getUserData(request.auth.uid).id == resource.data.technicianId;
+      allow read: if isLoggedIn();
+      // Technicians can create (request) assignments, Admins can manage them.
       allow create: if isTechnician();
-      // Updates (approving, issuing) are admin-only.
+      allow update, delete: if isAdmin();
+    }
+
+    match /referrals/{referralId} {
+      allow read: if isLoggedIn();
+      // Technicians can create referrals, Admins can manage them.
+      allow create: if isTechnician();
+      allow update, delete: if isAdmin();
     }
     
-    // Referrals:
-    // - Admins can read all referrals (covered by global rule).
-    // - Technicians can read their own referrals.
-    // - Technicians can create new referrals.
-    match /referrals/{referralId} {
-        allow read: if isTechnician() && getUserData(request.auth.uid).id == resource.data.tech_id;
-        allow create: if isTechnician();
-        // Updates (changing status) are admin-only.
+    match /plans/{planId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
     }
   }
 }
