@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Map as MapIcon, Satellite, Filter as FilterIcon, Route, Loader2 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { runTraceRoute } from '../actions';
+import { runTraceRoute } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection } from 'firebase/firestore';

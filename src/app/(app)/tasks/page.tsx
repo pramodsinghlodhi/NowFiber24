@@ -14,7 +14,7 @@ import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import CreateTaskForm from '@/components/tasks/create-task-form';
-import { createTask } from '../actions';
+import { createTask } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
 function TaskColumnSkeleton() {
