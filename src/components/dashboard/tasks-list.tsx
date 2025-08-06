@@ -3,15 +3,14 @@
 
 import { Task, Technician } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Clock, User, HardHat } from 'lucide-react';
-import MaterialsAnalyzer from './materials-analyzer';
+import { CheckCircle, Clock, HardHat, Camera } from 'lucide-react';
+import ProofOfWorkForm from '@/components/tasks/proof-of-work-form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useState, useMemo } from 'react';
+import { useState, useMemo }from 'react';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,9 +92,9 @@ function TaskItem({ task, technicians }: TaskItemProps) {
                     <p className="text-sm text-muted-foreground">{task.description}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
-                 {task.status !== 'Completed' && <MaterialsAnalyzer task={task} /> }
-            </div>
+            {task.status === 'Completed' && user?.role === 'Technician' && (
+                <ProofOfWorkForm task={task} />
+            )}
         </div>
          <div className="flex items-center justify-between mt-3 pl-9">
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>

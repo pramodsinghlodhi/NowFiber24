@@ -12,14 +12,13 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {Bot, Wrench, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw} from 'lucide-react';
+import {Bot, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import Image from 'next/image';
 import {analyzeMaterials} from '@/app/actions';
 import {Task} from '@/lib/types';
 import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
 import {Badge} from '../ui/badge';
-import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -33,7 +32,7 @@ const toDataURL = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-export default function MaterialsAnalyzer({task}: {task: Task}) {
+export default function ProofOfWorkForm({task}: {task: Task}) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -188,27 +187,28 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Wrench className="h-4 w-4" />
+          <Camera className="mr-2 h-4 w-4" />
+          Submit Proof
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle className="font-headline flex items-center gap-2">
-            <Bot className="text-primary" /> AI Proof of Work Analyzer
+            <Bot className="text-primary" /> AI Proof of Work
           </DialogTitle>
           <DialogDescription>
-            Upload or capture a photo of materials used to complete the task. The AI will identify items and quantities. Your location will be logged.
+            Upload or capture a photo of the completed work. The AI will identify materials and your location will be logged.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="upload" onValueChange={resetState}>
+        <Tabs defaultValue="camera" onValueChange={resetState}>
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="camera" onClick={getCameraPermission}><Camera className="mr-2"/> Live Capture</TabsTrigger>
-                <TabsTrigger value="upload"><Upload className="mr-2"/> Upload</TabsTrigger>
+                <TabsTrigger value="upload"><Upload className="mr-2"/> Upload Photo</TabsTrigger>
             </TabsList>
             <TabsContent value="camera">
                 <div className="relative h-64 w-full bg-muted rounded-lg flex items-center justify-center text-muted-foreground transition-colors mt-2">
                     {preview ? (
-                        <Image src={preview} alt="Materials preview" layout="fill" objectFit="contain" className="rounded-lg" />
+                        <Image src={preview} alt="Work preview" layout="fill" objectFit="contain" className="rounded-lg" />
                     ) : (
                          stream && hasCameraPermission ? (
                             <video ref={videoRef} className="w-full h-full object-cover rounded-md" autoPlay muted playsInline />
@@ -234,7 +234,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
                     onClick={() => fileInputRef.current?.click()}
                     >
                     {preview ? (
-                    <Image src={preview} alt="Materials preview" layout="fill" objectFit="contain" className="rounded-lg" />
+                    <Image src={preview} alt="Work preview" layout="fill" objectFit="contain" className="rounded-lg" />
                     ) : (
                     <div className="text-center">
                         <Upload className="mx-auto h-8 w-8" />
