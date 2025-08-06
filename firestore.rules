@@ -2,79 +2,80 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
     // Helper Functions
     function isLoggedIn() {
       return request.auth != null;
     }
+
+    function isDataOwner(userId) {
+      return request.auth.uid == userId;
+    }
     
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    function getUserRole(userId) {
+        return get(/databases/$(database)/documents/users/$(userId)).data.role;
     }
 
     function isAdmin() {
-      return isLoggedIn() && getUserRole() == 'Admin';
+      return isLoggedIn() && getUserRole(request.auth.uid) == 'Admin';
     }
 
     function isTechnician() {
-      return isLoggedIn() && getUserRole() == 'Technician';
+      return isLoggedIn() && getUserRole(request.auth.uid) == 'Technician';
     }
     
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    function getTechnicianIdForUser(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.id;
     }
 
-    // Admins can read and write all data
+    // Admins have full access to all collections
     match /{document=**} {
       allow read, write: if isAdmin();
     }
     
-    // Technicians need specific permissions
-    match /users/{userId} {
-      allow read: if isLoggedIn();
-      allow update: if isOwner(userId); // Techs can update their own user doc
-    }
-    
+    // Technicians Collection
     match /technicians/{techId} {
-      allow read: if isLoggedIn();
-      // Allow a technician to update their own document
-      allow update: if isTechnician() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId;
+        allow read: if isTechnician();
+        allow update: if isTechnician() && getTechnicianIdForUser(request.auth.uid) == techId;
     }
-    
+
+    // Tasks Collection
     match /tasks/{taskId} {
-      allow read: if isLoggedIn();
-      // Allow a technician to update a task assigned to them
-      allow update: if isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
+      allow read: if isTechnician();
+      allow update: if isTechnician() && resource.data.tech_id == getTechnicianIdForUser(request.auth.uid);
+    }
+
+    // Users Collection - Technicians can only read their own user document
+    match /users/{userId} {
+        allow read: if isTechnician() && isDataOwner(userId);
     }
     
+    // Read-only access for Technicians to view necessary data
+    match /infrastructure/{deviceId} {
+      allow read: if isTechnician();
+    }
+    match /connections/{connId} {
+      allow read: if isTechnician();
+    }
+    match /alerts/{alertId} {
+      allow read: if isTechnician();
+    }
+    match /materials/{materialId} {
+      allow read: if isTechnician();
+    }
+     match /plans/{planId} {
+      allow read: if isTechnician();
+    }
+
+    // Technicians can create their own referrals and assignments (material requests)
     match /referrals/{referralId} {
-       allow read: if isLoggedIn();
-       // Allow a technician to create their own referral
-       allow create: if isTechnician() && request.resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
+      allow read: if isTechnician();
+      allow create: if isTechnician() && request.resource.data.tech_id == getTechnicianIdForUser(request.auth.uid);
     }
     
     match /assignments/{assignmentId} {
-       allow read: if isLoggedIn();
-       // Allow a technician to create their own material request
-       allow create: if isTechnician() && request.resource.data.technicianId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
+        allow read: if isTechnician();
+        allow create: if isTechnician() && request.resource.data.technicianId == getTechnicianIdForUser(request.auth.uid);
     }
-    
-    // Read-only for technicians on these collections
-    match /alerts/{alertId} {
-      allow read: if isLoggedIn();
-    }
-    match /infrastructure/{infraId} {
-      allow read: if isLoggedIn();
-    }
-    match /connections/{connId} {
-      allow read: if isLoggedIn();
-    }
-    match /materials/{materialId} {
-      allow read: if isLoggedIn();
-    }
-     match /plans/{planId} {
-      allow read: if isLoggedIn();
-    }
-    
   }
 }
