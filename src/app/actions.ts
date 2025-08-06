@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
@@ -9,6 +10,7 @@ import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTi
 import { db } from '@/lib/firebase';
 import { Technician, Infrastructure, Task, MaterialAssignment } from '@/lib/types';
 import { createNotification, getTechnicianUserByTechId } from '@/lib/notifications';
+import * as nodemailer from 'nodemailer';
 
 
 export async function runAutoFaultDetection() {
@@ -183,5 +185,38 @@ export async function updateAssignmentStatus(assignmentId: string, newStatus: Ma
     } catch (error) {
         console.error("Error updating assignment status:", error);
         return { success: false, message: (error as Error).message };
+    }
+}
+
+export async function sendTestEmail(smtpConfig: { host: string, port: number, user: string, pass: string }) {
+    if (!smtpConfig.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.pass) {
+        return { success: false, message: 'SMTP configuration is incomplete.' };
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            host: smtpConfig.host,
+            port: smtpConfig.port,
+            secure: smtpConfig.port === 465, // true for 465, false for other ports
+            auth: {
+                user: smtpConfig.user,
+                pass: smtpConfig.pass,
+            },
+        });
+
+        await transporter.verify();
+
+        await transporter.sendMail({
+            from: `"NowFiber24" <${smtpConfig.user}>`,
+            to: smtpConfig.user,
+            subject: 'Test Email from NowFiber24',
+            text: 'This is a test email to confirm your SMTP settings are correct.',
+            html: '<b>This is a test email to confirm your SMTP settings are correct.</b>',
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('Email sending error:', error);
+        return { success: false, message: `Failed to send email: ${error.message}` };
     }
 }

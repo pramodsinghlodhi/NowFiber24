@@ -12,8 +12,8 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useToast} from '@/hooks/use-toast';
-import {runAutoFaultDetection} from '@/app/actions';
-import {Loader2, Map, Bell, HardHat, Send, Network} from 'lucide-react';
+import {runAutoFaultDetection, sendTestEmail} from '@/app/actions';
+import {Loader2, Map, Bell, HardHat, Send, Network, Mail} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { createBroadcast } from '@/lib/notifications';
 import { Notification } from '@/lib/types';
@@ -26,10 +26,17 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isTestingSnmp, setIsTestingSnmp] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastType, setBroadcastType] = useState<Notification['type']>('System');
   const [broadcastTitle, setBroadcastTitle] = useState('System Announcement');
+
+  // SMTP State
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -91,6 +98,22 @@ export default function SettingsPage() {
         setIsTestingSnmp(false);
         toast({ title: 'SNMP Test Successful', description: 'Successfully connected to a test device via SNMP.'});
     }, 1500)
+  }
+
+  const handleTestEmail = async () => {
+    setIsTestingEmail(true);
+    try {
+        const result = await sendTestEmail({ host: smtpHost, port: smtpPort, user: smtpUser, pass: smtpPass });
+        if (result.success) {
+            toast({ title: 'Email Test Successful', description: 'Check your inbox for a test email.'});
+        } else {
+            toast({ title: 'Email Test Failed', description: result.message, variant: 'destructive'});
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'Could not send test email.', variant: 'destructive'});
+    } finally {
+        setIsTestingEmail(false);
+    }
   }
 
   const handleBroadcast = async () => {
@@ -235,7 +258,87 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle className='flex items-center gap-2'><Mail/> Email &amp; SMTP Configuration</CardTitle>
+                    <CardDescription>Set up an SMTP server to send email notifications for critical alerts.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                     <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="email-notifications" className="text-base">Enable Email Notifications</Label>
+                            <p className="text-sm text-muted-foreground">Send detailed alert emails to admins for critical issues.</p>
+                        </div>
+                        <Switch id="email-notifications" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="smtp-host">SMTP Host</Label>
+                            <Input id="smtp-host" placeholder="smtp.example.com" value={smtpHost} onChange={e => setSmtpHost(e.target.value)} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="smtp-port">SMTP Port</Label>
+                            <Input id="smtp-port" type="number" placeholder="587" value={smtpPort} onChange={e => setSmtpPort(Number(e.target.value))} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="smtp-user">SMTP Username</Label>
+                            <Input id="smtp-user" placeholder="your@email.com" value={smtpUser} onChange={e => setSmtpUser(e.target.value)} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="smtp-pass">SMTP Password</Label>
+                            <Input id="smtp-pass" type="password" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
+                        </div>
+                    </div>
+                    <div>
+                        <Label>Test Connection</Label>
+                        <Button variant="outline" className="w-full mt-2" onClick={handleTestEmail} disabled={isTestingEmail}>
+                        {isTestingEmail ? (
+                            <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                            </>
+                        ) : (
+                            'Send Test Email'
+                        )}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+        </div>
+        
+        <div className='space-y-6'>
              <Card>
+                <CardHeader>
+                    <CardTitle className='flex items-center gap-2'><HardHat/> Technician & Task Management</CardTitle>
+                    <CardDescription>Configure rules and requirements for field operations.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="geofence-radius">Geo-fence Radius (meters)</Label>
+                        <Input id="geofence-radius" type="number" defaultValue="100" placeholder="e.g., 100" />
+                        <p className="text-xs text-muted-foreground">Distance from job site a tech must be within to check-in.</p>
+                    </div>
+                    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="proof-of-work" className="text-base">Require Photo for Task Completion</Label>
+                            <p className="text-sm text-muted-foreground">Technicians must upload a photo to mark a task as complete.</p>
+                        </div>
+                        <Switch id="proof-of-work" defaultChecked/>
+                    </div>
+                     <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="gps-tracking" className="text-base">Enable Real-time GPS Tracking</Label>
+                            <p className="text-sm text-muted-foreground">Track on-duty technician locations every 30 seconds.</p>
+                        </div>
+                        <Switch id="gps-tracking" defaultChecked/>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
                 <CardHeader>
                     <CardTitle className='flex items-center gap-2'><Send/> Broadcast Message</CardTitle>
                     <CardDescription>Send a notification to all users of the application.</CardDescription>
@@ -270,108 +373,29 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
-            <Card>
-            <CardHeader>
-                <CardTitle className='flex items-center gap-2'><Bell/> Notification Preferences</CardTitle>
-                <CardDescription>Manage how alerts are sent to technicians and administrators.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="sms-notifications" className="text-base">Enable SMS Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Send alerts via SMS to assigned technicians.</p>
-                    </div>
-                    <Switch id="sms-notifications" defaultChecked />
-                </div>
-                 <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications" className="text-base">Enable Email Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Send detailed alert emails to admins.</p>
-                    </div>
-                    <Switch id="email-notifications" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="alert-template">SMS Alert Template</Label>
-                    <Textarea id="alert-template" placeholder="e.g., [ALERT] Device {deviceId} offline. Please investigate." defaultValue="ALERT: Device {deviceId} at {location} is offline. Issue: {issue}. Assigned to you."/>
-                    <p className="text-xs text-muted-foreground">Use variables: {`{deviceId}`}, {`{deviceType}`}, {`{issue}`}, {`{location}`}.</p>
-                </div>
-            </CardContent>
-            </Card>
-        </div>
-        
-        <div className='space-y-6'>
              <Card>
                 <CardHeader>
-                    <CardTitle className='flex items-center gap-2'><HardHat/> Technician & Task Management</CardTitle>
-                    <CardDescription>Configure rules and requirements for field operations.</CardDescription>
+                    <CardTitle className='flex items-center gap-2'><Bell/> Notification Preferences</CardTitle>
+                    <CardDescription>Manage how alerts are sent to technicians and administrators.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="sms-notifications" className="text-base">Enable SMS Notifications</Label>
+                            <p className="text-sm text-muted-foreground">Send alerts via SMS to assigned technicians.</p>
+                        </div>
+                        <Switch id="sms-notifications" defaultChecked />
+                    </div>
                     <div className="space-y-2">
-                        <Label htmlFor="geofence-radius">Geo-fence Radius (meters)</Label>
-                        <Input id="geofence-radius" type="number" defaultValue="100" placeholder="e.g., 100" />
-                        <p className="text-xs text-muted-foreground">Distance from job site a tech must be within to check-in.</p>
+                        <Label htmlFor="sms-api-key">SMS Service API Key</Label>
+                        <Input id="sms-api-key" type="password" placeholder="Enter your SMS provider API key" />
                     </div>
-                    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="proof-of-work" className="text-base">Require Photo for Task Completion</Label>
-                            <p className="text-sm text-muted-foreground">Technicians must upload a photo to mark a task as complete.</p>
-                        </div>
-                        <Switch id="proof-of-work" defaultChecked/>
-                    </div>
-                     <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="gps-tracking" className="text-base">Enable Real-time GPS Tracking</Label>
-                            <p className="text-sm text-muted-foreground">Track on-duty technician locations every 30 seconds.</p>
-                        </div>
-                        <Switch id="gps-tracking" defaultChecked/>
+                    <div className="space-y-2">
+                        <Label htmlFor="alert-template">SMS Alert Template</Label>
+                        <Textarea id="alert-template" placeholder="e.g., [ALERT] Device {deviceId} offline. Please investigate." defaultValue="ALERT: Device {deviceId} at {location} is offline. Issue: {issue}. Assigned to you."/>
+                        <p className="text-xs text-muted-foreground">Use variables: {`{deviceId}`}, {`{deviceType}`}, {`{issue}`}, {`{location}`}.</p>
                     </div>
                 </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className='flex items-center gap-2'><Map/> Map Display Settings</CardTitle>
-                    <CardDescription>Customize the appearance of the GIS Network Visualizer.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                   <div className="space-y-2">
-                        <Label htmlFor="map-style">Default Map Style</Label>
-                        <Select defaultValue="streets">
-                        <SelectTrigger id="map-style">
-                            <SelectValue placeholder="Select map style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="streets">Streets</SelectItem>
-                            <SelectItem value="satellite">Satellite</SelectItem>
-                            <SelectItem value="terrain">Terrain</SelectItem>
-                        </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="show-fiber-paths" className="text-base">Show Fiber Paths</Label>
-                            <p className="text-sm text-muted-foreground">Display fiber optic cable routes on the map.</p>
-                        </div>
-                        <Switch id="show-fiber-paths" defaultChecked />
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-            <CardHeader>
-                <CardTitle>API Configuration</CardTitle>
-                <CardDescription>Manage API keys and endpoints for external services.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                <Label htmlFor="sms-api-key">SMS Service API Key</Label>
-                <Input id="sms-api-key" type="password" placeholder="Enter your SMS provider API key" />
-                </div>
-                <div className="space-y-2">
-                <Label htmlFor="map-api-key">Advanced Mapping API Key</Label>
-                <Input id="map-api-key" type="password" placeholder="Enter your mapping provider API key (optional)" />
-                </div>
-            </CardContent>
             </Card>
         </div>
       </div>
