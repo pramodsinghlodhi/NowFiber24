@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { ArrowRight, Wifi, ShieldCheck, Wrench, Users, BarChart, Phone, Mail, Send } from 'lucide-react';
+import { ArrowRight, Wifi, ShieldCheck, Wrench, Users, BarChart, Send } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -52,16 +52,12 @@ export default function LandingPage() {
                 title: 'Message Sent!',
                 description: "Thanks for reaching out. We'll get back to you shortly.",
             });
+            // Ideally, you'd reset the form here, but we'll keep it simple
         }, 1500);
     }
-
-    if (loading || user) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <p>Loading...</p>
-            </div>
-        );
-    }
+    
+    // This page should be visible to everyone, we only redirect if the user is already logged in.
+    // Thus, we don't need a loading state here that hides the content.
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
