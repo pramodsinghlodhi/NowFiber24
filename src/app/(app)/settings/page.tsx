@@ -12,10 +12,9 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useToast} from '@/hooks/use-toast';
-import {runAutoFaultDetection, sendTestEmail} from '@/app/actions';
+import {runAutoFaultDetection, sendTestEmail, createBroadcast} from '@/app/actions';
 import {Loader2, Map, Bell, HardHat, Send, Network, Mail} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { createBroadcast } from '@/lib/notifications';
 import { Notification } from '@/lib/types';
 
 
@@ -123,17 +122,22 @@ export default function SettingsPage() {
     }
     setIsBroadcasting(true);
     try {
-        await createBroadcast({
+        const result = await createBroadcast({
             type: broadcastType,
             title: broadcastTitle,
             message: broadcastMessage,
         });
-        setBroadcastMessage('');
-        setBroadcastTitle('System Announcement');
-        toast({
-            title: 'Broadcast Sent!',
-            description: 'Your message has been sent to all users.',
-        });
+
+        if (result.success) {
+            setBroadcastMessage('');
+            setBroadcastTitle('System Announcement');
+            toast({
+                title: 'Broadcast Sent!',
+                description: 'Your message has been sent to all users.',
+            });
+        } else {
+            toast({ title: 'Broadcast Failed', description: result.message, variant: 'destructive' });
+        }
     } catch (error) {
         toast({ title: 'Broadcast Failed', description: 'Could not send the broadcast.', variant: 'destructive' });
     } finally {

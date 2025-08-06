@@ -8,8 +8,8 @@ import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Technician, Infrastructure, Task, MaterialAssignment } from '@/lib/types';
-import { createNotification, getTechnicianUserByTechId } from '@/lib/notifications';
+import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
+import { createNotification, getTechnicianUserByTechId, createBroadcast as createBroadcastNotification } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
 
 
@@ -218,5 +218,14 @@ export async function sendTestEmail(smtpConfig: { host: string, port: number, us
     } catch (error: any) {
         console.error('Email sending error:', error);
         return { success: false, message: `Failed to send email: ${error.message}` };
+    }
+}
+
+export async function createBroadcast(broadcast: Omit<Notification, 'id' | 'userId'>) {
+    try {
+        await createBroadcastNotification(broadcast);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
     }
 }
