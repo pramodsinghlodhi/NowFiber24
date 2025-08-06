@@ -21,6 +21,9 @@ import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
 import {Badge} from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/auth-context';
 
 const toDataURL = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -31,6 +34,7 @@ const toDataURL = (file: File): Promise<string> =>
   });
 
 export default function MaterialsAnalyzer({task}: {task: Task}) {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -40,6 +44,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const {toast} = useToast();
 
   useEffect(() => {
@@ -51,23 +56,29 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
     };
   }, [stream]);
 
-  const getCameraPermission = async () => {
+  const getCameraPermission = () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast({ title: "Camera not supported", description: "Your browser does not support camera access.", variant: "destructive" });
         return;
     }
-    try {
-       const s = await navigator.mediaDevices.getUserMedia({ video: true });
-       setHasCameraPermission(true);
-       setStream(s);
-       if (videoRef.current) {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(s => {
+        setHasCameraPermission(true);
+        setStream(s);
+        if (videoRef.current) {
            videoRef.current.srcObject = s;
-       }
-    } catch (err) {
-       console.error(err);
-       setHasCameraPermission(false);
-       toast({ title: "Permission Denied", description: "Camera access was denied.", variant: "destructive"});
-    }
+        }
+        // Get location
+        navigator.geolocation.getCurrentPosition(
+            (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            (err) => console.warn(`Could not get location: ${err.message}`)
+        );
+      })
+      .catch(err => {
+         console.error(err);
+         setHasCameraPermission(false);
+         toast({ title: "Permission Denied", description: "Camera access was denied.", variant: "destructive"});
+      });
   }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,9 +96,30 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
-      context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+      if (!context) return;
+      
+      // Draw video frame
+      context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+      // Prepare overlay text
+      const now = new Date();
+      const dateStr = now.toLocaleDateString();
+      const timeStr = now.toLocaleTimeString();
+      const locationStr = location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Location not available';
+      
+      // Style and draw overlay
+      context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      context.fillRect(0, canvas.height - 60, canvas.width, 60);
+      context.font = '20px Arial';
+      context.fillStyle = 'white';
+      context.textAlign = 'left';
+      context.fillText(`${dateStr} ${timeStr}`, 10, canvas.height - 35);
+      context.textAlign = 'right';
+      context.fillText(locationStr, canvas.width - 10, canvas.height - 35);
+
       const dataUrl = canvas.toDataURL('image/jpeg');
       setPreview(dataUrl);
+
       if (stream) {
         stream.getTracks().forEach(track => track.stop()); // Turn off camera
       }
@@ -97,8 +129,8 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
 
 
   const handleAnalyze = async () => {
-    if (!preview) {
-      toast({title: 'No image provided', description: 'Please upload or capture a photo of the materials.', variant: 'destructive'});
+    if (!preview || !user) {
+      toast({title: 'No image provided or user not found', description: 'Please upload or capture a photo of the materials.', variant: 'destructive'});
       return;
     }
     setIsLoading(true);
@@ -108,8 +140,20 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
       const analysisResult = await analyzeMaterials(preview, task.id);
       setResult(analysisResult);
       toast({title: 'Analysis Complete', description: 'Successfully analyzed materials photo.'});
+      
+      // Save to Firestore
+      await addDoc(collection(db, "proofOfWork"), {
+        technicianId: user.id,
+        taskId: task.id,
+        imageDataUri: preview,
+        location: location,
+        analysisResult: analysisResult,
+        timestamp: new Date().toISOString()
+      });
+       toast({title: 'Proof of Work Saved', description: 'Your photo and analysis have been saved.'});
+
     } catch (error) {
-      toast({title: 'Analysis Failed', description: 'Could not analyze the image.', variant: 'destructive'});
+      toast({title: 'Analysis Failed', description: 'Could not analyze the image or save the result.', variant: 'destructive'});
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -121,6 +165,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
     setResult(null);
     setIsLoading(false);
     setHasCameraPermission(false);
+    setLocation(null);
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
@@ -273,7 +318,7 @@ export default function MaterialsAnalyzer({task}: {task: Task}) {
               </>
             ) : (
               <>
-                <Bot className="mr-2 h-4 w-4" /> Analyze Photo
+                <Bot className="mr-2 h-4 w-4" /> Analyze & Save
               </>
             )}
           </Button>

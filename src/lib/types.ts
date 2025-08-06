@@ -163,3 +163,16 @@ export type TaskStatusDistribution = {
     count: number;
     fill: string;
 }
+
+export type ProofOfWork = {
+    id: string;
+    technicianId: string;
+    taskId: string;
+    imageDataUri: string;
+    location: {
+        lat: number;
+        lng: number;
+    } | null;
+    analysisResult: any;
+    timestamp: string;
+}
