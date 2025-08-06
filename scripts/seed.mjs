@@ -1,176 +1,162 @@
-
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { getAuth, signInWithEmailAndPassword, createUser, deleteUser } from 'firebase/auth';
-import { getApp, getApps, initializeApp as initClientApp } from 'firebase/app';
+import {initializeApp} from 'firebase/app';
+import {getAuth, signInWithEmailAndPassword, signOut} from 'firebase/auth';
+import {getFirestore, collection, doc, writeBatch} from 'firebase/firestore';
+import {initializeApp as initializeAdminApp, getApps, cert} from 'firebase-admin/app';
+import {getAuth as getAdminAuth} from 'firebase-admin/auth';
+import {getFirestore as getAdminFirestore} from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
-import { config } from 'dotenv';
+import dotenv from 'dotenv';
 
-// Load environment variables from .env.local
-config({ path: '.env.local' });
+dotenv.config({path: '.env.local'});
 
-// =====================================================================================
-// IMPORTANT: Firebase Client SDK Configuration (for authenticating the admin script)
-// =====================================================================================
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-const clientApp = !getApps().length ? initClientApp(firebaseConfig) : getApp();
-const clientAuth = getAuth(clientApp);
-
-
-// =====================================================================================
-// Firebase Admin SDK Configuration (for writing data with admin privileges)
-// =====================================================================================
-// This assumes you have the GOOGLE_APPLICATION_CREDENTIALS env var set up
-// or are running in a GCP environment.
-try {
-  initializeApp();
-} catch (e) {
-  if (getApps().length === 0) {
-    console.error("Could not initialize Firebase Admin SDK. Ensure you have GOOGLE_APPLICATION_CREDENTIALS set or are running in a GCP environment.");
-    process.exit(1);
-  }
+// --- IMPORTANT ---
+// Load Firebase config from `src/lib/firebase.ts`
+// This is a bit of a hack to avoid duplicating the config.
+const firebaseConfigStr = fs.readFileSync(path.resolve(process.cwd(), 'src/lib/firebase.ts'), 'utf8');
+const match = firebaseConfigStr.match(/const firebaseConfig = (\{[^;]+\});/);
+if (!match) {
+  throw new Error('Could not find firebaseConfig in src/lib/firebase.ts');
 }
+const firebaseConfig = JSON.parse(match[1]);
+// --- END HACK ---
 
-const db = getFirestore();
-const adminAuth = getAuth();
+// Initialize Firebase client app
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
-
-async function seedCollection(collectionName, data) {
-  console.log(`> Processing ${collectionName}.json...`);
-  const collectionRef = db.collection(collectionName);
-  const batch = db.batch();
-
-  for (const docId in data) {
-    const docData = data[docId];
-    // Convert date strings to Firestore Timestamps where applicable
-    if (docData.timestamp) {
-      docData.timestamp = Timestamp.fromDate(new Date(docData.timestamp));
-    }
-    if (docData.completionTimestamp) {
-        docData.completionTimestamp = Timestamp.fromDate(new Date(docData.completionTimestamp));
-    }
-    const docRef = collectionRef.doc(docId);
-    batch.set(docRef, docData);
-  }
-  await batch.commit();
-  console.log(`  - Uploaded ${Object.keys(data).length} documents to ${collectionName} collection.`);
+// Initialize Firebase Admin SDK
+// The admin SDK is required to set custom claims.
+let adminApp;
+if (!getApps().length) {
+    adminApp = initializeAdminApp();
+} else {
+    adminApp = getApps()[0];
 }
+const adminAuth = getAdminAuth(adminApp);
 
-async function seedTechniciansAndUsers() {
-    console.log('> Processing technicians.json to create Auth and Firestore users...');
-    const techFilePath = path.join(dataDir, 'technicians.json');
-    if (!fs.existsSync(techFilePath)) {
-        console.log('  - technicians.json not found, skipping.');
-        return;
-    }
-
-    const techData = JSON.parse(fs.readFileSync(techFilePath, 'utf8'));
-    let createdCount = 0;
-
-    for (const techId in techData) {
-        const tech = techData[techId];
-        const email = `${tech.id}@fibervision.com`;
-        const password = 'password'; // Default password for all seeded techs
-
-        try {
-            // 1. Create Firebase Auth user
-            const userRecord = await adminAuth.createUser({
-                email: email,
-                password: password,
-                displayName: tech.name,
-            });
-            console.log(`  - Created auth user for ${email} with UID: ${userRecord.uid}`);
-            
-            // 2. Create corresponding document in 'users' collection
-            const userDocRef = db.collection('users').doc(userRecord.uid);
-            await userDocRef.set({
-                uid: userRecord.uid,
-                id: tech.id,
-                name: tech.name,
-                role: 'Technician',
-                isBlocked: false, // Default to not blocked
-                avatarUrl: tech.avatarUrl || `https://i.pravatar.cc/150?u=${tech.id}`,
-            });
-
-            // 3. Create document in 'technicians' collection
-            const techDocRef = db.collection('technicians').doc(tech.id);
-            await techDocRef.set(tech);
-
-            createdCount++;
-
-        } catch (error) {
-            if (error.code === 'auth/email-already-exists') {
-                console.warn(`  - Auth user for ${email} already exists. Skipping creation for this technician.`);
-                // Ensure technician doc still exists if auth user does
-                 const techDocRef = db.collection('technicians').doc(tech.id);
-                 await techDocRef.set(tech, { merge: true });
-
-            } else {
-                console.error(`  - Failed to create technician ${tech.id}:`, error);
-            }
-        }
-    }
-     if (createdCount > 0) {
-        console.log(`  - Successfully created and linked ${createdCount} new technicians.`);
-     }
-}
 
 async function main() {
   console.log('> Seeding database...');
-
-  // Authenticate as the admin user using the CLIENT SDK
-  console.log('> Authenticating as admin...');
   const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
   const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
 
   if (!adminEmail || !adminPassword) {
-    console.error('FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in .env.local');
+    console.error('Error: FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in your .env.local file.');
     return;
   }
-  
+
   try {
-      await signInWithEmailAndPassword(clientAuth, adminEmail, adminPassword);
-      console.log('> Admin authenticated successfully.');
-  } catch (error) {
-      console.error('Failed to authenticate admin user:', error.message);
-      console.log('Please ensure the admin user exists in Firebase Auth and credentials in .env.local are correct.');
-      return;
-  }
+    // Authenticate as the admin user to perform writes
+    console.log('> Authenticating as admin...');
+    await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+    console.log('> Admin authenticated successfully.');
+    
+    // --- Set Admin Custom Claim ---
+    console.log('> Setting custom claim for admin user...');
+    const adminUser = await adminAuth.getUserByEmail(adminEmail);
+    await adminAuth.setCustomUserClaims(adminUser.uid, { isAdmin: true });
+    console.log(`> Custom claim { isAdmin: true } set for ${adminEmail}.`);
+    // --- End Custom Claim ---
 
-  // Seeding process starts here
-  console.log(`> Reading files from ${dataDir}...`);
-  const files = fs.readdirSync(dataDir).filter(file => file.endsWith('.json'));
-  console.log(`> Found ${files.length} files to process.`);
+    const dataDir = path.resolve(process.cwd(), 'src/lib/data');
+    console.log(`> Reading files from ${dataDir}...`);
+    const files = fs.readdirSync(dataDir).filter(file => file.endsWith('.json'));
+    console.log(`> Found ${files.length} files to process.`);
 
-  // First, create technicians and their auth/user profiles
-  await seedTechniciansAndUsers();
-  
-  // Then, seed all other collections
-  for (const file of files) {
-    const collectionName = path.basename(file, '.json');
-    // Skip technicians.json because it's handled separately
-    // Skip users.json because it's now created dynamically
-    if (collectionName === 'technicians' || collectionName === 'users') {
+    for (const file of files) {
+      if (file === 'users.json') continue; // Skip users.json as it's handled separately
+      
+      const collectionName = path.basename(file, '.json');
+      console.log(`> Processing ${file}...`);
+      
+      const content = fs.readFileSync(path.join(dataDir, file), 'utf8');
+      const data = JSON.parse(content);
+
+      if (Object.keys(data).length === 0) {
+        console.log(` - Skipping ${file} as it is empty.`);
         continue;
-    }
-    const filePath = path.join(dataDir, file);
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    await seedCollection(collectionName, data);
-  }
+      }
 
-  console.log('> Database seeding completed successfully!');
+      const batch = writeBatch(db);
+      Object.entries(data).forEach(([docId, docData]) => {
+        const docRef = doc(db, collectionName, docId);
+        batch.set(docRef, docData);
+      });
+
+      await batch.commit();
+      console.log(` - Uploaded ${Object.keys(data).length} documents to ${collectionName} collection.`);
+    }
+
+    // Now handle users separately to ensure UIDs are managed correctly
+    await seedUsers();
+    
+    await signOut(auth);
+    console.log('> Database seeding completed successfully!');
+
+  } catch (error) {
+    console.error('Error seeding database:', error);
+  }
 }
 
-main().catch(err => {
-  console.error('An error occurred during database seeding:', err);
-});
+async function seedUsers() {
+    console.log('> Processing users.json...');
+    const usersDataPath = path.resolve(process.cwd(), 'src/lib/data/users.json');
+    const content = fs.readFileSync(usersDataPath, 'utf8');
+    const usersData = JSON.parse(content);
+
+    if (Object.keys(usersData).length === 0) {
+        console.log(' - No users found in users.json to seed.');
+        return;
+    }
+    
+    // The admin user document is created manually.
+    // This script will handle creating auth users for technicians and their corresponding Firestore documents.
+    
+    for (const techId in usersData) {
+        const techInfo = usersData[techId];
+        const email = `${techInfo.id}@fibervision.com`;
+        const password = techInfo.password || 'password'; // Default password if not provided
+        
+        try {
+            // Check if user already exists in Auth
+            let userRecord;
+            try {
+                userRecord = await adminAuth.getUserByEmail(email);
+                console.log(` - Auth user for ${email} already exists. UID: ${userRecord.uid}`);
+            } catch (e) {
+                // If user does not exist, create them
+                if (e.code === 'auth/user-not-found') {
+                    console.log(` - Creating auth user for ${email}...`);
+                    userRecord = await adminAuth.createUser({
+                        email: email,
+                        password: password,
+                        displayName: techInfo.name,
+                    });
+                    console.log(` - Created new auth user. UID: ${userRecord.uid}`);
+                } else {
+                    throw e; // Re-throw other errors
+                }
+            }
+
+            // Create user document in Firestore with the correct UID
+            const userDocRef = doc(db, 'users', userRecord.uid);
+            await getAdminFirestore().collection('users').doc(userRecord.uid).set({
+                uid: userRecord.uid,
+                id: techInfo.id,
+                name: techInfo.name,
+                role: 'Technician',
+                isBlocked: false,
+                avatarUrl: `https://i.pravatar.cc/150?u=${techInfo.id}`
+            });
+            console.log(` - Set Firestore document for user ${techInfo.id}`);
+
+        } catch (error) {
+            console.error(` - Failed to process technician ${techId}. Error:`, error.message);
+        }
+    }
+}
+
+
+main();

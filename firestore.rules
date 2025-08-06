@@ -1,92 +1,90 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper functions
-    function isAuth() {
-      return request.auth != null;
-    }
 
-    function getUserData() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
+    // --- Helper Functions ---
+    // Checks if the user is a logged-in administrator via custom claims.
     function isAdmin() {
-      return isAuth() && getUserData().role == 'Admin';
+      return request.auth.token.isAdmin == true;
     }
-    
+
+    // Checks if the user is a logged-in, non-blocked technician.
     function isTechnician() {
-        return isAuth() && getUserData().role == 'Technician';
+      // Get the user's profile from the /users collection
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      // Check if their role is 'Technician' and they are not blocked
+      return request.auth != null && userProfile.role == 'Technician' && userProfile.isBlocked == false;
     }
 
-    function isOwner(userId) {
-        return request.auth.uid == userId;
+    // Checks if the incoming data for a technician update is only for location.
+    function isUpdatingOwnLocation(technicianId) {
+      return request.auth.uid == get(/databases/$(database)/documents/users/$(technicianId)).data.uid
+          && 'lat' in request.resource.data && 'lng' in request.resource.data
+          && request.resource.data.keys().hasOnly(['lat', 'lng', 'isActive']);
     }
-    
-    // Default deny all
+
+    // --- Wildcard for Admin ---
+    // Administrators can read and write to all collections.
+    // This is the simplest and most effective rule to prevent permission issues for admins.
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Admins can do anything
-    match /{path=**}/documents/{document=**} {
       allow read, write: if isAdmin();
     }
     
-    // Rules for Technicians
+    // --- Specific Rules for Technicians ---
     match /users/{userId} {
-        allow read: if isAuth();
-        allow update: if isOwner(userId); // Technicians can update their own user doc if needed
+      // Technicians can only read their own user profile.
+      allow get: if isTechnician() && request.auth.uid == userId;
     }
 
     match /technicians/{techId} {
-        allow read: if isAuth();
-        // A technician can only update their own document, and only if their auth uid matches the document's tech id
-        allow update: if isTechnician() && getUserData().id == techId;
+        // Allow read for any authenticated technician
+        allow get: if isTechnician();
+        // Allow a technician to update ONLY their own location.
+        allow update: if isTechnician() && isUpdatingOwnLocation(techId);
     }
 
     match /tasks/{taskId} {
-        allow read: if isAuth();
-        // A technician can only update tasks assigned to them
-        allow update: if isTechnician() && resource.data.tech_id == getUserData().id;
-    }
-    
-    match /alerts/{alertId} {
-        allow read: if isAuth();
-    }
-
-    match /infrastructure/{infraId} {
-        allow read: if isAuth();
-    }
-    
-    match /connections/{connId} {
-        allow read: if isAuth();
-    }
-    
-    match /materials/{materialId} {
-        allow read: if isAuth();
-    }
-
-    match /assignments/{assignmentId} {
-        allow read: if isAuth();
-        allow create: if isTechnician(); // Techs can create requests
+        // Technicians can read all tasks
+        allow get, list: if isTechnician();
+        // Technicians can update a task assigned to them
+        allow update: if isTechnician() && get(/databases/$(database)/documents/tasks/$(taskId)).data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
     }
 
     match /referrals/{referralId} {
-        allow read: if isAuth();
+        // Technicians can list their own referrals
+        allow list: if isTechnician();
+        // Technicians can create new referrals
         allow create: if isTechnician();
     }
     
-     match /proofOfWork/{proofId} {
-        allow read: if isAuth();
-        // Techs can only create proof of work for themselves
-        allow create: if isTechnician() && request.resource.data.technicianId == getUserData().id;
+    match /assignments/{assignmentId} {
+        // Technicians can create new material requests
+        allow create: if isTechnician();
+        // Technicians can see assignments for them
+        allow list, get: if isTechnician();
+    }
+    
+    match /proofOfWork/{proofId} {
+        // Technicians can create new proof of work submissions
+        allow create: if isTechnician();
     }
 
+    // Technicians need read-only access to these collections to populate UI elements.
+    match /infrastructure/{deviceId} {
+      allow get, list: if isTechnician();
+    }
+     match /alerts/{alertId} {
+      allow get, list: if isTechnician();
+    }
+    match /connections/{connectionId} {
+      allow get, list: if isTechnician();
+    }
+     match /materials/{materialId} {
+      allow get, list: if isTechnician();
+    }
     match /plans/{planId} {
-      allow read: if isAuth();
+      allow get, list: if isTechnician();
     }
   }
 }

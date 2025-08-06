@@ -140,11 +140,12 @@ The application will not work without user accounts and initial data. A detailed
       FIREBASE_ADMIN_EMAIL=admin@fibervision.com
       FIREBASE_ADMIN_PASSWORD=your_admin_password
       ```
-    - Run the automated seeding script. This will populate your Firestore database with all the data from the `.json` files in `src/lib/data`.
+    - **IMPORTANT**: The seeding script now sets a custom claim on the admin user for proper permissions. You **must run this script** for the admin to have the correct access.
+    - Run the automated seeding script:
       ```bash
       npm run db:seed
       ```
-    - This command will log you in as the admin and upload all the necessary data for technicians, tasks, inventory, etc.
+    - This command will log you in as the admin, set a custom claim giving you admin rights, and upload all the necessary data for technicians, tasks, inventory, etc.
 
 ### 3. Local Development
 

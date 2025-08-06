@@ -73,28 +73,29 @@ The script needs your admin credentials to log in. You will provide these in a l
 
 ---
 
-## 4. Run the Automated Seeding Script
+## 4. Run the Automated Seeding Script (IMPORTANT)
 
-Now you are ready to populate the entire database.
+Now you are ready to populate the entire database. This script performs two critical functions:
+1.  **Sets an Admin Claim**: It uses the Admin SDK to set a custom user claim (`isAdmin: true`) on your `admin@fibervision.com` user. This is required for the new security rules to grant admin permissions.
+2.  **Uploads Data**: It populates your Firestore database with all the data from the `.json` files.
+
+**You must run this script for the application's permissions to work correctly.**
 
 1.  Open your terminal in the project's root directory.
 2.  Run the following command:
     ```bash
     npm run db:seed
     ```
-3.  The script will now execute. You will see output in your terminal as it processes each file and uploads the documents to Firestore. It will look something like this:
+3.  The script will now execute. You will see output in your terminal as it authenticates, sets the custom claim, and then uploads data to Firestore.
     ```
     > Seeding database...
     > Authenticating as admin...
     > Admin authenticated successfully.
+    > Setting custom claim for admin user...
+    > Custom claim { isAdmin: true } set for admin@fibervision.com.
     > Reading files from src/lib/data...
-    > Found 9 files to process.
-    > Processing alerts.json...
-    >  - Uploaded 3 documents to alerts collection.
-    > Processing assignments.json...
-    >  - Uploaded 3 documents to assignments collection.
-    > ...and so on for all files.
+    > ...
     > Database seeding completed successfully!
     ```
 
-Once the script finishes, your Firestore database will be fully populated with all the necessary data, and your application will be ready to use.
+Once the script finishes, your admin user will have the correct permissions, your database will be populated, and the application will be ready to use without permission errors.
