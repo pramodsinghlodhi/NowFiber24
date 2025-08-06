@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -12,18 +13,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown, Moon, Sun, AlertTriangle, ListTodo, Wrench } from "lucide-react";
+import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown, Moon, Sun, AlertTriangle, ListTodo, Wrench, MessageSquare, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "../ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { mockNotifications, Notification } from "@/lib/notifications";
+import { Notification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLocationTracker } from "@/hooks/use-location-tracker";
-import { doc, updateDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
@@ -34,7 +35,9 @@ const getNotificationIcon = (type: Notification['type']) => {
         case 'Task Assigned':
             return <ListTodo className="h-4 w-4 text-primary" />;
         case 'Material Approved':
-            return <Wrench className="h-4 w-4 text-green-500" />;
+            return <CheckCircle className="h-4 w-4 text-green-500" />;
+        case 'Notice':
+             return <MessageSquare className="h-4 w-4 text-yellow-500" />;
         default:
             return <Bell className="h-4 w-4" />;
     }
@@ -46,14 +49,29 @@ export default function Header() {
   const pathname = usePathname();
   const { toast } = useToast();
   const { setTheme } = useTheme();
-  const [notifications, setNotifications] = useState(() => mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const isClockedIn = technician?.isActive ?? false;
 
   // Activate location tracking for technicians
   useLocationTracker(user?.role === 'Technician' ? user.id : null, isClockedIn);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  useEffect(() => {
+    if (user?.uid) {
+        const notifsRef = collection(db, `users/${user.uid}/notifications`);
+        const q = query(notifsRef, orderBy('timestamp', 'desc'));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+            setNotifications(notifs);
+        });
+
+        return () => unsubscribe();
+    }
+  }, [user]);
+
+
+  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
   const handleLogout = () => {
     logout();
@@ -111,8 +129,15 @@ export default function Header() {
     }
   }
 
-  const handleNotificationClick = (notification: Notification) => {
-    setNotifications(prev => prev.map(n => n.id === notification.id ? {...n, read: true} : n));
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!user) return;
+    
+    // Mark as read in Firestore
+    if (!notification.read) {
+        const notifDocRef = doc(db, `users/${user.uid}/notifications`, notification.id);
+        await updateDoc(notifDocRef, { read: true });
+    }
+
     if (notification.href) {
         router.push(notification.href);
     }
@@ -182,11 +207,12 @@ export default function Header() {
                 <DropdownMenuSeparator />
                 {notifications.length > 0 ? (
                     notifications.map(notification => (
-                        <DropdownMenuItem key={notification.id} onClick={() => handleNotificationClick(notification)} className={cn("flex items-start gap-3", !notification.read && "bg-accent/50")}>
+                        <DropdownMenuItem key={notification.id} onClick={() => handleNotificationClick(notification)} className={cn("flex items-start gap-3 cursor-pointer", !notification.read && "bg-accent/50")}>
                             {getNotificationIcon(notification.type)}
                             <div className="flex-1">
-                                <p className="text-sm font-medium">{notification.message}</p>
-                                <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}</p>
+                                <p className="text-sm font-semibold">{notification.title}</p>
+                                <p className="text-sm text-muted-foreground">{notification.message}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(notification.timestamp.toDate(), { addSuffix: true })}</p>
                             </div>
                             {!notification.read && <div className="h-2 w-2 rounded-full bg-primary mt-1"></div>}
                         </DropdownMenuItem>
@@ -194,10 +220,6 @@ export default function Header() {
                 ) : (
                     <p className="p-4 text-center text-sm text-muted-foreground">No new notifications</p>
                 )}
-                 <DropdownMenuSeparator />
-                 <DropdownMenuItem className="justify-center text-primary">
-                    View All Notifications
-                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
@@ -245,5 +267,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

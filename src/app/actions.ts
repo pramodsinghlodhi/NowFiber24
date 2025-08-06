@@ -1,13 +1,15 @@
 
+
 'use server';
 
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
-import { collection, getDocs, query, where, limit, doc, getDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Technician, Infrastructure, Task, MaterialAssignment } from '@/lib/types';
+import { createNotification, getTechnicianUserByTechId } from './lib/notifications';
 
 
 export async function runAutoFaultDetection() {
@@ -42,6 +44,19 @@ export async function runAutoFaultDetection() {
     longitude: parseFloat(String(faultyDevice.lng)),
     assignedTechs: techniciansWithLocation,
   });
+
+  if (result.alertCreated && result.assignedTechId) {
+      const techUser = await getTechnicianUserByTechId(result.assignedTechId);
+      if (techUser) {
+          await createNotification({
+              userId: techUser.uid,
+              type: 'New Alert',
+              title: `Critical Alert: ${result.issue?.split(' ')[1]} Offline`,
+              message: result.issue || 'A device is unreachable.',
+              href: '/alerts'
+          })
+      }
+  }
 
    return [result];
 }
@@ -88,9 +103,86 @@ export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestam
     const docRef = await addDoc(collection(db, 'tasks'), {
       ...taskData,
     });
+    
+    // Create a notification for the assigned technician
+    const techUser = await getTechnicianUserByTechId(taskData.tech_id);
+    if (techUser) {
+        await createNotification({
+            userId: techUser.uid,
+            type: 'Task Assigned',
+            title: 'New Task Assigned',
+            message: `You have been assigned a new task: ${taskData.title}`,
+            href: '/tasks'
+        });
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error creating task: ", error);
     return { success: false, message: (error as Error).message };
   }
+}
+
+export async function reassignTask(taskId: string, newTechId: string, taskTitle: string) {
+    const taskDocRef = doc(db, 'tasks', taskId);
+    try {
+        await updateDoc(taskDocRef, { tech_id: newTechId });
+
+        const techUser = await getTechnicianUserByTechId(newTechId);
+        if (techUser) {
+            await createNotification({
+                userId: techUser.uid,
+                type: 'Task Assigned',
+                title: 'Task Re-assigned',
+                message: `You have been assigned a new task: ${taskTitle}`,
+                href: '/tasks'
+            });
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("Error re-assigning task:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+export async function updateTaskStatus(taskId: string, newStatus: Task['status']) {
+    const taskDocRef = doc(db, 'tasks', taskId);
+    try {
+        const updateData: any = { status: newStatus };
+        if (newStatus === 'Completed') {
+            updateData.completionTimestamp = serverTimestamp();
+        }
+        await updateDoc(taskDocRef, updateData);
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating task status:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+export async function updateAssignmentStatus(assignmentId: string, newStatus: MaterialAssignment['status']) {
+    const assignmentDocRef = doc(db, 'assignments', assignmentId);
+    try {
+        await updateDoc(assignmentDocRef, { status: newStatus });
+
+        if (newStatus === 'Issued' || newStatus === 'Rejected') {
+            const assignmentDoc = await getDoc(assignmentDocRef);
+            const assignment = assignmentDoc.data() as MaterialAssignment;
+            const techUser = await getTechnicianUserByTechId(assignment.technicianId);
+            
+            if (techUser) {
+                await createNotification({
+                    userId: techUser.uid,
+                    type: 'Material Approved', // Using a generic type for both cases
+                    title: `Material Request ${newStatus}`,
+                    message: `Your request for ${assignment.quantityAssigned}x ${assignment.materialId} has been ${newStatus.toLowerCase()}.`,
+                    href: '/materials'
+                });
+            }
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating assignment status:", error);
+        return { success: false, message: (error as Error).message };
+    }
 }

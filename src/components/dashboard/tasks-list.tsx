@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Task, Technician } from '@/lib/types';
@@ -9,8 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useState, useMemo }from 'react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { reassignTask, updateTaskStatus } from '@/app/actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,37 +43,29 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   const [assignedTechId, setAssignedTechId] = useState(task.tech_id);
 
   const handleStatusChange = async (newStatus: Task['status']) => {
-    const taskDocRef = doc(db, 'tasks', task.id);
-    try {
-        const updateData: any = { status: newStatus };
-        if (newStatus === 'Completed') {
-            updateData.completionTimestamp = serverTimestamp();
-        }
-        await updateDoc(taskDocRef, updateData);
+    const result = await updateTaskStatus(task.id, newStatus);
+    if (result.success) {
         toast({
             title: `Task Updated`,
             description: `${task.title} marked as ${newStatus}.`,
         });
-    } catch (error) {
+    } else {
         toast({ title: 'Error', description: 'Failed to update task status.', variant: 'destructive'});
-        console.error("Failed to update task status: ", error);
     }
   };
 
   const handleReassign = async (newTechId: string) => {
     const techName = technicians.find(t => t.id === newTechId)?.name;
-    const taskDocRef = doc(db, 'tasks', task.id);
+    const result = await reassignTask(task.id, newTechId, task.title);
 
-    try {
-        await updateDoc(taskDocRef, { tech_id: newTechId });
+    if (result.success) {
         setAssignedTechId(newTechId);
         toast({
             title: "Task Re-assigned",
             description: `${task.title} has been assigned to ${techName}.`
         });
-    } catch (error) {
+    } else {
         toast({ title: 'Error', description: 'Failed to re-assign task.', variant: 'destructive'});
-        console.error("Failed to re-assign task: ", error);
     }
   }
 

@@ -1,5 +1,6 @@
 
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -175,4 +176,15 @@ export type ProofOfWork = {
     } | null;
     analysisResult: any;
     timestamp: string;
+}
+
+export type Notification = {
+    id: string;
+    userId: string; // UID of the user who should receive it
+    type: 'New Alert' | 'Task Assigned' | 'Material Approved' | 'System' | 'Notice';
+    title: string;
+    message: string;
+    read: boolean;
+    timestamp: any;
+    href?: string;
 }

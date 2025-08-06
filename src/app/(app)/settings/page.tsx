@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {useAuth} from '@/contexts/auth-context';
@@ -14,7 +15,9 @@ import {useToast} from '@/hooks/use-toast';
 import {runAutoFaultDetection} from '@/app/actions';
 import {Loader2, Map, Bell, HardHat, Send, Network} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { mockNotifications, Notification } from '@/lib/notifications';
+import { createBroadcast } from '@/lib/notifications';
+import { Notification } from '@/lib/types';
+
 
 export default function SettingsPage() {
   const {user} = useAuth();
@@ -26,6 +29,7 @@ export default function SettingsPage() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastType, setBroadcastType] = useState<Notification['type']>('System');
+  const [broadcastTitle, setBroadcastTitle] = useState('System Announcement');
 
   useEffect(() => {
     if (!user) {
@@ -89,28 +93,29 @@ export default function SettingsPage() {
     }, 1500)
   }
 
-  const handleBroadcast = () => {
-    if (!broadcastMessage) {
-        toast({ title: 'Message is empty', description: 'Please enter a message to broadcast.', variant: 'destructive' });
+  const handleBroadcast = async () => {
+    if (!broadcastMessage || !broadcastTitle) {
+        toast({ title: 'Missing Fields', description: 'Please enter a title and message to broadcast.', variant: 'destructive' });
         return;
     }
     setIsBroadcasting(true);
-    setTimeout(() => {
-        const newNotification: Notification = {
-            id: mockNotifications.length + 1,
+    try {
+        await createBroadcast({
             type: broadcastType,
+            title: broadcastTitle,
             message: broadcastMessage,
-            read: false,
-            timestamp: new Date().toISOString(),
-        };
-        mockNotifications.unshift(newNotification);
+        });
         setBroadcastMessage('');
-        setIsBroadcasting(false);
+        setBroadcastTitle('System Announcement');
         toast({
             title: 'Broadcast Sent!',
             description: 'Your message has been sent to all users.',
         });
-    }, 1000);
+    } catch (error) {
+        toast({ title: 'Broadcast Failed', description: 'Could not send the broadcast.', variant: 'destructive' });
+    } finally {
+        setIsBroadcasting(false);
+    }
   }
 
   if (!user || user.role !== 'Admin') {
@@ -237,6 +242,10 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
+                        <Label htmlFor="broadcast-title">Title</Label>
+                        <Input id="broadcast-title" placeholder="Enter a title for your broadcast" value={broadcastTitle} onChange={(e) => setBroadcastTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="broadcast-message">Message</Label>
                         <Textarea id="broadcast-message" placeholder="Enter your announcement..." value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} />
                     </div>
@@ -249,8 +258,7 @@ export default function SettingsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="System">System Update</SelectItem>
-                                <SelectItem value="New Alert">Announcement</SelectItem>
-                                <SelectItem value="Task Assigned">Urgent</SelectItem>
+                                <SelectItem value="Notice">Announcement</SelectItem>
                             </SelectContent>
                             </Select>
                         </div>

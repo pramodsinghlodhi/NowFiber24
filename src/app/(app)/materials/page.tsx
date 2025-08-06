@@ -19,6 +19,8 @@ import MaterialForm from '@/components/materials/material-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { updateAssignmentStatus } from '@/app/actions';
+
 
 const getStatusBadge = (status: MaterialAssignment['status']) => {
     switch(status) {
@@ -78,11 +80,10 @@ export default function MaterialsPage() {
   };
 
   const handleStatusChange = async (assignmentId: string, status: MaterialAssignment['status']) => {
-    const docRef = doc(db, 'assignments', assignmentId);
-    try {
-        await updateDoc(docRef, { status });
+    const result = await updateAssignmentStatus(assignmentId, status);
+    if (result.success) {
         toast({ title: "Status Updated", description: `Assignment status has been changed to ${status}.`})
-    } catch (error) {
+    } else {
         toast({ title: "Error", description: "Could not update status." });
     }
   }
@@ -254,9 +255,9 @@ export default function MaterialsPage() {
                                                     <DropdownMenuContent align="end">
                                                          {assignment.status === 'Requested' && (
                                                             <>
-                                                                <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Pending')}>
+                                                                <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Issued')}>
                                                                     <Check className="mr-2 h-4 w-4 text-green-500" />
-                                                                    Approve Request
+                                                                    Approve & Issue
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Rejected')} className="text-destructive">
                                                                     <XCircle className="mr-2 h-4 w-4" />
@@ -267,7 +268,7 @@ export default function MaterialsPage() {
                                                          {assignment.status === 'Pending' && (
                                                             <DropdownMenuItem onClick={() => handleStatusChange(assignment.id, 'Issued')}>
                                                                 <CheckCircle className="mr-2 h-4 w-4 text-blue-500" />
-                                                                Approve Issuance
+                                                                Confirm Issuance
                                                             </DropdownMenuItem>
                                                         )}
                                                         {assignment.status === 'Issued' && (

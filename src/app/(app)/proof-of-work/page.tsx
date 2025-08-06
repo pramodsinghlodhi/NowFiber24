@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
@@ -7,7 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { ProofOfWork, Task, Technician } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, query, orderBy, doc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -17,8 +18,12 @@ import { AlertTriangle, MoreVertical, Trash2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogClose, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { createNotification, getTechnicianUserByTechId } from '@/lib/notifications';
+
 
 export default function ProofOfWorkPage() {
   const { user, loading: authLoading } = useAuth();
@@ -97,8 +102,20 @@ export default function ProofOfWorkPage() {
   const handleSendNotice = async () => {
     if (!selectedProof || !noticeMessage) return;
     try {
-      // In a real app, this would create a notification in a dedicated 'notifications' collection
-      // For this demo, we'll just show a success toast.
+      const techUser = await getTechnicianUserByTechId(selectedProof.technicianId);
+      if (!techUser) {
+        toast({ title: "Technician not found", description: "Could not find the user profile for this technician.", variant: "destructive" });
+        return;
+      }
+      
+      await createNotification({
+        userId: techUser.uid,
+        type: 'Notice',
+        title: `Notice regarding task #${selectedProof.taskId}`,
+        message: noticeMessage,
+        href: `/tasks`,
+      });
+
       toast({
         title: "Notice Sent",
         description: `A notification has been sent to the technician regarding task #${selectedProof.taskId}.`,
@@ -263,8 +280,31 @@ export default function ProofOfWorkPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+
+    {/* Send Notice Dialog */}
+    <Dialog open={isNoticeDialogOpen} onOpenChange={setIsNoticeDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Send Notice to Technician</DialogTitle>
+                <DialogDescription>
+                    Write a message to the technician regarding this proof of work submission.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-2">
+                <Label htmlFor="notice-message">Message</Label>
+                <Textarea 
+                    id="notice-message" 
+                    value={noticeMessage}
+                    onChange={(e) => setNoticeMessage(e.target.value)}
+                    placeholder="e.g., Please retake the photo with the connectors visible."
+                />
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsNoticeDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSendNotice}>Send Notice</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </>
   );
 }
-
-    
