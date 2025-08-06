@@ -189,12 +189,7 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                {/*
-                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                */}
+                                                
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
@@ -215,10 +210,7 @@ export default function TechniciansPage() {
                                                     )
                                                 )}
                                                 <DropdownMenuSeparator/>
-                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                    <Trash className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
+                                                 
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
@@ -278,12 +270,7 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                {/*
-                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                */}
+                                                
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
@@ -304,10 +291,7 @@ export default function TechniciansPage() {
                                                     )
                                                 )}
                                                 <DropdownMenuSeparator/>
-                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                    <Trash className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
+                                                 
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
