@@ -23,23 +23,8 @@ export function useFirestoreQuery<T>(query: Query<DocumentData> | null) {
 
     setLoading(true);
     
-    // The collection name can be inferred from the query path
-    const collectionName = (query as any)._query.path.segments[0];
-    
     const unsubscribe = onSnapshot(query, (querySnapshot) => {
       const docs = querySnapshot.docs.map(doc => {
-        const docData = doc.data();
-
-        // Special handling for the 'users' collection to ensure uid is always present
-        if (collectionName === 'users') {
-          return {
-            uid: doc.id, // The document ID is the UID from Firebase Auth
-            ...(docData as T),
-            id: docData.id, // The custom ID like 'tech-001'
-          } as WithId<T>;
-        }
-
-        // For all other collections, the doc.id is the primary identifier.
         return { ...doc.data() as T, id: doc.id } as WithId<T>;
       });
       setData(docs);

@@ -1,97 +1,106 @@
+import {initializeApp, cert} from 'firebase-admin/app';
+import {getFirestore, Timestamp} from 'firebase-admin/firestore';
+import {getAuth, signInWithEmailAndPassword} from 'firebase/auth';
+import {getAuth as getAdminAuth} from 'firebase-admin/auth';
+import {readFileSync, readdirSync} from 'fs';
+import {join, dirname} from 'path';
+import {fileURLToPath} from 'url';
+import 'dotenv/config';
 
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
-import { getStorage } from 'firebase-admin/storage';
-import { config as dotenvConfig } from 'dotenv';
-import { readdir, readFile } from 'fs/promises';
-import { resolve, join } from 'path';
+// --- IMPORTANT: CONFIGURE YOUR FIREBASE ADMIN SDK ---
+// 1. Go to your Firebase Project Settings -> Service Accounts.
+// 2. Click "Generate new private key" and download the JSON file.
+// 3. Save it in the root of this project as `service-account.json`.
+// 4. Ensure `service-account.json` is listed in your `.gitignore` file.
+const serviceAccount = JSON.parse(
+  readFileSync('./service-account.json', 'utf8')
+);
 
-// Load environment variables from .env.local
-dotenvConfig({ path: resolve(process.cwd(), '.env.local') });
+const app = initializeApp({
+  credential: cert(serviceAccount),
+});
 
-console.log('> Seeding database...');
+const clientAppConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+};
+const clientAuth = getAuth(initializeApp(clientAppConfig, 'client-app'));
 
-// Initialize Firebase Admin SDK
-try {
-  initializeApp({
-    credential: cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
-    storageBucket: `${JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS).project_id}.appspot.com`
-  });
-  console.log('> Firebase Admin SDK initialized successfully.');
-} catch (error) {
-  console.error('> Error initializing Firebase Admin SDK:', error.message);
-  console.error('> Please ensure your GOOGLE_APPLICATION_CREDENTIALS environment variable is set correctly.');
-  process.exit(1);
-}
+const db = getFirestore(app);
+const adminAuth = getAdminAuth(app);
 
-const db = getFirestore();
-const auth = getAuth();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dataDir = join(__dirname, '../src/lib/data');
 
-async function setAdminClaim() {
-    const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
-    if (!adminEmail) {
-        console.error('> FIREBASE_ADMIN_EMAIL is not set in .env.local. Skipping admin claim.');
-        return;
-    }
-
-    console.log('> Setting custom claim for admin user...');
-    try {
-        const user = await auth.getUserByEmail(adminEmail);
-        await auth.setCustomUserClaims(user.uid, { isAdmin: true });
-        console.log(`> Custom claim { isAdmin: true } set for ${adminEmail}.`);
-    } catch (error) {
-        console.error(`> Error setting custom claim for ${adminEmail}:`, error.message);
-        console.error('> Please ensure the admin user exists in Firebase Authentication before running this script.');
-    }
-}
-
-async function seedDatabase() {
-  await setAdminClaim();
-
-  const dataDir = resolve(process.cwd(), 'src/lib/data');
-  console.log(`> Reading files from ${dataDir}...`);
-
+async function setAdminClaim(email) {
   try {
-    const files = await readdir(dataDir);
-    const jsonFiles = files.filter(file => file.endsWith('.json'));
-
-    for (const file of jsonFiles) {
-        // The collection name is the filename without the .json extension
-        const collectionName = file.replace('.json', '');
-        
-        // Skip the users.json file as it's handled manually or via API
-        if (collectionName === 'users') {
-            console.log(`> Skipping ${file} (user profiles should be created via the app).`);
-            continue;
-        }
-
-        console.log(`> Uploading ${file}...`);
-
-        const filePath = join(dataDir, file);
-        const fileContent = await readFile(filePath, 'utf-8');
-        const data = JSON.parse(fileContent);
-
-        const collectionRef = db.collection(collectionName);
-        const batch = db.batch();
-
-        for (const docId in data) {
-            if (Object.prototype.hasOwnProperty.call(data, docId)) {
-                // The key of the JSON object is the document ID
-                const docRef = collectionRef.doc(docId);
-                batch.set(docRef, data[docId]);
-            }
-        }
-
-        await batch.commit();
-        console.log(`> Successfully seeded collection: ${collectionName}`);
-    }
-
-    console.log('> Database seeding completed successfully!');
+    const user = await adminAuth.getUserByEmail(email);
+    await adminAuth.setCustomUserClaims(user.uid, {isAdmin: true});
+    console.log(`Custom claim { isAdmin: true } set for ${email}.`);
   } catch (error) {
-    console.error('> Error during database seeding:', error);
-    process.exit(1);
+    console.error(`Error setting custom claim for ${email}:`, error);
+    throw new Error('Failed to set admin claim. Ensure the admin user exists in Firebase Authentication.');
   }
 }
 
-seedDatabase();
+async function seedCollection(fileName) {
+  const collectionName = fileName.replace('.json', '');
+  
+  // The 'users' collection is handled manually and by the API, not by this script.
+  if (collectionName === 'users') {
+    return;
+  }
+  
+  console.log(`Uploading ${fileName}...`);
+  const fileContents = readFileSync(join(dataDir, fileName), 'utf8');
+  const data = JSON.parse(fileContents);
+  const collectionRef = db.collection(collectionName);
+  
+  for (const docId in data) {
+    if (Object.prototype.hasOwnProperty.call(data, docId)) {
+        let docData = data[docId];
+        
+        // Convert ISO string dates to Firestore Timestamps where applicable
+        if (docData.timestamp) {
+            docData.timestamp = Timestamp.fromDate(new Date(docData.timestamp));
+        }
+        if (docData.completionTimestamp) {
+            docData.completionTimestamp = Timestamp.fromDate(new Date(docData.completionTimestamp));
+        }
+
+        await collectionRef.doc(docId).set(docData);
+    }
+  }
+}
+
+async function main() {
+  console.log('> Seeding database...');
+
+  const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
+  const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    console.error(
+      'Error: FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in your .env.local file.'
+    );
+    return;
+  }
+
+  // Set the admin claim first
+  console.log('> Setting custom claim for admin user...');
+  await setAdminClaim(adminEmail);
+
+  // Authenticate to get an ID token (though not strictly needed for Admin SDK writes, it confirms credentials work)
+  await signInWithEmailAndPassword(clientAuth, adminEmail, adminPassword);
+  
+  const files = readdirSync(dataDir).filter(f => f.endsWith('.json'));
+  console.log(`> Reading files from ${dataDir}...`);
+
+  for (const file of files) {
+    await seedCollection(file);
+  }
+
+  console.log('> Database seeding completed successfully!');
+}
+
+main().catch(console.error);

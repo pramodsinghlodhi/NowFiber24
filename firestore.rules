@@ -1,111 +1,97 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check for Admin role via custom claims
+  
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isTechnician() {
+      return request.auth.token.role == 'Technician';
+    }
+    
     function isAdmin() {
       return request.auth.token.isAdmin == true;
     }
-
-    // Helper function to check if the user is a Technician
-    function isTechnician() {
-        return request.auth.token.role == 'Technician';
-    }
-
-    // Helper function to check if the user is the owner of the resource
-    // (Used for technician-specific data)
+    
     function isOwner(userId) {
-        return request.auth.uid == userId;
+      return request.auth.uid == userId;
+    }
+
+    // Settings: Only Admins can read or write the single 'live' settings document.
+    match /settings/live {
+        allow read, write: if isSignedIn() && isAdmin();
     }
     
-    //------------------------------------------------------------
-    // Users Collection Rules
-    //------------------------------------------------------------
+    // Users:
+    // - Admins can read all user profiles.
+    // - Any authenticated user can read their own profile.
+    // - Only Admins can create or update user profiles (done via backend).
     match /users/{userId} {
-      // Admins can manage any user document
-      allow read, write: if isAdmin();
-      // Authenticated users can read their own profile
-      allow get: if request.auth.uid == userId;
-      // Allow user to update their own profile, but not change their role
-      allow update: if request.auth.uid == userId 
-                    && request.resource.data.role == resource.data.role;
-    }
-
-    //------------------------------------------------------------
-    // Notifications Sub-collection Rules
-    //------------------------------------------------------------
-    match /users/{userId}/notifications/{notificationId} {
-        // A user can read and manage their own notifications
-        allow read, write, delete: if isOwner(userId);
-        // Admins can also manage notifications (e.g., for system-wide broadcasts)
-        allow write: if isAdmin();
+      allow read: if isSignedIn() && (isAdmin() || isOwner(userId));
+      allow write: if isSignedIn() && isAdmin();
+      
+      // Notifications: Users can only access their own notifications.
+      match /notifications/{notificationId} {
+        allow read, write, create, delete: if isOwner(userId);
+      }
     }
     
-    //------------------------------------------------------------
-    // Settings Collection Rules
-    //------------------------------------------------------------
-    match /settings/{settingId} {
-        // Only Admins can read or write to the settings document
-        allow read, write: if isAdmin();
-    }
-
-    //------------------------------------------------------------
-    // Public/Semi-Public Read Rules
-    // Admins can read/write everything. Technicians need broad read access.
-    //------------------------------------------------------------
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-
+    // Technicians:
+    // - Admins can manage all technician documents.
+    // - Authenticated technicians can read all technician data (for maps, etc.)
+    // - Technicians can only update their own document (for location, status).
     match /technicians/{techId} {
-        allow read: if isTechnician();
-        // A technician can update their own status/location
-        allow update: if isTechnician() && request.auth.token.userId == techId;
+      allow read: if isSignedIn() && (isAdmin() || isTechnician());
+      allow create, delete: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && (isAdmin() || request.auth.token.userId == techId);
     }
-
+    
+    // Tasks:
+    // - Admins can manage all tasks.
+    // - Technicians can read all tasks.
+    // - Technicians can only update tasks assigned to them.
     match /tasks/{taskId} {
-        allow read: if isTechnician();
-        // Technicians can update tasks assigned to them
-        allow update: if isTechnician() && resource.data.tech_id == request.auth.token.userId;
-    }
-
-    match /materials/{materialId} {
-        allow read: if isTechnician();
+      allow read: if isSignedIn() && (isAdmin() || isTechnician());
+      allow create, delete: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && (isAdmin() || (isTechnician() && resource.data.tech_id == request.auth.token.userId));
     }
     
-    match /infrastructure/{infraId} {
-        allow read: if isTechnician();
-    }
-
-    match /connections/{connId} {
-        allow read: if isTechnician();
+    // Alerts, Infrastructure, Connections, Materials:
+    // - Admins have full access.
+    // - Technicians have read-only access.
+    match /{collection}/{docId} where collection in ['alerts', 'infrastructure', 'connections', 'materials'] {
+      allow read: if isSignedIn() && (isAdmin() || isTechnician());
+      allow write: if isSignedIn() && isAdmin();
     }
     
-    match /alerts/{alertId} {
-        allow read: if isTechnician();
-    }
-
-    //------------------------------------------------------------
-    // Technician-Specific Write Rules
-    //------------------------------------------------------------
-
+    // Assignments:
+    // - Admins have full access.
+    // - Technicians can read their own assignments and create new ones (requests).
     match /assignments/{assignmentId} {
-        allow read: if isTechnician();
-        // Technicians can create new material requests (assignments)
-        allow create: if isTechnician();
+      allow read: if isSignedIn() && (isAdmin() || (isTechnician() && resource.data.technicianId == request.auth.token.userId));
+      allow create: if isSignedIn() && (isAdmin() || isTechnician());
+      allow update, delete: if isSignedIn() && isAdmin();
     }
-
+    
+    // Referrals:
+    // - Admins have full access.
+    // - Technicians can read their own referrals and create new ones.
     match /referrals/{referralId} {
-        allow read: if isTechnician();
-        // Technicians can create new referrals
-        allow create: if isTechnician();
+        allow read: if isSignedIn() && (isAdmin() || (isTechnician() && resource.data.tech_id == request.auth.token.userId));
+        allow create: if isSignedIn() && (isAdmin() || isTechnician());
+        allow update, delete: if isSignedIn() && isAdmin();
     }
-
+    
+    // Proof of Work:
+    // - Admins have full access.
+    // - Technicians can only create new entries for themselves.
     match /proofOfWork/{proofId} {
-        // Technicians can create new proof of work submissions
-        allow create: if isTechnician();
+      allow read: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() && isTechnician() && request.resource.data.technicianId == request.auth.token.userId;
+      allow update, delete: if isSignedIn() && isAdmin();
     }
   }
 }

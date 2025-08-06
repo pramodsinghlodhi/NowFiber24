@@ -34,7 +34,6 @@ This is the **only manual step** required. You must create a user profile docume
 3.  For **Collection ID**, enter `users`. Click **Next**.
 4.  Now, you'll create the first document. In the **Document ID** field, **paste the Admin User UID you just copied**. This links the login to the profile.
 5.  Add the following fields for the admin's profile:
-    *   `uid`: (string) Paste the UID again here.
     *   `id`: (string) `admin`
     *   `name`: (string) `Admin User`
     *   `role`: (string) `Admin`
