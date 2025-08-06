@@ -1,9 +1,9 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { credential } from 'firebase-admin';
+import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 import { User, Technician } from '@/lib/types';
 
 

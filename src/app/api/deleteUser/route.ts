@@ -3,18 +3,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { credential } from 'firebase-admin';
+import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-    try {
-        initializeApp({
-            credential: credential.applicationDefault(),
-        });
-    } catch (error) {
-        console.error("Firebase Admin initialization error:", error);
-    }
+    initializeApp({
+        credential: credential.applicationDefault(),
+    });
 }
 
 const auth = getAuth();
