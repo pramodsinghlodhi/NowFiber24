@@ -1,9 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, Query } from 'firebase/firestore';
+import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
 
-export function useFirestoreQuery<T>(query: Query | null) {
-  const [data, setData] = useState<T[]>([]);
+// A generic type that includes an 'id'
+type WithId<T> = T & { id: string };
+
+export function useFirestoreQuery<T>(query: Query<DocumentData> | null) {
+  const [data, setData] = useState<WithId<T>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,17 +16,16 @@ export function useFirestoreQuery<T>(query: Query | null) {
         return;
     }
 
-    // Only set loading to true if it's not already true, to avoid extra renders
     if (!loading) {
         setLoading(true);
     }
     
-    // Setting up the listener. onSnapshot will return an unsubscribe function.
     const unsubscribe = onSnapshot(query, (querySnapshot) => {
-      const docs = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as T));
+      const docs = querySnapshot.docs.map(doc => {
+        // Here, we ensure the document ID is always included.
+        // For the 'users' collection, the doc ID is the UID.
+        return { id: doc.id, ...doc.data() } as WithId<T>;
+      });
       setData(docs);
       setLoading(false);
     }, (error) => {
@@ -31,11 +33,9 @@ export function useFirestoreQuery<T>(query: Query | null) {
         setLoading(false);
     });
 
-    // Cleanup function to unsubscribe from the listener when the component unmounts
-    // or the query changes, to prevent memory leaks.
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]); // Re-run the effect if the query object itself changes.
+  }, [query]); 
 
   return { data, loading };
 }

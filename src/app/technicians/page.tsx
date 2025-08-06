@@ -98,7 +98,7 @@ export default function TechniciansPage() {
     
         if (isEditing && selectedTechnician) {
             const techUser = users.find(u => u.id === selectedTechnician.id);
-            if (!techUser?.uid) {
+            if (!techUser?.id) { // The doc ID from useFirestoreQuery is the UID
                  toast({ title: "Error", description: "Could not find associated user to update.", variant: "destructive"});
                  return;
             }
@@ -109,7 +109,7 @@ export default function TechniciansPage() {
                 const techDocRef = doc(db, 'technicians', selectedTechnician.id);
                 batch.update(techDocRef, techData as any);
                 
-                const userDocRef = doc(db, 'users', techUser.uid);
+                const userDocRef = doc(db, 'users', techUser.id);
                 batch.update(userDocRef, { name: userData.name, avatarUrl: userData.avatarUrl });
 
                 await batch.commit();
@@ -181,12 +181,13 @@ export default function TechniciansPage() {
     }
     
     const handleToggleBlock = async (userToToggle: User) => {
-        if (!userToToggle.uid) {
+        // The user object's `id` from our modified useFirestoreQuery is the UID
+        if (!userToToggle.id) {
              toast({ title: "Error", description: "User UID not found.", variant: "destructive"});
              return;
         };
         
-        const userDocRef = doc(db, 'users', userToToggle.uid);
+        const userDocRef = doc(db, 'users', userToToggle.id);
         
         try {
             const isBlocked = !userToToggle.isBlocked;
