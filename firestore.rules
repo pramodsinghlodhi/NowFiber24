@@ -3,122 +3,118 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // =================================
-    // Helper Functions
-    // =================================
-    function isAuthenticated() {
+
+    // Helper Functions to check user roles and ownership.
+    // These make the rules cleaner and easier to understand.
+    function isSignedIn() {
       return request.auth != null;
     }
     
-    function getUserRole() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'Admin';
+      return isSignedIn() && getUserData().role == 'Admin';
     }
 
     function isTechnician() {
-      return isAuthenticated() && getUserRole() == 'Technician';
+      return isSignedIn() && getUserData().role == 'Technician';
     }
 
-    // Check if the requesting user is the owner of the document
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
-    // Check if the requesting user is the assigned technician for a document
-    function isAssignedTech(resourceId, fieldName) {
-        return request.auth.uid == get(/databases/$(database)/documents/$(resourceId)).data[fieldName];
-    }
 
-    // =================================
-    // Collection Rules
-    // =================================
+    // --- Collection-Specific Rules ---
 
-    // Users Collection
+    // USERS Collection:
+    // - Users can read and update their OWN profile.
+    // - Admins can create, read, update, and delete ANY user profile.
     match /users/{userId} {
-      // Admins can manage any user document.
-      allow read, write: if isAdmin();
-      // Users can only read their own profile. They cannot edit it directly.
-      allow get: if isOwner(userId);
+      allow read, update: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create, delete: if isAdmin();
     }
-    
-    // Technicians Collection
+
+    // TECHNICIANS Collection:
+    // - Admins can manage all technicians.
+    // - Technicians can read all technician data (for maps, etc.).
+    // - Technicians can only update THEIR OWN data.
     match /technicians/{techId} {
-      // Admins can manage all technician documents.
-      allow read, write: if isAdmin();
-      // All authenticated users can read technician info (for maps etc.)
-      allow get, list: if isAuthenticated();
-      // A technician can only update their own document.
-      allow update: if isOwner(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
-    }
-
-    // Alerts Collection
-    match /alerts/{alertId} {
-        // Admins can manage alerts
-        allow write: if isAdmin();
-        // All authenticated users can read alerts
-        allow read: if isAuthenticated();
+      allow read: if isSignedIn() && (isTechnician() || isAdmin());
+      allow update: if (isSignedIn() && isTechnician() && getUserData().id == techId) || isAdmin();
+      allow create, delete: if isAdmin();
     }
     
-    // Tasks Collection
+    // TASKS Collection:
+    // - Admins can manage all tasks.
+    // - Technicians can read all tasks.
+    // - Technicians can only update tasks assigned to them.
     match /tasks/{taskId} {
-      // Admins can manage all tasks
-      allow write: if isAdmin();
-      // All authenticated users can read tasks
-      allow read: if isAuthenticated();
-      // A technician can update a task assigned to them
-      allow update: if isTechnician() && request.auth.uid == resource.data.tech_id;
+      allow read: if isSignedIn() && (isTechnician() || isAdmin());
+      allow update: if (isSignedIn() && isTechnician() && request.resource.data.tech_id == getUserData().id) || isAdmin();
+      allow create, delete: if isAdmin();
     }
-
-    // Inventory Collection
+    
+    // ALERTS Collection:
+    // - Admins can manage all alerts.
+    // - Technicians can read all alerts.
+    match /alerts/{alertId} {
+      allow read: if isSignedIn() && (isTechnician() || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // INVENTORY (INFRASTRUCTURE) Collection:
+    // - Admins can manage all infrastructure.
+    // - Technicians can read all infrastructure data.
     match /infrastructure/{deviceId} {
-        // Admins can manage all infrastructure
-        allow write: if isAdmin();
-        // All authenticated users can read inventory data
-        allow read: if isAuthenticated();
+      allow read: if isSignedIn() && (isTechnician() || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
-    
-    // Connections Collection
+
+    // CONNECTIONS Collection:
+    // - Admins can manage all connections.
+    // - Technicians can read all connections.
     match /connections/{connectionId} {
-        allow write: if isAdmin();
-        allow read: if isAuthenticated();
-    }
-
-    // Materials Collection
-    match /materials/{materialId} {
-      // Admins can manage materials stock
-      allow write: if isAdmin();
-      // All authenticated users can read the material list
-      allow read: if isAuthenticated();
-    }
-
-    // Assignments Collection
-    match /assignments/{assignmentId} {
-        // Admins can manage all assignments
-        allow write: if isAdmin();
-        // Technicians can create new requests (assignments)
-        allow create: if isTechnician();
-        // All authenticated users can read assignments (for viewing their status)
-        allow read: if isAuthenticated();
+       allow read: if isSignedIn() && (isTechnician() || isAdmin());
+       allow create, update, delete: if isAdmin();
     }
     
-    // Referrals Collection
+    // MATERIALS Collection:
+    // - Admins can manage all materials.
+    // - Technicians can read all materials (to make requests).
+    match /materials/{materialId} {
+       allow read: if isSignedIn() && (isTechnician() || isAdmin());
+       allow create, update, delete: if isAdmin();
+    }
+    
+    // ASSIGNMENTS (Material Assignments) Collection:
+    // - Admins can manage all assignments.
+    // - Technicians can create their own requests.
+    // - Technicians can read assignments related to them.
+    match /assignments/{assignmentId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.technicianId == getUserData().id);
+      allow create: if isSignedIn() && (isAdmin() || request.resource.data.technicianId == getUserData().id);
+      allow update, delete: if isAdmin();
+    }
+    
+    // REFERRALS Collection:
+    // - Admins can read and update all referrals.
+    // - Technicians can create referrals for themselves.
+    // - Technicians can read referrals submitted by them.
     match /referrals/{referralId} {
-        // Admins can manage all referrals
-        allow write: if isAdmin();
-        // Technicians can create new referrals
-        allow create: if isTechnician();
-        // All authenticated users can read referral data
-        allow read: if isAuthenticated();
+      allow read: if isSignedIn() && (isAdmin() || resource.data.tech_id == getUserData().id);
+      allow update: if isAdmin();
+      allow create: if isSignedIn() && (isAdmin() || request.resource.data.tech_id == getUserData().id);
+      allow delete: if isAdmin();
     }
 
-    // Plans Collection (Read-only for now)
+    // PLANS Collection:
+    // - Admins can manage all plans.
+    // - Technicians can read all plans.
     match /plans/{planId} {
-        allow read: if isAuthenticated();
-        allow write: if isAdmin();
+      allow read: if isSignedIn() && (isTechnician() || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
   }
 }
