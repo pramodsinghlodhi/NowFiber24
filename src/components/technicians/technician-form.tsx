@@ -89,7 +89,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     setIsLoading(true);
 
     const techData: Omit<Technician, 'id'> & { id: string } = {
-        id: isEditing ? technician!.id : id, // Use the correct ID for new vs. existing
+        id: id,
         name,
         role,
         contact,
@@ -102,7 +102,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     };
     
     const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string } = {
-        id,
+        id: id,
         name,
         role: 'Technician',
         avatarUrl,
