@@ -177,6 +177,7 @@ export default function MapView({ devices, technicians, alerts, connections, map
           center: [34.05, -118.25], // Centered on LA
           zoom: 12,
           zoomControl: false,
+          attributionControl: false,
       });
       
       L.control.zoom({ position: 'topright' }).addTo(mapInstance.current);
