@@ -98,7 +98,7 @@ export default function TechniciansPage() {
     
         if (isEditing && selectedTechnician) {
             const techUser = users.find(u => u.id === selectedTechnician.id);
-            if (!techUser || !techUser.uid) {
+            if (!techUser?.uid) {
                  toast({ title: "Error", description: "Could not find associated user to update.", variant: "destructive"});
                  return;
             }
