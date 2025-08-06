@@ -67,7 +67,13 @@ export default function Header() {
   };
 
   const getPageTitle = () => {
-    const pageName = pathname.split('/').pop() || 'dashboard';
+    const segments = pathname.split('/').filter(Boolean);
+    if(segments.length === 0 || segments[0] !== 'app') {
+       const pageName = segments[segments.length -1] || 'dashboard';
+        if(pageName === 'dashboard') return 'Dashboard';
+        return pageName.charAt(0).toUpperCase() + pageName.slice(1);
+    }
+     const pageName = segments[segments.length - 1] || 'dashboard';
     if(pageName === 'dashboard') return 'Dashboard';
     return pageName.charAt(0).toUpperCase() + pageName.slice(1);
   }
