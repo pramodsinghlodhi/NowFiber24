@@ -5,12 +5,17 @@ import { Technician, Task } from '@/lib/types';
 import TasksList from '@/components/dashboard/tasks-list';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import CreateTaskForm from '@/components/tasks/create-task-form';
+import { createTask } from '../actions';
+import { useToast } from '@/hooks/use-toast';
 
 function TaskColumnSkeleton() {
     return (
@@ -42,6 +47,8 @@ function TaskColumnSkeleton() {
 export default function TasksPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
+    const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -51,12 +58,13 @@ export default function TasksPage() {
 
     const tasksQuery = useMemo(() => {
         if (!user) return null;
-        return user.role === 'Admin' 
-            ? query(collection(db, 'tasks'))
+        const q = user.role === 'Admin' 
+            ? collection(db, 'tasks')
             : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
+        return query(q, orderBy('status')); // Simple ordering
     }, [user]);
     
-    const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
+    const techniciansQuery = useMemo(() => query(collection(db, 'technicians'), where('isActive', '==', true)), []);
 
     const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
@@ -68,11 +76,24 @@ export default function TasksPage() {
         return { inProgressTasks: inProgress, pendingTasks: pending, completedTasks: completed };
     }, [tasks]);
 
+    const handleSaveTask = async (taskData: Omit<Task, 'id' | 'completionTimestamp'>) => {
+        const result = await createTask(taskData);
+        if (result.success) {
+            toast({ title: 'Task Created', description: `New task has been created with ID: ${result.id}`});
+            setIsCreateFormOpen(false);
+        } else {
+            toast({ title: 'Error', description: result.message, variant: 'destructive' });
+        }
+    }
+
     const loading = authLoading || loadingTasks || loadingTechs;
 
     if (loading || !user) {
         return (
             <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+                 <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+                </div>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <TaskColumnSkeleton />
                     <TaskColumnSkeleton />
@@ -83,7 +104,17 @@ export default function TasksPage() {
     }
 
   return (
+    <>
     <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+         <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+            {user.role === 'Admin' && (
+                <Button onClick={() => setIsCreateFormOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Task
+                </Button>
+            )}
+        </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card className="lg:col-span-1">
                 <CardHeader>
@@ -132,5 +163,12 @@ export default function TasksPage() {
             </Card>
         </div>
     </main>
+    <CreateTaskForm 
+        isOpen={isCreateFormOpen}
+        onOpenChange={setIsCreateFormOpen}
+        onSave={handleSaveTask}
+        technicians={technicians}
+    />
+    </>
   );
 }

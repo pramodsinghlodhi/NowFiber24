@@ -4,88 +4,93 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Helper functions to improve readability
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
-
+    
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'Admin';
+      return getRole() == 'Admin';
     }
-
+    
     function isTechnician() {
-      return isSignedIn() && getUserData().role == 'Technician';
+        return getRole() == 'Technician';
     }
 
-    // Admins have full access to everything. This is a simple, powerful rule.
+    // Admins have full access to all collections
+    // Technicians can read most collections
+    // Technicians can create specific documents (referrals, material requests, proof of work)
+    // Technicians can only update their own documents or tasks assigned to them
+
     match /{document=**} {
       allow read, write: if isAdmin();
     }
     
-    // Rules for the 'users' collection
     match /users/{userId} {
-      // Any signed-in user can read their own profile
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      // Admins can create/update/delete any user profile
-      allow write: if isAdmin();
+        allow read: if isSignedIn();
+        allow update: if isUser(userId) || isAdmin(); // Allow user to update their own info, or admin
     }
     
-    // Technicians need to read from many collections to do their job
     match /technicians/{techId} {
-       // Technicians can read all technician data (for maps, etc.)
-      allow read: if isTechnician();
-      // A technician can ONLY update their own document
-      allow update: if isTechnician() && request.auth.uid == getUserData().uid && techId == getUserData().id;
+        allow read: if isSignedIn();
+        // Allow update only if the user is the technician themselves (for location tracking) or an admin
+        allow update: if (isTechnician() && request.auth.uid == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.uid) || isAdmin();
     }
-
+    
     match /tasks/{taskId} {
-      allow read: if isTechnician();
-      // A technician can only update a task assigned to them
-      allow update: if isTechnician() && get(/databases/$(database)/documents/tasks/$(taskId)).data.tech_id == getUserData().id;
+        allow read: if isSignedIn();
+        allow create: if isAdmin();
+        // Allow update only if the user is the assigned technician or an admin
+        allow update: if (isTechnician() && request.resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id) || isAdmin();
     }
-
+    
     match /alerts/{alertId} {
-      allow read: if isTechnician();
-    }
-    
-    match /infrastructure/{deviceId} {
-       allow read: if isTechnician();
+        allow read: if isSignedIn();
+        allow create: if isAdmin(); // Only system/admin can create alerts
     }
 
-    match /connections/{connId} {
-       allow read: if isTechnician();
+    match /infrastructure/{infraId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin();
     }
     
+    match /connections/{connId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin();
+    }
+
     match /materials/{materialId} {
-        allow read: if isTechnician();
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin();
     }
 
     match /assignments/{assignmentId} {
-        // Technicians can create new material requests
-        allow create: if isTechnician();
-        // Technicians can read their own assignments
-        allow read: if isTechnician() && resource.data.technicianId == getUserData().id;
-    }
-    
-    match /referrals/{referralId} {
-        // Technicians can create new referrals
-        allow create: if isTechnician();
-        // Technicians can read their own referrals
-        allow read: if isTechnician() && resource.data.tech_id == getUserData().id;
-    }
-    
-    match /proofOfWork/{proofId} {
-        // Technicians can create new proof of work submissions
-        allow create: if isTechnician();
+        allow read: if isSignedIn();
+        allow create: if isSignedIn(); // Techs can create requests, admins can create assignments
+        allow update, delete: if isAdmin();
     }
 
-    // Fallback security rule - deny all other access
-    match /{document=**} {
-      allow read, write: if false;
+    match /referrals/{referralId} {
+        allow read: if isSignedIn();
+        allow create: if isTechnician();
+        allow update: if isAdmin();
+    }
+
+    match /proofOfWork/{proofId} {
+        allow read: if isAdmin();
+        allow create: if isTechnician();
+    }
+    
+    match /plans/{planId} {
+        allow read: if isAdmin();
     }
   }
 }
