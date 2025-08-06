@@ -64,7 +64,7 @@ export default function TasksPage() {
         return query(q, orderBy('status')); // Simple ordering
     }, [user]);
     
-    const techniciansQuery = useMemo(() => query(collection(db, 'technicians'), where('isActive', '==', true)), []);
+    const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
 
     const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
