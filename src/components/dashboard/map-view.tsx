@@ -279,7 +279,10 @@ export default function MapView({ devices, technicians, alerts, connections, map
                     .bindPopup(`<div class="p-2 font-semibold">${tech.name}</div>`, { className: 'custom-popup' });
                 
                 if (tech.path && tech.path.length > 1) {
-                    L.polyline(tech.path, { color: 'blue', weight: 3, opacity: 0.7, dashArray: '5, 10' }).addTo(lg);
+                    const validPath = tech.path.filter(p => p && Array.isArray(p) && p.length === 2) as [number, number][];
+                    if (validPath.length > 1) {
+                        L.polyline(validPath, { color: 'blue', weight: 3, opacity: 0.7, dashArray: '5, 10' }).addTo(lg);
+                    }
                 }
             }
         });
