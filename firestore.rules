@@ -1,54 +1,46 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check for admin role via custom claims
+  
+    // Admin can do anything
     function isAdmin() {
       return request.auth.token.isAdmin == true;
     }
-
-    // Admins have full access to everything
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
     
-    // Allow authenticated users to read their own user document
+    // Users can read their own user profile.
     match /users/{userId} {
-      allow get: if request.auth.uid == userId;
+      allow read: if request.auth.uid == userId;
+      allow write: if isAdmin(); // Only admins can write to user profiles
+    }
+    
+    // Technicians can update their own status and location if their UID matches.
+    match /technicians/{techId} {
+        allow read: if request.auth != null; // Any authenticated user can read technician data
+        allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId;
+        allow write: if isAdmin(); // Admins can create/delete
     }
 
-    // Technicians can read most collections
-    match /technicians/{docId} {
+    match /referrals/{referralId} {
       allow read: if request.auth != null;
-    }
-    match /tasks/{docId} {
-      allow read, write: if request.auth != null;
-    }
-    match /infrastructure/{docId} {
-      allow read: if request.auth != null;
-    }
-    match /connections/{docId} {
-        allow read: if request.auth != null;
-    }
-    match /alerts/{docId} {
-      allow read: if request.auth != null;
-    }
-    match /materials/{docId} {
-        allow read: if request.auth != null;
-    }
-    match /assignments/{docId} {
-        allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if isAdmin();
     }
     
-    // Technicians can create referrals and update their own technician document
-    match /referrals/{docId} {
-        allow create: if request.auth != null;
+    match /assignments/{assignmentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if isAdmin();
+    }
+
+    // Default read access for authenticated users to other collections.
+    match /{collection}/{docId} {
+      allow read: if request.auth != null;
     }
     
-    match /technicians/{techId} {
-      allow update: if request.auth.uid != null && request.auth.uid == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.uid;
+    // Default write access for admins to any document.
+    match /{document=**} {
+      allow write: if isAdmin();
     }
   }
 }
