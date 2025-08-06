@@ -33,8 +33,8 @@ export function useFirestoreQuery<T>(query: Query<DocumentData> | null) {
         // Special handling for the 'users' collection to ensure uid is always present
         if (collectionName === 'users') {
           return {
-            ...(docData as T),
             uid: doc.id, // The document ID is the UID from Firebase Auth
+            ...(docData as T),
             id: docData.id, // The custom ID like 'tech-001'
           } as WithId<T>;
         }

@@ -1,3 +1,4 @@
+
 # Automated Firestore Database Setup Guide
 
 This guide explains how to use the automated seeding script to populate your Cloud Firestore database. This script reads all the `.json` files in this directory and uploads them to your Firebase project, creating the necessary collections and documents.
