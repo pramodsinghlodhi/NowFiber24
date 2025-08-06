@@ -1,14 +1,13 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- Helper Functions ---
+  
+    // Helper Functions
     function isLoggedIn() {
       return request.auth != null;
     }
-
+    
     function getUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
@@ -22,71 +21,60 @@ service cloud.firestore {
     }
     
     function isOwner(userId) {
-        return request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    // --- Collection Rules ---
-
-    // Admins have full access to all collections. This is the master rule.
-    // Specific collections below can grant ADDITIONAL permissions to non-admins.
+    // Admins can read and write all data
     match /{document=**} {
       allow read, write: if isAdmin();
     }
     
-    // Users can read any user profile (for names, avatars etc.)
-    // but can only update their own profile.
+    // Technicians need specific permissions
     match /users/{userId} {
       allow read: if isLoggedIn();
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId); // Techs can update their own user doc
     }
-
-    // Technicians can update their own technician document (for status, location updates)
-    // and all authenticated users can read technician data.
+    
     match /technicians/{techId} {
       allow read: if isLoggedIn();
-      // Techs can update their own document. The techId is the custom id, not the UID.
-      // We look up the user doc that corresponds to this techId to find the auth UID.
-      allow update: if isTechnician() && request.auth.uid == get(/databases/$(database)/documents/users/{request.resource.data.uid}).data.uid;
+      // Allow a technician to update their own document
+      allow update: if isTechnician() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId;
     }
-
-    // All authenticated users can read tasks.
-    // Technicians can update a task if it is assigned to them.
+    
     match /tasks/{taskId} {
       allow read: if isLoggedIn();
-      allow update: if isTechnician() && request.resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
+      // Allow a technician to update a task assigned to them
+      allow update: if isTechnician() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
     }
     
-    // Technicians can create new referrals (customer leads).
     match /referrals/{referralId} {
-        allow read: if isLoggedIn();
-        allow create: if isTechnician();
+       allow read: if isLoggedIn();
+       // Allow a technician to create their own referral
+       allow create: if isTechnician() && request.resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
     }
     
-    // Technicians can create new material requests (assignments).
     match /assignments/{assignmentId} {
-        allow read: if isLoggedIn();
-        allow create: if isTechnician();
+       allow read: if isLoggedIn();
+       // Allow a technician to create their own material request
+       allow create: if isTechnician() && request.resource.data.technicianId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
     }
-
-    // Read-only access for technicians to these collections.
+    
+    // Read-only for technicians on these collections
     match /alerts/{alertId} {
       allow read: if isLoggedIn();
     }
-    
-    match /connections/{connectionId} {
+    match /infrastructure/{infraId} {
       allow read: if isLoggedIn();
     }
-
-    match /infrastructure/{deviceId} {
+    match /connections/{connId} {
       allow read: if isLoggedIn();
     }
-
     match /materials/{materialId} {
       allow read: if isLoggedIn();
     }
-    
-    match /plans/{planId} {
-        allow read: if isLoggedIn();
+     match /plans/{planId} {
+      allow read: if isLoggedIn();
     }
+    
   }
 }
