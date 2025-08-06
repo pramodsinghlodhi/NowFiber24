@@ -1,82 +1,100 @@
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    function isUserAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isUserRole(role) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
-    }
-
-    function isUserAdmin() {
-      return request.auth.token.isAdmin == true || isUserRole('Admin');
-    }
+{
+  "rules": {
+    "rules_version": "2",
+    "service": "cloud.firestore",
+    "match": "/databases/{database}/documents" {
     
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
+      // Helper function to check if the user is an admin
+      function isAdmin() {
+        return request.auth != null && request.auth.token.isAdmin == true;
+      }
 
-    match /users/{userId} {
-      // Admins can read/write any user profile
-      // Users can read/write their own profile
-      allow read, write: if isUserAdmin() || isOwner(userId);
-    }
-    
-    match /users/{userId}/notifications/{notificationId} {
-        // Users can read/write their own notifications
-        // Admins can create broadcasts (write to any user's notifications)
-        allow read, write: if isOwner(userId) || isUserAdmin();
-    }
-    
-    match /technicians/{techId} {
-        // Admins can read/write all technician data
-        // Authenticated technicians can update their own data (for location, status)
-        allow read: if isUserAuthenticated();
-        allow write: if isUserAdmin() || (isUserRole('Technician') && resource.id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
-    }
+      // Helper function to check if the user is a logged-in technician
+      function isTechnician() {
+        return request.auth != null && request.auth.token.role == 'Technician';
+      }
+      
+      // Helper function to check if the user is authenticated
+      function isAuthenticated() {
+        return request.auth != null;
+      }
 
-    match /tasks/{taskId} {
-        // Admins can read/write all tasks
-        // Technicians can read all tasks, but only write to tasks assigned to them.
-        allow read: if isUserAuthenticated();
-        allow write: if isUserAdmin();
-        allow update: if isUserRole('Technician') && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id;
-    }
-    
-    match /referrals/{referralId} {
-        allow read: if isUserAuthenticated();
-        // Admins can manage all referrals
-        // Technicians can create new referrals
-        allow write: if isUserAdmin();
-        allow create: if isUserRole('Technician');
-    }
+      // Users can only manage their own profile
+      "match": "/users/{userId}" {
+        "allow read, update": "if request.auth.uid == userId || isAdmin();",
+        "allow create, delete": "if isAdmin();" // Only admins can create/delete users via backend
+      }
+      
+      // Users can only access their own notifications
+      "match": "/users/{userId}/notifications/{notificationId}" {
+        "allow read, write": "if request.auth.uid == userId;"
+      }
+      
+      "match": "/settings/live" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin();"
+      }
 
-    match /assignments/{assignmentId} {
-      // Admins can manage all assignments
-      // Technicians can create new assignments (requests)
-      allow read: if isUserAuthenticated();
-      allow write: if isUserAdmin();
-      allow create: if isUserRole('Technician');
-    }
+      // All authenticated users can read technician data, but only admins can write
+      "match": "/technicians/{technicianId}" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin();"
+      }
 
-    match /proofOfWork/{proofId} {
-      // Admins can read/delete all proofs
-      // Technicians can create new proofs
-      allow read, delete: if isUserAdmin();
-      allow create: if isUserRole('Technician');
-    }
-    
-    match /settings/{docId} {
-      // Only admins can read/write settings
-      allow read, write: if isUserAdmin();
-    }
+      // Tasks can be read by all, but only managed by admins or the assigned technician
+      "match": "/tasks/{taskId}" {
+        "allow read": "if isAuthenticated();",
+        "allow create": "if isAdmin();",
+        "allow update": "if isAdmin() || (isTechnician() && resource.data.tech_id == request.auth.token.sub);"
+      }
 
-    // Default deny for all other collections unless explicitly stated
-    match /{document=**} {
-      allow read, write: if isUserAdmin();
+      // Alerts can be read by all, only created/managed by admins (or server-side functions)
+       "match": "/alerts/{alertId}" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin();"
+      }
+      
+      // All authenticated users can read infrastructure, but only admins/techs can write (add new devices)
+      "match": "/infrastructure/{deviceId}" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin() || isTechnician();"
+      }
+      
+      "match": "/connections/{connectionId}" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin();"
+      }
+
+      "match": "/materials/{materialId}" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin();"
+      }
+
+      "match": "/assignments/{assignmentId}" {
+        "allow read": "if isAuthenticated();",
+        // Admins can create/update. Techs can create (request)
+        "allow create": "if isAuthenticated();",
+        "allow update": "if isAdmin();"
+      }
+
+      "match": "/referrals/{referralId}" {
+        // Techs can create their own. Admins can manage all.
+        "allow read": "if isAuthenticated();",
+        "allow create": "if isTechnician();",
+        "allow update": "if isAdmin();"
+      }
+
+      "match": "/proofOfWork/{proofId}" {
+         // Techs can create their own. Admins can read/delete all.
+        "allow read": "if isAdmin();",
+        "allow create": "if isTechnician();",
+        "allow delete": "if isAdmin();"
+      }
+
+      "match": "/plans/{planId}" {
+        "allow read": "if isAuthenticated();",
+        "allow write": "if isAdmin();"
+      }
     }
   }
 }
