@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeTechnician) unsubscribeTechnician();
 
       if (fbUser) {
-        await fbUser.getIdToken(true);
+        await fbUser.getIdToken(true); // Force refresh the token to get custom claims
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
 
@@ -55,21 +55,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUser(fullUser);
 
                 if (fullUser.role === 'Admin') {
-                    const fetchSettingsWithRetry = (retries = 3, delay = 1000) => {
-                        const settingsDocRef = doc(db, 'settings', 'live');
-                        unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
-                            if (doc.exists()) {
-                                setSettings(doc.data() as Settings);
-                            }
-                        }, (error) => {
-                             console.error(`Error fetching admin settings (attempt ${4 - retries}):`, error.message);
-                             if (retries > 0) {
-                                setTimeout(() => fetchSettingsWithRetry(retries - 1, delay), delay);
-                             }
-                        });
-                    }
-                    fetchSettingsWithRetry();
-
+                    const settingsDocRef = doc(db, 'settings', 'live');
+                    unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
+                        if (doc.exists()) {
+                            setSettings(doc.data() as Settings);
+                        }
+                    }, (error) => {
+                         console.error("Error fetching admin settings:", error.message);
+                    });
                 } else if (fullUser.role === 'Technician') {
                     const techDocRef = doc(db, 'technicians', fullUser.id);
                     unsubscribeTechnician = onSnapshot(techDocRef, (techDoc) => {
