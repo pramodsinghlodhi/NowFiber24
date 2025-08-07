@@ -30,79 +30,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // This effect handles the initial authentication state from Firebase.
-    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        // Force a token refresh to ensure custom claims are loaded.
-        await fbUser.getIdToken(true);
-        const userDocRef = doc(db, 'users', fbUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists() && !userDoc.data().isBlocked) {
-          const userData = userDoc.data() as Omit<User, 'uid'>;
-          setUser({ uid: fbUser.uid, ...userData });
-          setFirebaseUser(fbUser);
-        } else {
-          // User is blocked or document doesn't exist.
-          await signOut(auth);
-          setUser(null);
-          setFirebaseUser(null);
-        }
-      } else {
-        // User is logged out.
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (!fbUser) {
+        // User logged out
         setUser(null);
-        setFirebaseUser(null);
         setTechnician(null);
         setSettings(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
-    // This effect runs whenever the user state changes.
-    // It is responsible for fetching role-specific data *after* authentication is confirmed.
-    let unsubscribe: Unsubscribe | undefined;
-
-    const fetchDataForUser = async () => {
-      if (user?.role === 'Admin') {
-        const settingsDocRef = doc(db, 'settings', 'live');
-        unsubscribe = onSnapshot(settingsDocRef, (doc) => {
-          if (doc.exists()) {
-            setSettings(doc.data() as Settings);
-          }
-        }, (error) => {
-          console.error("Error fetching admin settings:", error.message);
-        });
-      } else if (user?.role === 'Technician') {
-        const techDocRef = doc(db, 'technicians', user.id);
-        unsubscribe = onSnapshot(techDocRef, (doc) => {
-          if (doc.exists()) {
-            setTechnician({ id: doc.id, ...doc.data() } as Technician);
-          }
-        });
-      }
-    };
-
-    if (user) {
-      fetchDataForUser();
-    }
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [user]); // This effect depends only on the user object.
-  
-  useEffect(() => {
-    // This effect handles redirection based on auth state.
-    if (!loading && !user && !['/login', '/'].includes(pathname)) {
+    if (loading && !user && !['/login', '/'].includes(pathname)) {
         router.push('/login');
     }
   }, [loading, user, pathname, router]);
+
+
+  useEffect(() => {
+    let settingsUnsubscribe: Unsubscribe | undefined;
+    let techUnsubscribe: Unsubscribe | undefined;
+
+    const fetchDataForUser = async () => {
+        if (firebaseUser) {
+            await firebaseUser.getIdToken(true); // Force refresh to get custom claims
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists() && !userDoc.data().isBlocked) {
+                const userData = userDoc.data() as Omit<User, 'uid'>;
+                const fullUser = { uid: firebaseUser.uid, ...userData };
+                setUser(fullUser);
+
+                if (fullUser.role === 'Admin') {
+                    const settingsDocRef = doc(db, 'settings', 'live');
+                    settingsUnsubscribe = onSnapshot(settingsDocRef, (doc) => {
+                        if (doc.exists()) {
+                            setSettings(doc.data() as Settings);
+                        }
+                    }, (error) => {
+                        console.error("Error fetching admin settings:", error.message);
+                    });
+                } else if (fullUser.role === 'Technician') {
+                    const techDocRef = doc(db, 'technicians', fullUser.id);
+                    techUnsubscribe = onSnapshot(techDocRef, (doc) => {
+                        if (doc.exists()) {
+                            setTechnician({ id: doc.id, ...doc.data() } as Technician);
+                        }
+                    });
+                }
+            } else {
+                // User is blocked or doesn't have a profile
+                await signOut(auth);
+            }
+        }
+        setLoading(false);
+    };
+
+    fetchDataForUser();
+
+    return () => {
+        if (settingsUnsubscribe) settingsUnsubscribe();
+        if (techUnsubscribe) techUnsubscribe();
+    };
+  }, [firebaseUser]);
+
 
   const login = async (userId: string, password?: string): Promise<{ success: boolean, message: string }> => {
     if (!userId || typeof userId !== 'string' || !userId.trim()) {
@@ -144,7 +140,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await signOut(auth);
-    // State will be cleared by the onAuthStateChanged listener.
     router.push('/');
   };
   
