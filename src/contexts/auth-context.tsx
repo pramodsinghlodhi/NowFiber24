@@ -30,40 +30,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    let unsubscribeSettings: Unsubscribe | null = null;
     let unsubscribeTechnician: Unsubscribe | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
-      setFirebaseUser(fbUser);
-
-      if (unsubscribeSettings) unsubscribeSettings();
       if (unsubscribeTechnician) unsubscribeTechnician();
 
       if (fbUser) {
-        await fbUser.getIdToken(true); // Force refresh the token to get custom claims
+        // Force refresh the token to get custom claims on every auth state change.
+        await fbUser.getIdToken(true); 
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
             const userData = userDoc.data() as Omit<User, 'uid'>;
+
             if (userData.isBlocked) {
                 await signOut(auth);
                 setUser(null);
                 setTechnician(null);
+                setSettings(null);
             } else {
                 const fullUser = { uid: fbUser.uid, ...userData };
                 setUser(fullUser);
+                setFirebaseUser(fbUser);
 
                 if (fullUser.role === 'Admin') {
+                    // Fetch settings once for admin
                     const settingsDocRef = doc(db, 'settings', 'live');
-                    unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
-                        if (doc.exists()) {
-                            setSettings(doc.data() as Settings);
+                    try {
+                        const settingsDoc = await getDoc(settingsDocRef);
+                        if (settingsDoc.exists()) {
+                            setSettings(settingsDoc.data() as Settings);
                         }
-                    }, (error) => {
-                         console.error("Error fetching admin settings:", error.message);
-                    });
+                    } catch (error: any) {
+                        console.error("Error fetching admin settings:", error.message);
+                    }
                 } else if (fullUser.role === 'Technician') {
+                    // Set up a listener for the technician's profile
                     const techDocRef = doc(db, 'technicians', fullUser.id);
                     unsubscribeTechnician = onSnapshot(techDocRef, (techDoc) => {
                         if (techDoc.exists()) {
@@ -72,26 +75,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                             setTechnician(null);
                         }
                     });
-                } else {
-                   setTechnician(null);
                 }
             }
         } else {
+          // No user document found, treat as logged out
           await signOut(auth);
           setUser(null);
           setTechnician(null);
+          setSettings(null);
+          setFirebaseUser(null);
         }
       } else {
+        // User is logged out
         setUser(null);
         setTechnician(null);
         setSettings(null);
+        setFirebaseUser(null);
       }
       setLoading(false);
     });
 
     return () => {
         unsubscribeAuth();
-        if (unsubscribeSettings) unsubscribeSettings();
         if (unsubscribeTechnician) unsubscribeTechnician();
     }
   }, []);
