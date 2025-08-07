@@ -36,7 +36,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
 
-      // Stop any active listeners from previous user session
       if (unsubscribeSettings) unsubscribeSettings();
       if (unsubscribeTechnician) unsubscribeTechnician();
 
@@ -56,14 +55,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUser(fullUser);
 
                 if (fullUser.role === 'Admin') {
-                    const settingsDocRef = doc(db, 'settings', 'live');
-                    unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
-                        if (doc.exists()) {
-                            setSettings(doc.data() as Settings);
-                        }
-                    }, (error) => {
-                        console.error("Error fetching admin settings:", error.message);
-                    });
+                    const fetchSettingsWithRetry = (retries = 3, delay = 1000) => {
+                        const settingsDocRef = doc(db, 'settings', 'live');
+                        unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
+                            if (doc.exists()) {
+                                setSettings(doc.data() as Settings);
+                            }
+                        }, (error) => {
+                             console.error(`Error fetching admin settings (attempt ${4 - retries}):`, error.message);
+                             if (retries > 0) {
+                                setTimeout(() => fetchSettingsWithRetry(retries - 1, delay), delay);
+                             }
+                        });
+                    }
+                    fetchSettingsWithRetry();
+
                 } else if (fullUser.role === 'Technician') {
                     const techDocRef = doc(db, 'technicians', fullUser.id);
                     unsubscribeTechnician = onSnapshot(techDocRef, (techDoc) => {
@@ -85,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUser(null);
         setTechnician(null);
-        setSettings(null); // Clear settings on logout
+        setSettings(null);
       }
       setLoading(false);
     });
@@ -97,7 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
   
-  // This effect handles redirection based on auth state.
   useEffect(() => {
     if (!loading && !user && !['/login', '/'].includes(pathname)) {
         router.push('/login');
