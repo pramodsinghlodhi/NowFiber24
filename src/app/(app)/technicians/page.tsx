@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Technician, User } from '@/lib/types';
@@ -38,7 +39,7 @@ const getActivityBadge = (tech: Technician) => {
 
 
 export default function TechniciansPage() {
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
@@ -51,14 +52,14 @@ export default function TechniciansPage() {
     const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
 
     useEffect(() => {
-        if (!currentUser) {
+        if (!authLoading && !currentUser) {
             router.push('/login');
             return;
         }
-        if (currentUser.role !== 'Admin') {
+        if (!authLoading && currentUser?.role !== 'Admin') {
             router.push('/');
         }
-    }, [currentUser, router]);
+    }, [currentUser, authLoading, router]);
 
     const handleDelete = async (tech: Technician) => {
         if (!window.confirm(`Are you sure you want to delete ${tech.name}? This will permanently remove their login and data.`)) return;
@@ -143,7 +144,7 @@ export default function TechniciansPage() {
         setIsFormOpen(true);
     }
     
-    const loading = loadingTechs || loadingUsers;
+    const loading = loadingTechs || loadingUsers || authLoading;
 
     if (!currentUser || loading) {
         return (

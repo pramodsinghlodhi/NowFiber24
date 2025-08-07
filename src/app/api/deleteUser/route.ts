@@ -18,20 +18,16 @@ const db = getFirestore();
 
 export async function POST(request: NextRequest) {
     try {
-        // TODO: Verify if the request comes from an authenticated admin user
         const { techId } = await request.json();
 
         if (!techId) {
             return NextResponse.json({ success: false, message: 'Technician ID is required.' }, { status: 400 });
         }
 
-        // 1. Find user by custom ID field in Firestore to get the UID
         const usersRef = db.collection('users');
         const userQuery = await usersRef.where('id', '==', techId).limit(1).get();
 
         if (userQuery.empty) {
-            // If no user profile, still try to clean up the technician doc as a fallback.
-            console.log(`No user document found for techId ${techId}. Cleaning up technician document.`);
             const techDocRef = db.collection('technicians').doc(techId);
             const techDoc = await techDocRef.get();
             if (techDoc.exists) {
@@ -43,7 +39,6 @@ export async function POST(request: NextRequest) {
         const userDoc = userQuery.docs[0];
         const uid = userDoc.id; // The document ID is the UID
 
-        // 2. Delete user from Firebase Authentication
         try {
             await auth.deleteUser(uid);
             console.log(`Successfully deleted auth user with UID: ${uid}`);
@@ -51,11 +46,10 @@ export async function POST(request: NextRequest) {
              if (authError.code === 'auth/user-not-found') {
                 console.warn(`Auth user with UID: ${uid} not found. Proceeding with Firestore cleanup.`);
              } else {
-                throw authError; // Re-throw other auth errors
+                throw authError;
              }
         }
 
-        // 3. Delete user and technician documents from Firestore in a batch
         const batch = db.batch();
         const userDocRef = db.collection('users').doc(uid);
         const techDocRef = db.collection('technicians').doc(techId);

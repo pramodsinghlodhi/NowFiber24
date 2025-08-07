@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -6,8 +7,6 @@ import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 import { User, Technician } from '@/lib/types';
 
 
-// Securely initialize the Firebase Admin SDK.
-// This is the recommended pattern for Next.js API routes.
 if (!getApps().length) {
     initializeApp({
         credential: credential.applicationDefault(),
@@ -18,11 +17,9 @@ const auth = getAuth();
 const db = getFirestore();
 
 export async function POST(request: NextRequest) {
-    // TODO: Add robust authentication check to ensure only admins can call this.
     const { isEditing, techData, userData, oldTechId } = await request.json();
 
     if (isEditing) {
-        // --- EDIT LOGIC ---
         try {
             if (!oldTechId) {
                 return NextResponse.json({ success: false, message: 'Original technician ID is required for editing.'}, { status: 400 });
@@ -37,13 +34,11 @@ export async function POST(request: NextRequest) {
             const userDoc = userQuery.docs[0];
             const uid = userDoc.id; 
 
-            // Update Auth user
             await auth.updateUser(uid, {
                 displayName: userData.name,
                 photoURL: userData.avatarUrl,
             });
 
-            // Update Firestore docs in a batch
             const batch = db.batch();
             const techDocRef = db.collection('technicians').doc(oldTechId);
             const userDocRef = db.collection('users').doc(uid);
@@ -73,7 +68,6 @@ export async function POST(request: NextRequest) {
         }
 
     } else {
-        // --- ADD LOGIC ---
         if (!userData.password) {
             return NextResponse.json({ success: false, message: 'Password is required for new users.'}, { status: 400 });
         }
