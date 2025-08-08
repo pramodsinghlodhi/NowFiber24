@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!fbUser) {
         setUser(null);
         setTechnician(null);
+        setSettings(null);
         setLoading(false);
       }
     });
@@ -69,7 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                                 console.error("Error fetching admin settings:", error.message);
                             });
                         } else if (fullUser.role === 'Technician') {
-                            setSettings(null);
                             const techDocRef = doc(db, 'technicians', fullUser.id);
                             techUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
                                 if (techDoc.exists()) {
@@ -77,6 +77,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                                 } else {
                                     setTechnician(null);
                                 }
+                            });
+                            const settingsDocRef = doc(db, 'settings', 'live');
+                            settingsUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
+                                if (settingsDoc.exists()) {
+                                    setSettings(settingsDoc.data() as Settings);
+                                }
+                            }, (error) => {
+                                console.error("Error fetching settings:", error.message);
                             });
                         }
                     } else {
@@ -115,7 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setLoading(true);
     await signOut(auth);
-    await fetch('/api/sessionLogout', { method: 'POST' });
     setUser(null);
     setTechnician(null);
     setSettings(null);

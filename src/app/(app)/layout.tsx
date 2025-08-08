@@ -21,6 +21,13 @@ export default function AppLayout({
     const { user, loading } = useAuth();
     const router = useRouter();
 
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/login');
+        }
+    }, [user, loading, router]);
+
+
     if (loading) {
         return (
              <div className="flex h-screen w-full items-center justify-center">
@@ -29,12 +36,10 @@ export default function AppLayout({
         )
     }
 
-    // Since the middleware handles the redirection for unauthenticated users,
-    // this check is now a fallback for edge cases, like a deleted user whose session is still valid.
     if (!user) {
         return (
              <div className="flex h-screen w-full items-center justify-center">
-                <p>No user profile found or user is blocked. Redirecting to login...</p>
+                <p>Redirecting to login...</p>
             </div>
         )
     }

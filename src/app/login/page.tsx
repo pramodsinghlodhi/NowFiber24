@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/icons/logo';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { app } from '@/lib/firebase';
+import { useAuth } from '@/contexts/auth-context';
 
 const auth = getAuth(app);
 
@@ -20,6 +21,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+        router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,24 +37,9 @@ export default function LoginPage() {
     const email = `${userId}@fibervision.com`;
 
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const idToken = await userCredential.user.getIdToken(true); // Force refresh to get claims
-        
-        // Send the token to the server to create a session cookie
-        const response = await fetch('/api/sessionLogin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-        });
-
-        if (response.ok) {
-            toast({ title: 'Login Successful', description: 'Welcome back!' });
-            router.push('/dashboard');
-            router.refresh(); // Refresh the page to apply the new session
-        } else {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Session creation failed.');
-        }
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Login Successful', description: 'Welcome back!' });
+        router.push('/dashboard');
 
     } catch (error: any) {
         console.error("Login Error:", error);
@@ -60,6 +54,14 @@ export default function LoginPage() {
         setIsLoading(false);
     }
   };
+
+  if (loading || user) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center">
+              <p>Loading...</p>
+          </div>
+      )
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
