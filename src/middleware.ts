@@ -1,14 +1,6 @@
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps } from 'firebase-admin/app';
-
-// Initialize Firebase Admin SDK
-if (!getApps().length) {
-    initializeApp();
-}
-const auth = getAuth();
 
 // Force the middleware to run on the Node.js runtime
 export const runtime = 'nodejs';
@@ -16,7 +8,7 @@ export const runtime = 'nodejs';
 export async function middleware(request: NextRequest) {
   const session = request.cookies.get('session')?.value
 
-  // If no session cookie, redirect to login page
+  // If no session cookie, redirect to login page for protected routes
   if (!session) {
     if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/') {
         return NextResponse.next();
@@ -24,17 +16,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Verify the session cookie. In case the cookie is invalid, redirect to login page.
-  try {
-    await auth.verifySessionCookie(session, true);
-  } catch (error) {
-     if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/') {
-        return NextResponse.next();
-    }
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // If the user is authenticated and tries to access the login page, redirect to the dashboard.
+  // If the user is authenticated (has a session cookie) and tries to access the landing or login page, 
+  // redirect them to the dashboard.
    if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }

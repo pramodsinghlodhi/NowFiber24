@@ -31,13 +31,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       setFirebaseUser(fbUser);
       if (!fbUser) {
-        // If user logs out on the client, clear all state
         setUser(null);
         setTechnician(null);
-        setSettings(null);
         setLoading(false);
       }
-      // The initial user data load is now primarily handled by the session
     });
     return () => unsubscribeAuth();
   }, []);
@@ -46,77 +43,85 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let userUnsubscribe: Unsubscribe | undefined;
     let techUnsubscribe: Unsubscribe | undefined;
     let settingsUnsubscribe: Unsubscribe | undefined;
-    
-    setLoading(true);
 
-    if (firebaseUser) {
-        userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), 
-            async (userDoc) => {
-                if (userDoc.exists() && !userDoc.data().isBlocked) {
-                    const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
-                    setUser(fullUser);
+    const fetchDataForUser = async () => {
+        if (!firebaseUser) {
+            setLoading(false);
+            return;
+        }
 
-                    if (fullUser.role === 'Admin') {
-                        // For Admin, fetch settings. Since settings don't change often,
-                        // a real-time listener isn't strictly necessary, but we'll use it
-                        // for consistency. The key is to only attach it AFTER the user's
-                        // role is confirmed to be Admin.
-                        try {
-                           const refreshedIdToken = await firebaseUser.getIdToken(true);
-                           const settingsDocRef = doc(db, 'settings', 'live');
-                           settingsUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
+        try {
+            await firebaseUser.getIdToken(true); // Force refresh to get latest claims
+            userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), 
+                (userDoc) => {
+                    if (userDoc.exists() && !userDoc.data().isBlocked) {
+                        const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
+                        setUser(fullUser);
+
+                        if (fullUser.role === 'Admin') {
+                            setTechnician(null);
+                            const settingsDocRef = doc(db, 'settings', 'live');
+                            settingsUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
                                 if (settingsDoc.exists()) {
                                     setSettings(settingsDoc.data() as Settings);
                                 }
-                           }, (error) => {
-                                console.error("Error fetching settings:", error.message);
-                           });
-                        } catch (tokenError) {
-                            console.error("Error refreshing token for settings fetch:", tokenError);
+                            }, (error) => {
+                                console.error("Error fetching admin settings:", error.message);
+                            });
+                        } else if (fullUser.role === 'Technician') {
+                            setSettings(null);
+                            const techDocRef = doc(db, 'technicians', fullUser.id);
+                            techUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
+                                if (techDoc.exists()) {
+                                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+                                } else {
+                                    setTechnician(null);
+                                }
+                            });
                         }
-                    } else if (fullUser.role === 'Technician') {
-                        const techDocRef = doc(db, 'technicians', fullUser.id);
-                        techUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
-                            if (techDoc.exists()) {
-                                setTechnician(techDoc.data() as Technician);
-                            }
-                        });
+                    } else {
+                        setUser(null);
+                        setTechnician(null);
+                        setSettings(null);
+                        if (userDoc.data()?.isBlocked) {
+                           console.warn("User is blocked.");
+                           logout();
+                        }
                     }
-                } else {
-                    // User document doesn't exist or is blocked
-                    setUser(null);
-                    setTechnician(null);
-                    setSettings(null);
+                    setLoading(false);
+                }, 
+                (error) => {
+                    console.error("Error fetching user profile:", error);
+                    setLoading(false);
                 }
-                setLoading(false);
-            }, 
-            (error) => {
-                console.error("Error fetching user profile:", error);
-                setLoading(false);
-            }
-        );
-    } else {
-        setLoading(false); // No firebase user, not loading
-    }
+            );
+        } catch (error) {
+            console.error("Error refreshing token or fetching data:", error);
+            logout(); // If token is invalid, log out
+        }
+    };
+    
+    fetchDataForUser();
   
     return () => {
         if (userUnsubscribe) userUnsubscribe();
         if (techUnsubscribe) techUnsubscribe();
         if (settingsUnsubscribe) settingsUnsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseUser]);
 
 
   const logout = async () => {
     setLoading(true);
-    await signOut(auth); // Sign out from client-side Firebase auth
-    await fetch('/api/sessionLogout', { method: 'POST' }); // Clear the server-side session cookie
+    await signOut(auth);
+    await fetch('/api/sessionLogout', { method: 'POST' });
     setUser(null);
     setTechnician(null);
     setSettings(null);
     setFirebaseUser(null);
     router.push('/login');
-    // setLoading is handled by the useEffect hook when firebaseUser becomes null
+    router.refresh();
   };
   
   return (
