@@ -1,13 +1,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, credential } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
 
 if (!getApps().length) {
-    initializeApp({
-        credential: credential.applicationDefault(),
-    });
+    initializeApp();
 }
 
 const auth = getAuth();
