@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation'; 
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
+import { useRouter } from 'next/navigation'; 
+import { getAuth, signOut, onIdTokenChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User, Technician, Settings } from '@/lib/types'; 
@@ -13,7 +13,7 @@ interface AuthContextType {
   technician: Technician | null;
   settings: Settings | null;
   firebaseUser: FirebaseAuthUser | null;
-  login: (userId: string, password?: string) => Promise<{ success: boolean, message: string }>;
+  login: (userId: string, password?: string) => Promise<{ success: boolean, message: string }>; // This can be removed soon
   logout: () => void;
   loading: boolean;
 }
@@ -27,110 +27,80 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        setFirebaseUser(fbUser);
-      } else {
+    const unsubscribeAuth = onIdTokenChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser);
+      // We no longer fetch user profile here. It will be handled by the layout.
+      if (!fbUser) {
         setUser(null);
         setTechnician(null);
         setSettings(null);
-        setFirebaseUser(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
     return () => unsubscribeAuth();
   }, []);
-
+  
+  // This effect now only fetches supplemental real-time data for an already-authenticated user.
   useEffect(() => {
+    let userUnsubscribe: Unsubscribe | undefined;
     let techUnsubscribe: Unsubscribe | undefined;
+    let settingsUnsubscribe: Unsubscribe | undefined;
 
-    const fetchDataForUser = async () => {
-      if (firebaseUser) {
-        await firebaseUser.getIdToken(true); // Force refresh token to get custom claims
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
+    if (firebaseUser) {
+        userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
+             if (userDoc.exists() && !userDoc.data().isBlocked) {
+                const userData = { uid: firebaseUser.uid, ...userDoc.data() } as User;
+                setUser(userData);
+             } else {
+                 setUser(null);
+             }
+        });
+    }
 
-        if (userDoc.exists() && !userDoc.data().isBlocked) {
-          const userData = { uid: firebaseUser.uid, ...userDoc.data() } as User;
-          setUser(userData);
-
-          if (userData.role === 'Admin') {
-            try {
-              const settingsDocRef = doc(db, 'settings', 'live');
-              const settingsDoc = await getDoc(settingsDocRef);
-              if (settingsDoc.exists()) {
-                setSettings(settingsDoc.data() as Settings);
-              }
-            } catch (error: any) {
-               console.error("Error fetching admin settings:", error.message);
-            }
-          } else if (userData.role === 'Technician') {
-            const techDocRef = doc(db, 'technicians', userData.id);
-            techUnsubscribe = onSnapshot(techDocRef, (doc) => {
-              if (doc.exists()) {
-                setTechnician({ id: doc.id, ...doc.data() } as Technician);
-              }
+    if (user) {
+        if (user.role === 'Admin') {
+            settingsUnsubscribe = onSnapshot(doc(db, 'settings', 'live'), 
+                (settingsDoc) => {
+                    if (settingsDoc.exists()) setSettings(settingsDoc.data() as Settings);
+                },
+                (error) => console.error("Error fetching settings:", error.message)
+            );
+        } else if (user.role === 'Technician') {
+            techUnsubscribe = onSnapshot(doc(db, 'technicians', user.id), (techDoc) => {
+                if (techDoc.exists()) setTechnician(techDoc.data() as Technician);
             });
-          }
-        } else {
-          // User is blocked or doesn't have a profile
-          await signOut(auth);
         }
-      }
-      setLoading(false);
-    };
-
-    fetchDataForUser();
+    }
 
     return () => {
-      if (techUnsubscribe) techUnsubscribe();
+        if (userUnsubscribe) userUnsubscribe();
+        if (techUnsubscribe) techUnsubscribe();
+        if (settingsUnsubscribe) settingsUnsubscribe();
     };
-  }, [firebaseUser]);
+}, [firebaseUser, user?.id, user?.role]);
+
 
   const login = async (userId: string, password?: string): Promise<{ success: boolean, message: string }> => {
-    setLoading(true);
-    if (!userId || typeof userId !== 'string' || !userId.trim()) {
-      setLoading(false);
-      return { success: false, message: 'User ID must be a non-empty string.' };
-    }
-    
-    if (!password) {
-      setLoading(false);
-      return { success: false, message: 'Password is required for all users.' };
-    }
-    
-    const email = `${userId}@fibervision.com`;
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Let the onAuthStateChanged listener handle the rest of the logic.
-      router.push('/dashboard');
-      return { success: true, message: 'Welcome back!' };
-    } catch (error: any) {
-      console.error("Login Error:", error.code, error.message);
-      setLoading(false);
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
-        return { success: false, message: 'Invalid User ID or Password.' };
-      }
-      if (error.code === 'auth/operation-not-allowed') {
-        return { success: false, message: 'Email/Password sign-in is not enabled in your Firebase project.' };
-      }
-      return { success: false, message: 'An unexpected error occurred. Please try again.' };
-    }
+    // This function is now deprecated in favor of server-side session handling
+    // but kept for compatibility during transition.
+    console.warn("Client-side login function is deprecated.");
+    return { success: false, message: "Please use the login page." };
   };
 
   const logout = async () => {
+    setLoading(true);
     await signOut(auth);
-    router.push('/');
+    await fetch('/api/sessionLogout', { method: 'POST' }); // Clear the session cookie
+    setUser(null);
+    setTechnician(null);
+    setSettings(null);
+    setFirebaseUser(null);
+    router.push('/login');
+    setLoading(false);
   };
   
-  if (loading && !['/login', '/'].includes(pathname)) {
-    return <div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>;
-  }
-
   return (
     <AuthContext.Provider value={{ user, technician, settings, firebaseUser, login, logout, loading }}>
       {children}

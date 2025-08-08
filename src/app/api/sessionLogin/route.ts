@@ -1,17 +1,44 @@
+
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps, credential } from 'firebase-admin/app';
+import { cookies } from 'next/headers';
+
+if (!getApps().length) {
+    initializeApp({
+        credential: credential.applicationDefault(),
+    });
+}
+
+const auth = getAuth();
 
 export async function POST(request: NextRequest) {
-  const { idToken } = await request.json();
+  try {
+    const { idToken } = await request.json();
+    
+    if (!idToken) {
+        return NextResponse.json({ success: false, message: 'ID token is required.' }, { status: 400 });
+    }
 
-  // TODO: Verify the ID token using the Firebase Admin SDK
-  // Example: admin.auth().verifyIdToken(idToken);
+    // Set session expiration to 5 days.
+    const expiresIn = 60 * 60 * 24 * 5 * 1000;
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
 
-  // TODO: Create a session cookie
-  // Example: const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-  // const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+    const options = {
+        name: 'session',
+        value: sessionCookie,
+        maxAge: expiresIn,
+        httpOnly: true,
+        secure: true,
+    };
 
-  // TODO: Set the session cookie in the response
-  // Example: res.setHeader('Set-Cookie', `session=${sessionCookie}; HttpOnly; Secure; Max-Age=${expiresIn}; Path=/`);
+    // Set cookie on the response.
+    cookies().set(options.name, options.value, options);
 
-  return NextResponse.json({ status: 'success' });
+    return NextResponse.json({ success: true, message: "Session cookie created successfully." });
+
+  } catch (error: any) {
+    console.error('Error creating session cookie:', error);
+    return NextResponse.json({ success: false, message: 'Failed to create session.', error: error.message }, { status: 500 });
+  }
 }

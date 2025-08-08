@@ -10,26 +10,47 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/icons/logo';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { app } from '@/lib/firebase';
+
+const auth = getAuth(app);
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { success, message } = await login(userId, password);
-    if (success) {
-      toast({ title: 'Login Successful', description: message });
-      // The login function now handles redirection
-    } else {
-      toast({ title: 'Login Failed', description: message, variant: 'destructive' });
-      setIsLoading(false);
+    const email = `${userId}@fibervision.com`;
+
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        
+        // Send the token to the server to create a session cookie
+        const response = await fetch('/api/sessionLogin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+        });
+
+        if (response.ok) {
+            toast({ title: 'Login Successful', description: 'Welcome back!' });
+            router.push('/dashboard');
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Session creation failed.');
+        }
+
+    } catch (error: any) {
+        console.error("Login Error:", error);
+        toast({ title: 'Login Failed', description: error.message || 'Invalid User ID or Password.', variant: 'destructive' });
+        setIsLoading(false);
     }
   };
 
