@@ -30,18 +30,18 @@ export default function AppLayout({
 
     if (loading) {
         return (
-             <div className="flex h-screen w-full items-center justify-center">
-                <p>Loading...</p>
+             <div className="flex h-screen w-full items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <p className="text-muted-foreground">Loading Dashboard...</p>
+                </div>
             </div>
         )
     }
 
     if (!user) {
-        return (
-             <div className="flex h-screen w-full items-center justify-center">
-                <p>Redirecting to login...</p>
-            </div>
-        )
+        // This state is briefly visible while the router pushes to the login page.
+        return null;
     }
 
   return (

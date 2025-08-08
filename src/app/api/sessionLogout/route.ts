@@ -8,6 +8,8 @@ export async function POST(request: NextRequest) {
       name: 'session',
       value: '',
       maxAge: -1, // Expire the cookie immediately
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
     };
 
