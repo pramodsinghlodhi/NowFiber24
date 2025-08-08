@@ -66,6 +66,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (fullUser.role === 'Admin') {
             setTechnician(null);
             try {
+              // THIS IS THE CRITICAL FIX: Force a token refresh to get custom claims
+              await firebaseUser.getIdToken(true);
               const settingsDoc = await getDoc(doc(db, 'settings', 'live'));
               if (settingsDoc.exists()) {
                 setSettings(settingsDoc.data() as Settings);
@@ -113,7 +115,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Logout failed:", error);
     } finally {
         router.push('/login');
-        router.refresh();
         setUser(null);
         setTechnician(null);
         setSettings(null);
