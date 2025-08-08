@@ -41,66 +41,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!firebaseUser) {
-      setLoading(false);
-      return;
-    }
-
     let userUnsubscribe: Unsubscribe | undefined;
     let techUnsubscribe: Unsubscribe | undefined;
+    let settingsUnsubscribe: Unsubscribe | undefined;
 
     const cleanup = () => {
-      if (userUnsubscribe) userUnsubscribe();
-      if (techUnsubscribe) techUnsubscribe();
+        if (userUnsubscribe) userUnsubscribe();
+        if (techUnsubscribe) techUnsubscribe();
+        if (settingsUnsubscribe) settingsUnsubscribe();
     };
 
-    userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), 
-      async (userDoc) => {
-        if (userDoc.exists() && !userDoc.data().isBlocked) {
-          const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
-          setUser(fullUser);
+    if (firebaseUser) {
+        userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), 
+            async (userDoc) => {
+                if (userDoc.exists() && !userDoc.data().isBlocked) {
+                    const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
+                    setUser(fullUser);
 
-          // Cleanup previous listeners before setting new ones
-          if (techUnsubscribe) techUnsubscribe();
-          
-          if (fullUser.role === 'Admin') {
-            setTechnician(null);
-            try {
-              // THIS IS THE CRITICAL FIX: Force a token refresh to get custom claims
-              await firebaseUser.getIdToken(true);
-              const settingsDoc = await getDoc(doc(db, 'settings', 'live'));
-              if (settingsDoc.exists()) {
-                setSettings(settingsDoc.data() as Settings);
-              }
-            } catch(error: any) {
-               console.error("Error fetching admin settings:", error.message);
+                    if (fullUser.role === 'Admin') {
+                        setTechnician(null);
+                        try {
+                            await firebaseUser.getIdToken(true); 
+                            const settingsDocRef = doc(db, 'settings', 'live');
+                            settingsUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
+                                if (settingsDoc.exists()) {
+                                    setSettings(settingsDoc.data() as Settings);
+                                }
+                            });
+                        } catch(error: any) {
+                           console.error("Error fetching admin settings:", error.message);
+                        }
+                    } else if (fullUser.role === 'Technician') {
+                        setSettings(null);
+                        techUnsubscribe = onSnapshot(doc(db, 'technicians', fullUser.id), (techDoc) => {
+                            if (techDoc.exists()) {
+                                setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+                            } else {
+                                setTechnician(null);
+                            }
+                        });
+                    }
+                } else {
+                    if (userDoc.data()?.isBlocked) {
+                        console.warn("User is blocked.");
+                        logout();
+                    }
+                    setUser(null);
+                    setTechnician(null);
+                    setSettings(null);
+                }
+                setLoading(false);
+            },
+            (error) => {
+                console.error("Error fetching user profile:", error);
+                setLoading(false);
             }
-          } else if (fullUser.role === 'Technician') {
-            setSettings(null);
-            techUnsubscribe = onSnapshot(doc(db, 'technicians', fullUser.id), (techDoc) => {
-              if (techDoc.exists()) {
-                setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
-              } else {
-                setTechnician(null);
-              }
-            });
-          }
-        } else {
-          setUser(null);
-          setTechnician(null);
-          setSettings(null);
-          if (userDoc.data()?.isBlocked) {
-            console.warn("User is blocked.");
-            logout();
-          }
-        }
+        );
+    } else {
         setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching user profile:", error);
-        setLoading(false);
-      }
-    );
+    }
 
     return cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +108,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setLoading(true);
     try {
-      await fetch('/api/sessionLogout', { method: 'POST' });
       await signOut(auth);
     } catch (error) {
         console.error("Logout failed:", error);

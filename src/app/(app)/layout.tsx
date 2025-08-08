@@ -28,7 +28,7 @@ export default function AppLayout({
     }, [user, loading, router]);
 
 
-    if (loading) {
+    if (loading || !user) {
         return (
              <div className="flex h-screen w-full items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
@@ -37,11 +37,6 @@ export default function AppLayout({
                 </div>
             </div>
         )
-    }
-
-    if (!user) {
-        // This state is briefly visible while the router pushes to the login page.
-        return null;
     }
 
   return (
