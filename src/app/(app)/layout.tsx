@@ -21,14 +21,6 @@ export default function AppLayout({
     const { user, loading } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        // This check is simplified as the server-side session should handle redirection.
-        // This is a client-side fallback.
-        if (!loading && !user) {
-            router.push('/login');
-        }
-    }, [user, loading, router]);
-    
     if (loading) {
         return (
              <div className="flex h-screen w-full items-center justify-center">
@@ -37,12 +29,12 @@ export default function AppLayout({
         )
     }
 
+    // Since the middleware handles the redirection for unauthenticated users,
+    // this check is now a fallback for edge cases, like a deleted user whose session is still valid.
     if (!user) {
-        // This state should ideally not be reached if middleware is effective.
-        // But it's a good fallback.
         return (
              <div className="flex h-screen w-full items-center justify-center">
-                <p>Redirecting to login...</p>
+                <p>No user profile found or user is blocked. Redirecting to login...</p>
             </div>
         )
     }

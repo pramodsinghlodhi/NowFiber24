@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
         value: sessionCookie,
         maxAge: expiresIn,
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        path: '/',
     };
 
     // Set cookie on the response.

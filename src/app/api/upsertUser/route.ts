@@ -2,14 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { User, Technician } from '@/lib/types';
+import 'dotenv/config';
 
 
 if (!getApps().length) {
-    initializeApp({
-        credential: credential.applicationDefault(),
-    });
+    initializeApp();
 }
 
 const auth = getAuth();

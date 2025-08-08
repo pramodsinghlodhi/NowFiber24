@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,7 @@ export default function LoginPage() {
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const idToken = await userCredential.user.getIdToken();
+        const idToken = await userCredential.user.getIdToken(true); // Force refresh to get claims
         
         // Send the token to the server to create a session cookie
         const response = await fetch('/api/sessionLogin', {
@@ -42,6 +41,7 @@ export default function LoginPage() {
         if (response.ok) {
             toast({ title: 'Login Successful', description: 'Welcome back!' });
             router.push('/dashboard');
+            router.refresh(); // Refresh the page to apply the new session
         } else {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Session creation failed.');
@@ -49,7 +49,14 @@ export default function LoginPage() {
 
     } catch (error: any) {
         console.error("Login Error:", error);
-        toast({ title: 'Login Failed', description: error.message || 'Invalid User ID or Password.', variant: 'destructive' });
+        let errorMessage = 'Invalid User ID or Password.';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+             errorMessage = 'Invalid User ID or Password.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
         setIsLoading(false);
     }
   };

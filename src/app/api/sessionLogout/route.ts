@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
       name: 'session',
       value: '',
       maxAge: -1, // Expire the cookie immediately
+      path: '/',
     };
 
     cookies().set(options.name, options.value, options);

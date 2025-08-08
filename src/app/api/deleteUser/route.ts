@@ -2,14 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import 'dotenv/config';
+
 
 // Securely initialize the Firebase Admin SDK.
 // This is the recommended pattern for Next.js API routes.
 if (!getApps().length) {
-    initializeApp({
-        credential: credential.applicationDefault(),
-    });
+    initializeApp();
 }
 
 const auth = getAuth();

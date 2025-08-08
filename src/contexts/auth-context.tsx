@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
-import { getAuth, signOut, onIdTokenChanged, User as FirebaseAuthUser } from 'firebase/auth';
+import { getAuth, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User, Technician, Settings } from '@/lib/types'; 
@@ -13,7 +13,6 @@ interface AuthContextType {
   technician: Technician | null;
   settings: Settings | null;
   firebaseUser: FirebaseAuthUser | null;
-  login: (userId: string, password?: string) => Promise<{ success: boolean, message: string }>; // This can be removed soon
   logout: () => void;
   loading: boolean;
 }
@@ -29,80 +28,99 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribeAuth = onIdTokenChanged(auth, (fbUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       setFirebaseUser(fbUser);
-      // We no longer fetch user profile here. It will be handled by the layout.
       if (!fbUser) {
+        // If user logs out on the client, clear all state
         setUser(null);
         setTechnician(null);
         setSettings(null);
+        setLoading(false);
       }
-      setLoading(false);
+      // The initial user data load is now primarily handled by the session
     });
     return () => unsubscribeAuth();
   }, []);
-  
-  // This effect now only fetches supplemental real-time data for an already-authenticated user.
+
   useEffect(() => {
     let userUnsubscribe: Unsubscribe | undefined;
     let techUnsubscribe: Unsubscribe | undefined;
     let settingsUnsubscribe: Unsubscribe | undefined;
+    
+    setLoading(true);
 
     if (firebaseUser) {
-        userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
-             if (userDoc.exists() && !userDoc.data().isBlocked) {
-                const userData = { uid: firebaseUser.uid, ...userDoc.data() } as User;
-                setUser(userData);
-             } else {
-                 setUser(null);
-             }
-        });
-    }
+        userUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), 
+            async (userDoc) => {
+                if (userDoc.exists() && !userDoc.data().isBlocked) {
+                    const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
+                    setUser(fullUser);
 
-    if (user) {
-        if (user.role === 'Admin') {
-            settingsUnsubscribe = onSnapshot(doc(db, 'settings', 'live'), 
-                (settingsDoc) => {
-                    if (settingsDoc.exists()) setSettings(settingsDoc.data() as Settings);
-                },
-                (error) => console.error("Error fetching settings:", error.message)
-            );
-        } else if (user.role === 'Technician') {
-            techUnsubscribe = onSnapshot(doc(db, 'technicians', user.id), (techDoc) => {
-                if (techDoc.exists()) setTechnician(techDoc.data() as Technician);
-            });
-        }
+                    if (fullUser.role === 'Admin') {
+                        // For Admin, fetch settings. Since settings don't change often,
+                        // a real-time listener isn't strictly necessary, but we'll use it
+                        // for consistency. The key is to only attach it AFTER the user's
+                        // role is confirmed to be Admin.
+                        try {
+                           const refreshedIdToken = await firebaseUser.getIdToken(true);
+                           const settingsDocRef = doc(db, 'settings', 'live');
+                           settingsUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
+                                if (settingsDoc.exists()) {
+                                    setSettings(settingsDoc.data() as Settings);
+                                }
+                           }, (error) => {
+                                console.error("Error fetching settings:", error.message);
+                           });
+                        } catch (tokenError) {
+                            console.error("Error refreshing token for settings fetch:", tokenError);
+                        }
+                    } else if (fullUser.role === 'Technician') {
+                        const techDocRef = doc(db, 'technicians', fullUser.id);
+                        techUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
+                            if (techDoc.exists()) {
+                                setTechnician(techDoc.data() as Technician);
+                            }
+                        });
+                    }
+                } else {
+                    // User document doesn't exist or is blocked
+                    setUser(null);
+                    setTechnician(null);
+                    setSettings(null);
+                }
+                setLoading(false);
+            }, 
+            (error) => {
+                console.error("Error fetching user profile:", error);
+                setLoading(false);
+            }
+        );
+    } else {
+        setLoading(false); // No firebase user, not loading
     }
-
+  
     return () => {
         if (userUnsubscribe) userUnsubscribe();
         if (techUnsubscribe) techUnsubscribe();
         if (settingsUnsubscribe) settingsUnsubscribe();
     };
-}, [firebaseUser, user?.id, user?.role]);
+  }, [firebaseUser]);
 
-
-  const login = async (userId: string, password?: string): Promise<{ success: boolean, message: string }> => {
-    // This function is now deprecated in favor of server-side session handling
-    // but kept for compatibility during transition.
-    console.warn("Client-side login function is deprecated.");
-    return { success: false, message: "Please use the login page." };
-  };
 
   const logout = async () => {
     setLoading(true);
-    await signOut(auth);
-    await fetch('/api/sessionLogout', { method: 'POST' }); // Clear the session cookie
+    await signOut(auth); // Sign out from client-side Firebase auth
+    await fetch('/api/sessionLogout', { method: 'POST' }); // Clear the server-side session cookie
     setUser(null);
     setTechnician(null);
     setSettings(null);
     setFirebaseUser(null);
     router.push('/login');
-    setLoading(false);
+    // setLoading is handled by the useEffect hook when firebaseUser becomes null
   };
   
   return (
-    <AuthContext.Provider value={{ user, technician, settings, firebaseUser, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, technician, settings, firebaseUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
