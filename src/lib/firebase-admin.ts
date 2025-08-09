@@ -1,6 +1,8 @@
 
 'use server';
-import 'dotenv/config'
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env' });
+
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, cert, ServiceAccount } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -8,9 +10,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 let adminApp: AdminApp;
 
 const serviceAccount: ServiceAccount = {
-    project_id: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    private_key: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
 }
 
 if (!getAdminApps().length) {
@@ -23,5 +25,20 @@ if (!getAdminApps().length) {
 
 const adminAuth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
+
+// Rename keys to match what Firebase expects
+if (serviceAccount.projectId) {
+    serviceAccount.project_id = serviceAccount.projectId;
+    delete serviceAccount.projectId;
+}
+if (serviceAccount.clientEmail) {
+    serviceAccount.client_email = serviceAccount.clientEmail;
+    delete serviceAccount.clientEmail;
+}
+if (serviceAccount.privateKey) {
+    serviceAccount.private_key = serviceAccount.privateKey;
+    delete serviceAccount.privateKey;
+}
+
 
 export { adminApp, adminAuth, adminDb };
