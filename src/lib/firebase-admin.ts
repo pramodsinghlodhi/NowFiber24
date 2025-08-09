@@ -1,9 +1,9 @@
 
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-// This file will now rely on the initialization happening in genkit.ts
+// This file now relies on the initialization happening in genkit.ts
 // to ensure a single source of truth for credentials.
 
 let adminApp: App;
