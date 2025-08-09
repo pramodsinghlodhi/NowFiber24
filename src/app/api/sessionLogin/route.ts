@@ -1,21 +1,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
 
-// Correctly initialize the Firebase Admin SDK with service account credentials
-// This is a common pattern for Next.js API routes.
+// Correctly initialize the Firebase Admin SDK.
+// This is the recommended pattern for Next.js API routes, allowing it to
+// work in managed environments where credentials are automatically discovered.
 if (!getApps().length) {
-    try {
-        initializeApp({
-            credential: cert(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string)
-        });
-    } catch (e: any) {
-        console.error("Firebase admin initialization error", e.stack);
-    }
+    initializeApp();
 }
-
 
 const auth = getAuth();
 
