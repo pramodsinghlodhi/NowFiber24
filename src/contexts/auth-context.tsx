@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+      setLoading(true);
       if (fbUser) {
         setFirebaseUser(fbUser);
       } else {
@@ -69,27 +70,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (settingsDoc.exists()) {
                     setSettings(settingsDoc.data() as Settings);
                 }
+                setTechnician(null);
                 setLoading(false);
             }, (error) => {
                 console.error("Error fetching settings:", error.message);
                 setLoading(false);
             });
-            setTechnician(null);
         } else if (fullUser.role === 'Technician') {
             const techDocRef = doc(db, 'technicians', fullUser.id);
             dataUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
                 if (techDoc.exists()) {
-                    // Combine technician data with the user's isBlocked status
-                    const techData = { id: techDoc.id, ...techDoc.data() } as Technician;
-                    techData.isBlocked = fullUser.isBlocked;
-                    setTechnician(techData);
+                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
                 }
+                setSettings(null);
                 setLoading(false);
             }, (error) => {
                  console.error("Error fetching technician profile:", error.message);
                  setLoading(false);
             });
-            setSettings(null);
         } else {
             setLoading(false);
         }
@@ -100,11 +98,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             logout();
         }
         setUser(null);
+        setTechnician(null);
+        setSettings(null);
         setLoading(false);
       }
     }, (error) => {
       console.error("Error fetching user profile:", error);
       setUser(null);
+      setTechnician(null);
+      setSettings(null);
       setLoading(false);
     });
 
@@ -113,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseUser]);
 
   const logout = async () => {
+    setLoading(true);
     try {
       await signOut(auth);
       // The onAuthStateChanged listener will handle the state cleanup
@@ -120,6 +123,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/login');
     } catch (error) {
         console.error("Logout failed:", error);
+    } finally {
+        setLoading(false);
     }
   };
   
