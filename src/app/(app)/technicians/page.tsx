@@ -45,11 +45,23 @@ export default function TechniciansPage() {
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
+    // We now fetch users along with technicians to get the `isBlocked` status.
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
-    const usersQuery = useMemo(() => query(collection(db, 'users')), []);
-
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+
+    const usersQuery = useMemo(() => query(collection(db, 'users')), []);
     const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
+
+    const enrichedTechnicians = useMemo(() => {
+        return technicians.map(tech => {
+            const user = users.find(u => u.id === tech.id);
+            return {
+                ...tech,
+                isBlocked: user?.isBlocked || false,
+            };
+        });
+    }, [technicians, users]);
+
 
     useEffect(() => {
         if (!authLoading && !currentUser) {
@@ -113,7 +125,7 @@ export default function TechniciansPage() {
         }
     }
     
-    const handleToggleBlock = async (techId: string) => {
+    const handleToggleBlock = async (techId: string, currentIsBlocked: boolean) => {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("id", "==", techId));
         
@@ -125,15 +137,14 @@ export default function TechniciansPage() {
             }
 
             const userDoc = querySnapshot.docs[0];
-            const userToToggle = { uid: userDoc.id, ...userDoc.data() } as User;
-            const userDocRef = doc(db, 'users', userToToggle.uid);
+            const userDocRef = doc(db, 'users', userDoc.id);
             
-            const isBlocked = !userToToggle.isBlocked;
-            await updateDoc(userDocRef, { isBlocked: isBlocked });
+            const newIsBlocked = !currentIsBlocked;
+            await updateDoc(userDocRef, { isBlocked: newIsBlocked });
 
             toast({
-                title: `Technician ${isBlocked ? 'Blocked' : 'Unblocked'}`,
-                description: `${userToToggle.name}'s access has been ${isBlocked ? 'revoked' : 'restored'}.`,
+                title: `Technician ${newIsBlocked ? 'Blocked' : 'Unblocked'}`,
+                description: `${userDoc.data().name}'s access has been ${newIsBlocked ? 'revoked' : 'restored'}.`,
             });
         } catch (error) {
             console.error("Error toggling block status: ", error);
@@ -149,27 +160,6 @@ export default function TechniciansPage() {
     const handleEdit = (tech: Technician) => {
         setSelectedTechnician(tech);
         setIsFormOpen(true);
-    }
-
-    const renderBlockUnblockAction = (tech: Technician): ReactNode => {
-        const techUser = users.find(u => u.id === tech.id);
-        if (!techUser) return null;
-
-        if (techUser.isBlocked) {
-            return (
-                <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
-                    <UserCheck className="mr-2 h-4 w-4" />
-                    Unblock Access
-                </DropdownMenuItem>
-            );
-        } else {
-            return (
-                <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
-                    <UserX className="mr-2 h-4 w-4" />
-                    Block Access
-                </DropdownMenuItem>
-            );
-        }
     }
     
     const loading = loadingTechs || loadingUsers || authLoading;
@@ -199,56 +189,63 @@ export default function TechniciansPage() {
                 <CardContent>
                     {/* Mobile View */}
                     <div className="md:hidden space-y-4">
-                        {technicians.map((tech) => {
-                             const techUser = users.find(u => u.id === tech.id);
-                             return (
-                                <Card key={tech.id} className={cn("p-4", techUser?.isBlocked && 'opacity-50 bg-muted')}>
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                             <Avatar className={cn("h-12 w-12", techUser?.isBlocked && 'grayscale')}>
-                                                <AvatarImage src={tech.avatarUrl} alt={tech.name} />
-                                                <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-semibold">{tech.name}</p>
-                                                <p className="text-xs text-muted-foreground">{tech.id}</p>
-                                            </div>
+                        {enrichedTechnicians.map((tech) => (
+                            <Card key={tech.id} className={cn("p-4", tech.isBlocked && 'opacity-50 bg-muted')}>
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                            <Avatar className={cn("h-12 w-12", tech.isBlocked && 'grayscale')}>
+                                            <AvatarImage src={tech.avatarUrl} alt={tech.name} />
+                                            <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold">{tech.name}</p>
+                                            <p className="text-xs text-muted-foreground">{tech.id}</p>
                                         </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
-                                                    <BarChart2 className="mr-2 h-4 w-4" />
-                                                    View Report
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator/>
-                                                {renderBlockUnblockAction(tech)}
-                                                <DropdownMenuSeparator/>
-                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                      <Trash className="mr-2 h-4 w-4" />
-                                                      Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
                                     </div>
-                                    <div className="flex items-center justify-between pt-3 mt-3 border-t">
-                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', techUser?.isBlocked && 'bg-gray-500')}>
-                                            {techUser?.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
-                                        </Badge>
-                                        {getActivityBadge(tech)}
-                                    </div>
-                                </Card>
-                             )
-                        })}
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleEdit(tech)}>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
+                                                <BarChart2 className="mr-2 h-4 w-4" />
+                                                View Report
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator/>
+                                            {tech.isBlocked ? (
+                                                <DropdownMenuItem onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
+                                                    <UserCheck className="mr-2 h-4 w-4" />
+                                                    Unblock Access
+                                                </DropdownMenuItem>
+                                            ) : (
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
+                                                    <UserX className="mr-2 h-4 w-4" />
+                                                    Block Access
+                                                </DropdownMenuItem>
+                                            )}
+                                            <DropdownMenuSeparator/>
+                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                                <div className="flex items-center justify-between pt-3 mt-3 border-t">
+                                    <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', tech.isBlocked && 'bg-gray-500')}>
+                                        {tech.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
+                                    </Badge>
+                                    {getActivityBadge(tech)}
+                                </div>
+                            </Card>
+                        ))}
                     </div>
                     {/* Desktop View */}
                     <Table className="hidden md:table">
@@ -262,12 +259,10 @@ export default function TechniciansPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {technicians.map((tech: Technician) => {
-                                const techUser = users.find(u => u.id === tech.id);
-                                return (
-                                <TableRow key={tech.id} className={cn(techUser?.isBlocked && 'opacity-50')}>
+                            {enrichedTechnicians.map((tech) => (
+                                <TableRow key={tech.id} className={cn(tech.isBlocked && 'opacity-50')}>
                                     <TableCell className="font-medium flex items-center gap-3">
-                                        <Avatar className={cn("h-9 w-9", techUser?.isBlocked && 'grayscale')}>
+                                        <Avatar className={cn("h-9 w-9", tech.isBlocked && 'grayscale')}>
                                             <AvatarImage src={tech.avatarUrl} alt={tech.name} />
                                             <AvatarFallback>{tech.name.substring(0,2)}</AvatarFallback>
                                         </Avatar>
@@ -277,8 +272,8 @@ export default function TechniciansPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', techUser?.isBlocked && 'bg-gray-500')}>
-                                            {techUser?.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
+                                        <Badge variant={tech.isActive ? 'default' : 'secondary'} className={cn(tech.isActive && 'bg-green-500 text-primary-foreground hover:bg-green-600', tech.isBlocked && 'bg-gray-500')}>
+                                            {tech.isBlocked ? 'Blocked' : (tech.isActive ? 'Active' : 'Inactive')}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -305,7 +300,17 @@ export default function TechniciansPage() {
                                                     View Report
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                {renderBlockUnblockAction(tech)}
+                                                {tech.isBlocked ? (
+                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
+                                                        <UserCheck className="mr-2 h-4 w-4" />
+                                                        Unblock Access
+                                                    </DropdownMenuItem>
+                                                ) : (
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
+                                                        <UserX className="mr-2 h-4 w-4" />
+                                                        Block Access
+                                                    </DropdownMenuItem>
+                                                )}
                                                 <DropdownMenuSeparator/>
                                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                       <Trash className="mr-2 h-4 w-4" />
@@ -315,7 +320,7 @@ export default function TechniciansPage() {
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                            )})}
+                            ))}
                         </TableBody>
                     </Table>
                 </CardContent>

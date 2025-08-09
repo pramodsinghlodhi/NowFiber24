@@ -79,7 +79,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const techDocRef = doc(db, 'technicians', fullUser.id);
             dataUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
                 if (techDoc.exists()) {
-                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+                    // Combine technician data with the user's isBlocked status
+                    const techData = { id: techDoc.id, ...techDoc.data() } as Technician;
+                    techData.isBlocked = fullUser.isBlocked;
+                    setTechnician(techData);
                 }
                 setLoading(false);
             }, (error) => {
