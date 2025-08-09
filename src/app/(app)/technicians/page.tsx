@@ -163,10 +163,6 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
-                     <Button onClick={handleAddNew}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Technician
-                    </Button>
                 </CardHeader>
                 <CardContent>
                     {/* Mobile View */}
