@@ -31,6 +31,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error creating session cookie:', error);
-    return NextResponse.json({ success: false, message: 'Failed to create session.', error: error.message }, { status: 500 });
+    let errorMessage = 'Failed to create session.';
+    if (error.code === 'auth/id-token-expired') {
+        errorMessage = 'Login token has expired. Please try logging in again.';
+    } else if (error.message) {
+        errorMessage = error.message;
+    }
+    return NextResponse.json({ success: false, message: errorMessage, error: error.message }, { status: 500 });
   }
 }
