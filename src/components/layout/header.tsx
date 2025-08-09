@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -24,8 +23,9 @@ import { Notification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLocationTracker } from "@/hooks/use-location-tracker";
-import { collection, doc, updateDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, doc, query, orderBy, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { updateTechnicianStatus } from "@/app/actions/technician-actions";
 
 
 const getNotificationIcon = (type: Notification['type']) => {
@@ -103,30 +103,31 @@ export default function Header() {
   const handleToggleBreak = async () => {
     if (!technician) return;
     const newStatus = technician.status === 'on-break' ? 'available' : 'on-break';
-    const techDocRef = doc(db, 'technicians', technician.id);
-    try {
-      await updateDoc(techDocRef, { status: newStatus });
+    
+    const result = await updateTechnicianStatus(technician.id, { status: newStatus });
+
+    if (result.success) {
       toast({
         title: newStatus === 'on-break' ? "You are now on break" : "You are back from break",
         description: newStatus === 'on-break' ? "Enjoy your coffee!" : "Welcome back to work.",
       });
-    } catch (error) {
-      toast({ title: "Error", description: "Could not update your break status.", variant: "destructive" });
+    } else {
+      toast({ title: "Error", description: result.message || "Could not update your break status.", variant: "destructive" });
     }
   }
 
   const handleClockInOut = async () => {
     if (!technician) return;
     const newIsActive = !technician.isActive;
-    const techDocRef = doc(db, 'technicians', technician.id);
-    try {
-        await updateDoc(techDocRef, { isActive: newIsActive });
+    const result = await updateTechnicianStatus(technician.id, { isActive: newIsActive });
+
+    if (result.success) {
         toast({
             title: newIsActive ? "Clocked In" : "Clocked Out",
             description: newIsActive ? "Your 8-hour shift has started." : "You have successfully clocked out.",
         });
-    } catch (error) {
-        toast({ title: "Error", description: "Could not update your clock-in status.", variant: "destructive" });
+    } else {
+        toast({ title: "Error", description: result.message || "Could not update your clock-in status.", variant: "destructive" });
     }
   }
 
