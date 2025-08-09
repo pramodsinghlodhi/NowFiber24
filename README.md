@@ -173,7 +173,7 @@ The application will not work without user accounts and initial data. A detailed
     ```
 
 3.  **Set up environment variables:**
-    Create a new file named `.env` in the root of your project and add your API keys. This file is for secret keys and should not be committed to version control.
+    Create a new file named `.env` in the root of your project and add your API keys. This file is for secret keys and should not be committed to version control. Next.js will automatically load this file.
     ```env
     # .env
     
@@ -183,6 +183,7 @@ The application will not work without user accounts and initial data. A detailed
 
     # Path to your Firebase service account key for the Admin SDK.
     # This is used for all server-side operations.
+    # The Admin SDK and Genkit will automatically find and use this variable.
     GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
     ```
     
