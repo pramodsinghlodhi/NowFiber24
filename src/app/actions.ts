@@ -12,6 +12,7 @@ import { Technician, Infrastructure, Task, MaterialAssignment, Notification } fr
 import { createNotification, getTechnicianUserByTechId, createBroadcast as createBroadcastNotification } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
 import { initializeApp, getApps } from 'firebase-admin/app';
+import 'dotenv/config';
 
 if (!getApps().length) {
     initializeApp();
