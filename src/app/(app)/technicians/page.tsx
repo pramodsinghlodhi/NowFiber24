@@ -17,7 +17,7 @@ import { MoreHorizontal, UserX, UserCheck, BarChart2, Edit, Trash, PlusCircle } 
 import { useToast } from '@/hooks/use-toast';
 import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, query } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -114,23 +114,29 @@ export default function TechniciansPage() {
     }
     
     const handleToggleBlock = async (techId: string) => {
-        const userToToggle = users.find(u => u.id === techId);
-        if (!userToToggle?.uid) {
-             toast({ title: "Error", description: "User profile not found.", variant: "destructive"});
-             return;
-        };
-        
-        const userDocRef = doc(db, 'users', userToToggle.uid);
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("id", "==", techId));
         
         try {
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                toast({ title: "Error", description: "User profile not found.", variant: "destructive" });
+                return;
+            }
+
+            const userDoc = querySnapshot.docs[0];
+            const userToToggle = { uid: userDoc.id, ...userDoc.data() } as User;
+            const userDocRef = doc(db, 'users', userToToggle.uid);
+            
             const isBlocked = !userToToggle.isBlocked;
             await updateDoc(userDocRef, { isBlocked: isBlocked });
+
             toast({
                 title: `Technician ${isBlocked ? 'Blocked' : 'Unblocked'}`,
                 description: `${userToToggle.name}'s access has been ${isBlocked ? 'revoked' : 'restored'}.`,
             });
         } catch (error) {
-             console.error("Error toggling block status: ", error);
+            console.error("Error toggling block status: ", error);
             toast({ title: "Error", description: "Could not update technician status.", variant: "destructive"});
         }
     }
