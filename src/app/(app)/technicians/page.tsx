@@ -13,10 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, UserX, UserCheck, BarChart2, Edit, Trash, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, BarChart2, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -71,34 +71,6 @@ export default function TechniciansPage() {
             router.push('/');
         }
     }, [currentUser, authLoading, router]);
-
-    
-    const handleToggleBlock = async (techId: string, currentIsBlocked: boolean) => {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where("id", "==", techId));
-        
-        try {
-            const querySnapshot = await getDocs(q);
-            if (querySnapshot.empty) {
-                toast({ title: "Error", description: "User profile not found for this technician.", variant: "destructive" });
-                return;
-            }
-
-            const userDoc = querySnapshot.docs[0];
-            const userDocRef = doc(db, 'users', userDoc.id);
-            
-            const newIsBlocked = !currentIsBlocked;
-            await updateDoc(userDocRef, { isBlocked: newIsBlocked });
-
-            toast({
-                title: `Technician ${newIsBlocked ? 'Blocked' : 'Unblocked'}`,
-                description: `${userDoc.data().name}'s access has been ${newIsBlocked ? 'revoked' : 'restored'}.`,
-            });
-        } catch (error) {
-            console.error("Error toggling block status: ", error);
-            toast({ title: "Error", description: "Could not update technician status.", variant: "destructive"});
-        }
-    }
 
     const handleDeleteClick = (tech: Technician) => {
         setSelectedTechnician(tech);
@@ -186,18 +158,6 @@ export default function TechniciansPage() {
                                                 <BarChart2 className="mr-2 h-4 w-4" />
                                                 View Report
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator/>
-                                            {tech.isBlocked ? (
-                                                <DropdownMenuItem onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
-                                                    <UserCheck className="mr-2 h-4 w-4" />
-                                                    Unblock Access
-                                                </DropdownMenuItem>
-                                            ) : (
-                                                <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
-                                                    <UserX className="mr-2 h-4 w-4" />
-                                                    Block Access
-                                                </DropdownMenuItem>
-                                            )}
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(tech)}>
                                                 <Trash className="mr-2 h-4 w-4" />
@@ -263,18 +223,6 @@ export default function TechniciansPage() {
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
                                                 </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                {tech.isBlocked ? (
-                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
-                                                        <UserCheck className="mr-2 h-4 w-4" />
-                                                        Unblock Access
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id, tech.isBlocked)}>
-                                                        <UserX className="mr-2 h-4 w-4" />
-                                                        Block Access
-                                                    </DropdownMenuItem>
-                                                )}
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(tech)}>
                                                     <Trash className="mr-2 h-4 w-4" />
