@@ -153,7 +153,7 @@ export default function TechniciansPage() {
 
     const renderBlockUnblockAction = (tech: Technician): ReactNode => {
         const techUser = users.find(u => u.id === tech.id);
-        if (!techUser) return null; // Safety check
+        if (!techUser) return null;
 
         if (techUser.isBlocked) {
             return (
