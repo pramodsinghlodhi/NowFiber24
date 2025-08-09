@@ -3,30 +3,34 @@ import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as Ad
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-let adminApp: AdminApp;
-
-if (!getAdminApps().length) {
-    // When running on App Hosting, the FIREBASE_CONFIG env var is automatically set
-    // This is the recommended way to initialize
+function initializeAdmin() {
+    // When running on App Hosting, the FIREBASE_CONFIG env var is automatically set.
+    // This is the recommended way to initialize.
     if (process.env.FIREBASE_CONFIG) {
-        adminApp = initializeAdminApp();
-    } else {
-        // For local development, you might use a service account file
-        // This path should be configured in your local environment
-        try {
-            const serviceAccount = require('../../serviceAccountKey.json');
-             adminApp = initializeAdminApp({
-                credential: cert(serviceAccount)
-            });
-        } catch (e) {
-            console.error("Could not initialize Firebase Admin SDK. Ensure you have a serviceAccountKey.json file in your root directory for local development, or that FIREBASE_CONFIG is set in your environment.", e);
-            // Provide a dummy app to prevent the entire app from crashing during build
-            adminApp = initializeAdminApp({ projectId: "stub-project-id-for-build" });
+        return initializeAdminApp();
+    } 
+    
+    // For local development, you might use a service account file.
+    try {
+        const serviceAccount = require('../../serviceAccountKey.json');
+        return initializeAdminApp({
+            credential: cert(serviceAccount)
+        });
+    } catch (e: any) {
+        // If the service account file is not found, log a warning.
+        // This is expected in a deployed environment where FIREBASE_CONFIG should be used.
+        if (e.code === 'MODULE_NOT_FOUND') {
+            console.warn("serviceAccountKey.json not found. Using default initialization. This is normal for production deployments.");
+             return initializeAdminApp();
         }
+        // For other errors, re-throw them as they might be critical.
+        console.error("Critical error initializing Firebase Admin SDK:", e);
+        throw e;
     }
-} else {
-    adminApp = getAdminApps()[0];
 }
+
+
+const adminApp: AdminApp = getAdminApps().length > 0 ? getAdminApps()[0] : initializeAdmin();
 
 const adminAuth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
