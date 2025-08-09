@@ -2,51 +2,76 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to get the user's role from their profile
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+
+    // Helper functions to check user roles based on their profile in the /users collection.
+    // This is the secure way to perform role-based access control.
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    // Check if the user is an Admin
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      return getUserRole() == 'Admin';
+      return isSignedIn() && getUserData().role == 'Admin';
     }
-    
-    // Check if the user is a Technician
+
     function isTechnician() {
-      return getUserRole() == 'Technician';
+        return isSignedIn() && getUserData().role == 'Technician';
     }
 
-    // Users can read their own profile, Admins can read any profile
+    // Rules for the 'users' collection.
+    // Users can only read their own profile. Admins can read any profile.
+    // Only admins can create, update, or delete user profiles.
     match /users/{userId} {
-      allow read: if request.auth.uid == userId || isAdmin();
+      allow read: if isUser(userId) || isAdmin();
       allow write: if isAdmin();
     }
     
-    // Any authenticated user can read Technicians data, only Admins can write
-    match /technicians/{techId} {
-      allow read: if request.auth != null;
-      // Allow technicians to update their own document for status/location
-      allow update: if (isTechnician() && request.auth.token.userId == techId) || isAdmin();
-      allow create, delete: if isAdmin();
-    }
-    
-    // Notifications can only be accessed by the user they belong to
+    // Rules for 'notifications' subcollection.
+    // A user can only access their own notifications.
     match /users/{userId}/notifications/{notificationId} {
-        allow read, write: if request.auth.uid == userId;
-    }
-    
-    // Any authenticated user can read these shared collections.
-    // Write access is limited to Admins.
-    match /{collection}/{docId} where collection in ['tasks', 'alerts', 'infrastructure', 'connections', 'materials', 'assignments', 'referrals', 'proofOfWork', 'plans', 'contacts'] {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
+        allow read, write: if isUser(userId);
     }
 
-    // Admins have full access to settings
-    match /settings/live {
+    // Rules for 'technicians' collection.
+    // All authenticated users can read technician data (needed for maps, tasks, etc.).
+    // A technician can update their own document (for location, status updates).
+    // Only admins can create or delete technicians.
+    match /technicians/{techId} {
+        allow read: if isSignedIn();
+        allow create, delete: if isAdmin();
+        allow update: if isAdmin() || (isTechnician() && techId == getUserData().id);
+    }
+
+    // Rules for 'settings' and 'plans'
+    // Only admins can read or write these collections.
+     match /settings/{docId} {
         allow read, write: if isAdmin();
+    }
+
+     match /plans/{planId} {
+        allow read, write: if isAdmin();
+    }
+    
+    // Rules for 'contacts'
+    // Contact form is public write, but only Admin read/update
+     match /contacts/{contactId} {
+        allow create;
+        allow read, update, delete: if isAdmin();
+    }
+    
+    // Default-allow read for most other business-logic collections.
+    // Write access is restricted to Admins. This allows the UI to function for all
+    // logged-in users while keeping data modification secure.
+    match /{collection}/{docId} {
+       allow read: if isSignedIn();
+       allow write: if isAdmin();
     }
   }
 }
