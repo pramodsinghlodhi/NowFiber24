@@ -11,6 +11,11 @@ import { db } from '@/lib/firebase';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
 import { createNotification, getTechnicianUserByTechId, createBroadcast as createBroadcastNotification } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
+import { initializeApp, getApps } from 'firebase-admin/app';
+
+if (!getApps().length) {
+    initializeApp();
+}
 
 
 export async function runAutoFaultDetection() {
