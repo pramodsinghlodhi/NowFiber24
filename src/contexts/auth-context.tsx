@@ -62,64 +62,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!firebaseUser) {
-        return; // Wait for firebaseUser to be set
-    }
+    let unsubscribeUser: Unsubscribe | undefined;
+    let unsubscribeRole: Unsubscribe | undefined;
 
-    // This is the main listener for the user's profile document.
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
-      let roleUnsubscribe: Unsubscribe = () => {};
+    if (firebaseUser) {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
+            if (userDoc.exists() && !userDoc.data().isBlocked) {
+                const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+                setUser(userData);
 
-      if (userDoc.exists() && !userDoc.data().isBlocked) {
-        const userData = { uid: userDoc.id, ...userDoc.data() } as User;
-        setUser(userData);
-        
-        // Based on the user's role, set up another listener for role-specific data.
-        if (userData.role === 'Admin') {
-            const settingsDocRef = doc(db, 'settings', 'live');
-            roleUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
-                setTechnician(null); // Ensure technician data is cleared for admin
-                if (settingsDoc.exists()) {
-                    setSettings(settingsDoc.data() as Settings);
+                // Unsubscribe from any previous role listener
+                if (unsubscribeRole) {
+                    unsubscribeRole();
                 }
-                setLoading(false); // Admin data is loaded (or doesn't exist), stop loading.
-            });
-        } else if (userData.role === 'Technician') {
-            const techDocRef = doc(db, 'technicians', userData.id);
-            roleUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
-                setSettings(null); // Ensure settings data is cleared for technician
-                if (techDoc.exists()) {
-                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+
+                if (userData.role === 'Admin') {
+                    const settingsDocRef = doc(db, 'settings', 'live');
+                    unsubscribeRole = onSnapshot(settingsDocRef, (settingsDoc) => {
+                        setTechnician(null);
+                        setSettings(settingsDoc.exists() ? (settingsDoc.data() as Settings) : null);
+                        setLoading(false);
+                    });
+                } else if (userData.role === 'Technician') {
+                    const techDocRef = doc(db, 'technicians', userData.id);
+                    unsubscribeRole = onSnapshot(techDocRef, (techDoc) => {
+                        setSettings(null);
+                        setTechnician(techDoc.exists() ? ({ id: techDoc.id, ...techDoc.data() } as Technician) : null);
+                        setLoading(false);
+                    });
                 } else {
-                    setTechnician(null); // Handle case where technician doc might be missing
+                    // No specific role, just stop loading.
+                    setTechnician(null);
+                    setSettings(null);
+                    setLoading(false);
                 }
-                setLoading(false); // Technician data is loaded (or doesn't exist), stop loading.
-            });
-        } else {
-             // If user has no specific role, just stop loading.
-             setTechnician(null);
-             setSettings(null);
-             setLoading(false);
-        }
-      } else {
-        // User doc doesn't exist, or the user is blocked. Log them out.
-        if (userDoc.exists() && userDoc.data().isBlocked) {
-            console.warn("User is blocked. Logging out.");
-        }
-        handleLogout();
-      }
-      
-      // Cleanup function for the role-specific listener
-      return () => {
-          roleUnsubscribe();
-      };
-    }, (error) => {
-      console.error("Error fetching user profile:", error);
-      handleLogout();
-    });
-
-    return () => unsubscribeUser();
+            } else {
+                handleLogout();
+            }
+        }, (error) => {
+            console.error("Error fetching user profile:", error);
+            handleLogout();
+        });
+    } else {
+        setLoading(false);
+    }
+    
+    return () => {
+        if (unsubscribeUser) unsubscribeUser();
+        if (unsubscribeRole) unsubscribeRole();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseUser]);
   
