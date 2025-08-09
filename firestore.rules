@@ -1,107 +1,82 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Helper functions to check user roles from custom claims
-    function isAdmin() {
-      return request.auth.token.isAdmin == true;
+    // Allow public write access to the 'contacts' collection for the landing page form
+    match /contacts/{contactId} {
+      allow create: if request.resource.data.name is string &&
+                       request.resource.data.email is string &&
+                       request.resource.data.message is string &&
+                       request.resource.data.status == 'Pending' &&
+                       request.resource.data.timestamp == request.time;
+      allow read, update, delete: if request.auth.token.isAdmin == true;
     }
 
-    function isTechnician() {
-      return request.auth.token.role == 'Technician';
-    }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Admins can read/write anywhere.
-    // This is a broad rule, but suitable for an internal admin-heavy tool.
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-    
-    // Users collection:
-    // Admins can manage all users.
-    // Authenticated users can read their own user profile.
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if isAdmin(); // Only admins can list all users
-      allow create, update, delete: if isAdmin();
-      
-      // Notifications are private to each user
-      match /notifications/{notificationId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-    
-    // Technicians collection:
-    // Any authenticated user can read the list of technicians (for dropdowns, maps, etc.)
-    // Only Admins can create or delete technicians.
-    // A technician can update their own document (for location, status, etc.)
-    match /technicians/{techId} {
-        allow get, list: if request.auth != null;
-        allow create, delete: if isAdmin();
-        allow update: if isAdmin() || (isTechnician() && request.auth.token.userId == techId);
+      allow read, update: if request.auth.uid == userId || request.auth.token.isAdmin == true;
+      allow create, delete: if request.auth.token.isAdmin == true;
     }
 
-    // All other collections:
-    // For most collections, we allow any authenticated user to read/list data
-    // because the UI often needs this data for context (e.g., showing task details, map icons).
-    // Write access remains restricted.
+    match /technicians/{techId} {
+      allow read, update: if request.auth != null; // Any authenticated user can read/update
+      allow create, delete: if request.auth.token.isAdmin == true;
+    }
+
     match /tasks/{taskId} {
-      allow get, list: if request.auth != null;
-      allow create, update, delete: if isAdmin();
-      // Allow a tech to update their own assigned task
-      allow update: if isTechnician() && resource.data.tech_id == request.auth.token.userId;
+      allow read, update: if request.auth != null;
+      allow create, delete: if request.auth.token.isAdmin == true;
     }
 
     match /alerts/{alertId} {
-      allow get, list: if request.auth != null;
-      allow create, update, delete: if isAdmin();
+      allow read, update: if request.auth != null;
+      allow create, delete: if request.auth.token.isAdmin == true;
     }
-
+    
     match /infrastructure/{deviceId} {
-      allow get, list: if request.auth != null;
-      allow create, update, delete: if request.auth != null; // Techs can add/edit inventory
+       allow read, update: if request.auth != null;
+       allow create, delete: if request.auth.token.isAdmin == true;
     }
     
     match /connections/{connectionId} {
-        allow get, list: if request.auth != null;
-        allow create, update, delete: if isAdmin();
+       allow read, update: if request.auth != null;
+       allow create, delete: if request.auth.token.isAdmin == true;
     }
 
     match /materials/{materialId} {
-        allow get, list: if request.auth != null;
-        allow create, update, delete: if isAdmin();
-    }
-    
-    match /assignments/{assignmentId} {
-        allow get, list: if request.auth != null;
-        allow create: if isTechnician(); // Techs can create requests
-        allow update, delete: if isAdmin(); // Admins manage assignments
+       allow read: if request.auth != null;
+       allow create, update, delete: if request.auth.token.isAdmin == true;
     }
 
+    match /assignments/{assignmentId} {
+      allow read, create, update, delete: if request.auth.token.isAdmin == true;
+      allow create: if request.auth != null && request.resource.data.technicianId == request.auth.token.userId;
+      allow read: if request.auth != null && request.resource.data.technicianId == request.auth.token.userId;
+    }
+    
     match /referrals/{referralId} {
-        allow get, list: if request.auth != null;
-        allow create: if isTechnician(); // Techs can create referrals
-        allow update, delete: if isAdmin();
+       allow read, update: if request.auth.token.isAdmin == true;
+       allow create: if request.auth != null && request.resource.data.tech_id == request.auth.token.userId;
+       allow read: if request.auth != null && request.resource.data.tech_id == request.auth.token.userId;
     }
     
     match /proofOfWork/{proofId} {
-        allow get, list: if isAdmin(); // Only admins can review all proofs
-        allow create: if isTechnician(); // Techs can submit proof
-        allow delete: if isAdmin();
+      allow read, delete: if request.auth.token.isAdmin == true;
+      allow create: if request.auth != null && request.resource.data.technicianId == request.auth.token.userId;
+    }
+
+    match /settings/live {
+      allow read: if request.auth != null; // Authenticated users can read settings
+      allow write: if request.auth.token.isAdmin == true; // Only admins can write
     }
     
     match /plans/{planId} {
-      allow read, write: if request.auth != null;
+        allow read: if request.auth != null;
+        allow create, update, delete: if request.auth.token.isAdmin == true;
     }
-    
-    match /settings/{settingId} {
-        allow read, write: if isAdmin();
+
+    // Notifications are private per user
+    match /users/{userId}/notifications/{notificationId} {
+        allow read, write: if request.auth.uid == userId;
     }
   }
 }
