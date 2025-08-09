@@ -151,7 +151,8 @@ export default function TechniciansPage() {
         setIsFormOpen(true);
     }
 
-    const renderBlockUnblockAction = (tech: Technician, techUser: User | undefined): ReactNode => {
+    const renderBlockUnblockAction = (tech: Technician): ReactNode => {
+        const techUser = users.find(u => u.id === tech.id);
         if (!techUser) return null; // Safety check
 
         if (techUser.isBlocked) {
@@ -226,7 +227,7 @@ export default function TechniciansPage() {
                                                     View Report
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
-                                                {renderBlockUnblockAction(tech, techUser)}
+                                                {renderBlockUnblockAction(tech)}
                                                 <DropdownMenuSeparator/>
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                       <Trash className="mr-2 h-4 w-4" />
@@ -300,7 +301,7 @@ export default function TechniciansPage() {
                                                     View Report
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                {renderBlockUnblockAction(tech, techUser)}
+                                                {renderBlockUnblockAction(tech)}
                                                 <DropdownMenuSeparator/>
                                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                       <Trash className="mr-2 h-4 w-4" />
