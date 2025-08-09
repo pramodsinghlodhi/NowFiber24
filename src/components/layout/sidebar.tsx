@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map, Route, Camera, Undo2} from 'lucide-react';
+import {LayoutDashboard, HardHat, Network, ListTodo, AlertTriangle, BarChart, Settings, LogOut, ShieldQuestion, UserPlus, Wrench, Map, Route, Camera, Undo2, MessageSquare} from 'lucide-react';
 import Logo from '@/components/icons/logo';
 import {useAuth} from '@/contexts/auth-context';
 import ReferCustomer from '../dashboard/refer-customer';
@@ -47,6 +47,7 @@ const menuItemsTop = [
     {href: '/technicians', icon: HardHat, label: 'Technicians', admin: true, tech: false},
     {href: '/materials', icon: Wrench, label: 'Materials', admin: true, tech: false, notificationKey: 'materials'},
     {href: '/referrals', icon: UserPlus, label: 'Referrals', admin: true, tech: true},
+    {href: '/contact', icon: MessageSquare, label: 'Contact Submissions', admin: true, tech: false},
     {href: '/reports', icon: BarChart, label: 'Reports', admin: true, tech: false},
     {href: '/proof-of-work', icon: Camera, label: 'Proof of Work', admin: true, tech: false},
 ];
@@ -174,3 +175,5 @@ export default function AppSidebar() {
     </Sidebar>
   );
 }
+
+    

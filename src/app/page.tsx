@@ -7,13 +7,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { ArrowRight, Wifi, ShieldCheck, Wrench, Users, BarChart, Send } from 'lucide-react';
+import { ArrowRight, Wifi, ShieldCheck, Wrench, Users, BarChart, Send, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function FeatureCard({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) {
   return (
@@ -35,6 +37,7 @@ export default function LandingPage() {
     const { toast } = useToast();
     const { user, loading } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formValues, setFormValues] = useState({ name: '', email: '', message: '' });
 
     useEffect(() => {
         if (!loading && user) {
@@ -42,18 +45,34 @@ export default function LandingPage() {
         }
     }, [user, loading, router]);
     
-     const handleContactSubmit = (e: React.FormEvent) => {
+     const handleContactSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsSubmitting(false);
+        try {
+          await addDoc(collection(db, 'contacts'), {
+            ...formValues,
+            status: 'Pending',
+            timestamp: new Date(),
+          });
+          toast({
+              title: 'Message Sent!',
+              description: "Thanks for reaching out. We'll get back to you shortly.",
+          });
+          setFormValues({ name: '', email: '', message: '' });
+        } catch (error) {
             toast({
-                title: 'Message Sent!',
-                description: "Thanks for reaching out. We'll get back to you shortly.",
+                title: 'Error',
+                description: "Could not send your message. Please try again later.",
+                variant: 'destructive',
             });
-            // Ideally, you'd reset the form here, but we'll keep it simple
-        }, 1500);
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setFormValues(prev => ({ ...prev, [id.replace('contact-','')]: value }));
     }
     
     // This page should be visible to everyone, we only redirect if the user is already logged in.
@@ -184,18 +203,18 @@ export default function LandingPage() {
                     <form className="grid grid-cols-1 gap-4" onSubmit={handleContactSubmit}>
                          <div className="space-y-2 text-left">
                             <Label htmlFor="contact-name">Name</Label>
-                            <Input id="contact-name" placeholder="Your Name" required/>
+                            <Input id="contact-name" placeholder="Your Name" required value={formValues.name} onChange={handleInputChange} />
                         </div>
                         <div className="space-y-2 text-left">
                             <Label htmlFor="contact-email">Email</Label>
-                            <Input id="contact-email" type="email" placeholder="your.email@company.com" required/>
+                            <Input id="contact-email" type="email" placeholder="your.email@company.com" required value={formValues.email} onChange={handleInputChange} />
                         </div>
                          <div className="space-y-2 text-left">
                             <Label htmlFor="contact-message">Message</Label>
-                            <Textarea id="contact-message" placeholder="How can we help you?" required/>
+                            <Textarea id="contact-message" placeholder="How can we help you?" required value={formValues.message} onChange={handleInputChange} />
                         </div>
                         <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Sending...' : 'Send Message'}
+                            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : 'Send Message'}
                         </Button>
                     </form>
                 </div>
@@ -213,3 +232,5 @@ export default function LandingPage() {
     </div>
   )
 }
+
+    

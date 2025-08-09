@@ -2,6 +2,7 @@
 
 
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -223,3 +224,14 @@ export type Settings = {
         }
     }
 }
+
+export type ContactSubmission = {
+    id: string;
+    name: string;
+    email: string;
+    message: string;
+    status: 'Pending' | 'In Progress' | 'Resolved';
+    timestamp: any;
+}
+
+    
