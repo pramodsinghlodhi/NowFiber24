@@ -7,7 +7,7 @@ import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { adminDb } from '@/lib/firebase-admin';
-import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
+import { Technician, Infrastructure, Task, MaterialAssignment, Notification, Connection } from '@/lib/types';
 import { createNotification, createBroadcast as createBroadcastNotification, getTechnicianUserByTechId } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
 
@@ -89,7 +89,13 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
 }
 
 export async function runTraceRoute(input: TraceRouteInput) {
-    const result = await traceRoute(input);
+    const infraSnapshot = await getDocs(collection(adminDb, 'infrastructure'));
+    const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
+
+    const connSnapshot = await getDocs(collection(adminDb, 'connections'));
+    const mockConnections = connSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Connection[];
+    
+    const result = await traceRoute({ ...input, infrastructure: mockInfrastructure, connections: mockConnections });
     return result;
 }
 
@@ -233,7 +239,7 @@ export async function getTechnician(techId: string): Promise<Technician | null> 
     const techDocRef = doc(adminDb, 'technicians', techId);
     const techDoc = await getDoc(techDocRef);
     if (techDoc.exists()) {
-      return { id: techDoc.id, ...techDoc.data() } as Technician;
+      return { id: techDoc.id, ...doc.data() } as Technician;
     }
     return null;
 }

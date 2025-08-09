@@ -11,14 +11,14 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { collection, getDocs } from 'firebase/firestore';
-import { adminDb } from '@/lib/firebase-admin';
 import { Infrastructure, Connection } from '@/lib/types';
 
 
 const TraceRouteInputSchema = z.object({
   startDeviceId: z.string().describe('The ID of the starting device (e.g., OLT-01).'),
   endDeviceId: z.string().describe('The ID of the ending device (e.g., ONU-101).'),
+  infrastructure: z.array(z.any()).describe("An array of all infrastructure device objects from the database."),
+  connections: z.array(z.any()).describe("An array of all connection objects from the database.")
 });
 export type TraceRouteInput = z.infer<typeof TraceRouteInputSchema>;
 
@@ -85,15 +85,8 @@ const traceRouteFlow = ai.defineFlow(
     inputSchema: TraceRouteInputSchema,
     outputSchema: TraceRouteOutputSchema,
   },
-  async ({ startDeviceId, endDeviceId }) => {
-    // Fetch infrastructure and connections from Firestore
-    const infraSnapshot = await getDocs(collection(adminDb, 'infrastructure'));
-    const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
-
-    const connSnapshot = await getDocs(collection(adminDb, 'connections'));
-    const mockConnections = connSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Connection[];
-
-    const path = await findPath(startDeviceId, endDeviceId, mockInfrastructure, mockConnections);
+  async ({ startDeviceId, endDeviceId, infrastructure, connections }) => {
+    const path = await findPath(startDeviceId, endDeviceId, infrastructure, connections);
     
     if (path.length === 0) {
       return {
