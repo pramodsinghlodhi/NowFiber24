@@ -6,14 +6,14 @@ import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
 import { createNotification, createBroadcast as createBroadcastNotification, getTechnicianUserByTechId } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
 
 
 export async function runAutoFaultDetection() {
-  const techniciansCol = collection(getAdminDb(), 'technicians');
+  const techniciansCol = collection(adminDb, 'technicians');
   const q = query(techniciansCol, where('isActive', '==', true));
   const techniciansSnapshot = await getDocs(q);
   const techniciansWithLocation = techniciansSnapshot.docs.map(doc => {
@@ -25,7 +25,7 @@ export async function runAutoFaultDetection() {
       };
   });
 
-  const infrastructureCol = collection(getAdminDb(), 'infrastructure');
+  const infrastructureCol = collection(adminDb, 'infrastructure');
   const faultyDeviceQuery = query(infrastructureCol, where('status', '==', 'offline'), limit(1));
   const faultyDeviceSnapshot = await getDocs(faultyDeviceQuery);
   
@@ -62,7 +62,7 @@ export async function runAutoFaultDetection() {
 }
 
 export async function analyzeMaterials(photoDataUri: string, taskId: string) {
-    const taskDocRef = doc(getAdminDb(), 'tasks', taskId);
+    const taskDocRef = doc(adminDb, 'tasks', taskId);
     const taskDoc = await getDoc(taskDocRef);
     if (!taskDoc.exists()) {
         throw new Error("Task not found");
@@ -71,7 +71,7 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
 
     // This query is now more specific, but for this app, we assume any material issued to a tech could be for any of their tasks.
     // A more complex app might have a direct task-to-assignment link.
-    const assignmentsQuery = query(collection(getAdminDb(), 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
+    const assignmentsQuery = query(collection(adminDb, 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
     const assignmentsSnapshot = await getDocs(assignmentsQuery);
     const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
@@ -100,7 +100,7 @@ export async function returnMaterials(photoDataUri: string) {
 
 export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestamp'>) {
   try {
-    const docRef = await addDoc(collection(getAdminDb(), 'tasks'), {
+    const docRef = await addDoc(collection(adminDb, 'tasks'), {
       ...taskData,
     });
     
@@ -124,7 +124,7 @@ export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestam
 }
 
 export async function reassignTask(taskId: string, newTechId: string, taskTitle: string) {
-    const taskDocRef = doc(getAdminDb(), 'tasks', taskId);
+    const taskDocRef = doc(adminDb, 'tasks', taskId);
     try {
         await updateDoc(taskDocRef, { tech_id: newTechId });
 
@@ -146,7 +146,7 @@ export async function reassignTask(taskId: string, newTechId: string, taskTitle:
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: Task['status']) {
-    const taskDocRef = doc(getAdminDb(), 'tasks', taskId);
+    const taskDocRef = doc(adminDb, 'tasks', taskId);
     try {
         const updateData: any = { status: newStatus };
         if (newStatus === 'Completed') {
@@ -161,7 +161,7 @@ export async function updateTaskStatus(taskId: string, newStatus: Task['status']
 }
 
 export async function updateAssignmentStatus(assignmentId: string, newStatus: MaterialAssignment['status']) {
-    const assignmentDocRef = doc(getAdminDb(), 'assignments', assignmentId);
+    const assignmentDocRef = doc(adminDb, 'assignments', assignmentId);
     try {
         await updateDoc(assignmentDocRef, { status: newStatus });
 
@@ -230,7 +230,7 @@ export async function createBroadcast(broadcast: Omit<Notification, 'id' | 'user
 }
 
 export async function getTechnician(techId: string): Promise<Technician | null> {
-    const techDocRef = doc(getAdminDb(), 'technicians', techId);
+    const techDocRef = doc(adminDb, 'technicians', techId);
     const techDoc = await getDoc(techDocRef);
     if (techDoc.exists()) {
       return { id: techDoc.id, ...techDoc.data() } as Technician;
@@ -258,5 +258,3 @@ export async function sendNoticeToTechnician(technicianId: string, title: string
        return { success: false, message: "Could not send notice." };
     }
 }
-
-    

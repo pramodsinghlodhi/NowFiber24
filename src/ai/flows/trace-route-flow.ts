@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { collection, getDocs } from 'firebase/firestore';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 import { Infrastructure, Connection } from '@/lib/types';
 
 
@@ -86,7 +86,6 @@ const traceRouteFlow = ai.defineFlow(
     outputSchema: TraceRouteOutputSchema,
   },
   async ({ startDeviceId, endDeviceId }) => {
-    const adminDb = getAdminDb();
     // Fetch infrastructure and connections from Firestore
     const infraSnapshot = await getDocs(collection(adminDb, 'infrastructure'));
     const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
@@ -119,4 +118,3 @@ const traceRouteFlow = ai.defineFlow(
     };
   }
 );
-

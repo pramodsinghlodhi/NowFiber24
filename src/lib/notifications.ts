@@ -1,9 +1,8 @@
 
-
 import { Notification as NotificationType } from '@/lib/types';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebase';
-import { getAdminDb } from './firebase-admin';
+import { adminDb } from './firebase-admin';
 import { User } from './types';
 
 // This file is now primarily for utility functions related to notifications.
@@ -26,7 +25,7 @@ export const createNotification = async (notification: Omit<NotificationType, 'i
 export const createBroadcast = async (notification: Omit<NotificationType, 'id' | 'userId'>) => {
     try {
         // Fetch all users to send them a notification
-        const usersSnapshot = await getDocs(collection(getAdminDb(), 'users'));
+        const usersSnapshot = await getDocs(collection(adminDb, 'users'));
         const userDocs = usersSnapshot.docs;
 
         const promises = userDocs.map(userDoc => {
@@ -49,7 +48,6 @@ export const createBroadcast = async (notification: Omit<NotificationType, 'id' 
 
 
 export const getTechnicianUserByTechId = async (techId: string): Promise<User | null> => {
-    const adminDb = getAdminDb();
     const usersRef = collection(adminDb, 'users');
     const q = query(usersRef, where("id", "==", techId), where("role", "==", "Technician"));
     const querySnapshot = await getDocs(q);
