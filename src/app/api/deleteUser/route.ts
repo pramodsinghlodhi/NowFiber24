@@ -27,17 +27,21 @@ export async function POST(request: NextRequest) {
         const userQuery = await usersRef.where('id', '==', techId).limit(1).get();
 
         if (userQuery.empty) {
+            // If no user found in 'users' collection, maybe it exists in auth but not firestore, or just in technicians collection.
+            // We should still try to delete the technician document.
             const techDocRef = db.collection('technicians').doc(techId);
             const techDoc = await techDocRef.get();
             if (techDoc.exists) {
                 await techDocRef.delete();
+                 return NextResponse.json({ success: true, message: 'Technician data removed from Firestore. No matching authentication user found.' });
             }
-            return NextResponse.json({ success: true, message: 'Technician data removed from Firestore. No matching authentication user found.' });
+            return NextResponse.json({ success: false, message: 'Technician not found.' }, { status: 404 });
         }
         
         const userDoc = userQuery.docs[0];
         const uid = userDoc.id; // The document ID is the UID
 
+        // Delete from Firebase Authentication
         try {
             await auth.deleteUser(uid);
             console.log(`Successfully deleted auth user with UID: ${uid}`);
@@ -45,10 +49,12 @@ export async function POST(request: NextRequest) {
              if (authError.code === 'auth/user-not-found') {
                 console.warn(`Auth user with UID: ${uid} not found. Proceeding with Firestore cleanup.`);
              } else {
+                // For other auth errors, we should stop and report.
                 throw authError;
              }
         }
 
+        // Delete from Firestore using a batch
         const batch = db.batch();
         const userDocRef = db.collection('users').doc(uid);
         const techDocRef = db.collection('technicians').doc(techId);
