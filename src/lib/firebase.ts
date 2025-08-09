@@ -3,7 +3,7 @@ import { initializeApp, getApp, getApps, FirebaseOptions } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-const firebaseConfig: FirebaseOptions = {
+export const firebaseConfig: FirebaseOptions = {
   "projectId": "fibervision-k710i",
   "appId": "1:172145809929:web:a23916b46c09cdc77b76d8",
   "storageBucket": "fibervision-k710i.firebasestorage.app",
