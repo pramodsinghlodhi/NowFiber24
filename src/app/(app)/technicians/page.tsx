@@ -113,9 +113,10 @@ export default function TechniciansPage() {
         }
     }
     
-    const handleToggleBlock = async (userToToggle: User) => {
+    const handleToggleBlock = async (techId: string) => {
+        const userToToggle = users.find(u => u.id === techId);
         if (!userToToggle?.uid) {
-             toast({ title: "Error", description: "User UID not found.", variant: "destructive"});
+             toast({ title: "Error", description: "User profile not found.", variant: "destructive"});
              return;
         };
         
@@ -198,20 +199,17 @@ export default function TechniciansPage() {
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
                                                 </DropdownMenuItem>
-                                                
                                                 <DropdownMenuSeparator/>
-                                                {techUser && (
-                                                    techUser.isBlocked ? (
-                                                        <DropdownMenuItem onClick={() => handleToggleBlock(techUser)}>
-                                                            <UserCheck className="mr-2 h-4 w-4" />
-                                                            Unblock Access
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(techUser)}>
-                                                            <UserX className="mr-2 h-4 w-4" />
-                                                            Block Access
-                                                        </DropdownMenuItem>
-                                                    )
+                                                {techUser?.isBlocked ? (
+                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserCheck className="mr-2 h-4 w-4" />
+                                                        Unblock Access
+                                                    </DropdownMenuItem>
+                                                ) : (
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserX className="mr-2 h-4 w-4" />
+                                                        Block Access
+                                                    </DropdownMenuItem>
                                                 )}
                                                 <DropdownMenuSeparator/>
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
@@ -286,18 +284,16 @@ export default function TechniciansPage() {
                                                     View Report
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                {techUser && (
-                                                  techUser.isBlocked ? (
-                                                    <DropdownMenuItem onClick={() => handleToggleBlock(techUser)}>
-                                                      <UserCheck className="mr-2 h-4 w-4" />
-                                                      Unblock Access
+                                                 {techUser?.isBlocked ? (
+                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserCheck className="mr-2 h-4 w-4" />
+                                                        Unblock Access
                                                     </DropdownMenuItem>
-                                                  ) : (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(techUser)}>
-                                                      <UserX className="mr-2 h-4 w-4" />
-                                                      Block Access
+                                                ) : (
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
+                                                        <UserX className="mr-2 h-4 w-4" />
+                                                        Block Access
                                                     </DropdownMenuItem>
-                                                  )
                                                 )}
                                                 <DropdownMenuSeparator/>
                                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
