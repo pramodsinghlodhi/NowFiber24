@@ -1,13 +1,15 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
+import { firebaseConfig } from '@/lib/firebase';
 
-// By initializing the googleAI plugin, we are establishing the
-// authentication context for all Google Cloud services on the server,
+// By initializing the googleAI plugin with the project ID, we are establishing
+// the authentication context for all Google Cloud services on the server,
 // including the Firebase Admin SDK.
-// The 'ai' object is exported for use in AI flows.
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [googleAI({
+    projectId: firebaseConfig.projectId,
+  })],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });
