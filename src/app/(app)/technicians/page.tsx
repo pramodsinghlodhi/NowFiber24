@@ -5,7 +5,7 @@
 import { Technician, User } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -150,6 +150,26 @@ export default function TechniciansPage() {
         setSelectedTechnician(tech);
         setIsFormOpen(true);
     }
+
+    const renderBlockUnblockAction = (tech: Technician, techUser: User | undefined): ReactNode => {
+        if (!techUser) return null; // Safety check
+
+        if (techUser.isBlocked) {
+            return (
+                <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Unblock Access
+                </DropdownMenuItem>
+            );
+        } else {
+            return (
+                <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
+                    <UserX className="mr-2 h-4 w-4" />
+                    Block Access
+                </DropdownMenuItem>
+            );
+        }
+    }
     
     const loading = loadingTechs || loadingUsers || authLoading;
 
@@ -206,17 +226,7 @@ export default function TechniciansPage() {
                                                     View Report
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator/>
-                                                {techUser?.isBlocked ? (
-                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserCheck className="mr-2 h-4 w-4" />
-                                                        Unblock Access
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserX className="mr-2 h-4 w-4" />
-                                                        Block Access
-                                                    </DropdownMenuItem>
-                                                )}
+                                                {renderBlockUnblockAction(tech, techUser)}
                                                 <DropdownMenuSeparator/>
                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                       <Trash className="mr-2 h-4 w-4" />
@@ -290,17 +300,7 @@ export default function TechniciansPage() {
                                                     View Report
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                 {techUser?.isBlocked ? (
-                                                    <DropdownMenuItem onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserCheck className="mr-2 h-4 w-4" />
-                                                        Unblock Access
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(tech.id)}>
-                                                        <UserX className="mr-2 h-4 w-4" />
-                                                        Block Access
-                                                    </DropdownMenuItem>
-                                                )}
+                                                {renderBlockUnblockAction(tech, techUser)}
                                                 <DropdownMenuSeparator/>
                                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
                                                       <Trash className="mr-2 h-4 w-4" />
