@@ -109,14 +109,14 @@ This application is fully powered by Firebase. **It will not run without a corre
 7.  Select **"Start in production mode"**. Click **"Next"**.
 8.  Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
 
-**E. Create a Service Account (CRITICAL FOR SERVER-SIDE AUTH):**
-The backend server requires a service account to securely interact with Firebase and Google Cloud services (like Genkit).
+**E. Create a Service Account (For Seeding Script Only):**
+The one-time database seeding script requires admin privileges.
 
 1.  In the Firebase Console, click the gear icon next to **Project Overview** and select **Project settings**.
 2.  Go to the **Service accounts** tab.
 3.  Click the **"Generate new private key"** button. A warning will appear; click **"Generate key"** to confirm.
 4.  A JSON file will be downloaded to your computer. **Treat this file like a password; it is highly sensitive.** Rename it to `serviceAccountKey.json`.
-5.  Move this `serviceAccountKey.json` file to the root directory of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
+5.  Move this `serviceAccountKey.json` file to the root directory of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.** This key is **only** used by the `db:seed` script and is not needed for the application to run.
 
 **F. Deploy Security Rules (CRITICAL STEP):**
 Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
@@ -173,10 +173,6 @@ The application will not work without user accounts and initial data. A detailed
     Create a new file named `.env` in the root of your project. This file is for secret keys and should not be committed to version control.
     ```env
     # .env
-    # This is required for the server-side code (actions, API routes) to authenticate with Firebase.
-    # It points to the service account key you downloaded.
-    GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
-
     # This key is required for the client-side Genkit AI flows to function.
     # Get your key from Google AI Studio.
     GEMINI_API_KEY=your_google_ai_studio_api_key
@@ -231,39 +227,32 @@ git clone https://your-repository-url.git
 cd <repository-name>
 ```
 
-**Step 4: Upload Service Account Key**
-Securely copy your `serviceAccountKey.json` file to the root of your project directory on the VPS. **Do not add this file to Git.** You can use `scp`:
-```bash
-scp /path/to/your/local/serviceAccountKey.json your_username@your_vps_ip_address:/path/to/your/app/
-```
-
-**Step 5: Install Dependencies**
+**Step 4: Install Dependencies**
 Install the necessary Node.js packages.
 ```bash
 npm install
 ```
 
-**Step 6: Set Up Environment Variables**
+**Step 5: Set Up Environment Variables**
 Create a `.env` file for your production environment variables.
 ```bash
 # Create and open the .env file with nano editor
 nano .env
 ```
-Add your Gemini API key and the path to your service account key to this file:
+Add your Gemini API key to this file:
 ```env
 # .env
-GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
 GEMINI_API_KEY=your_production_google_ai_studio_api_key
 ```
 Press `CTRL+X`, then `Y`, then `Enter` to save and exit `nano`.
 
-**Step 7: Build the Application**
+**Step 6: Build the Application**
 Create a production-optimized build of your Next.js app.
 ```bash
 npm run build
 ```
 
-**Step 8: Run the Application with a Process Manager**
+**Step 7: Run the Application with a Process Manager**
 It's crucial to use a process manager like **PM2** to keep your application running continuously.
 
 1.  **Install PM2 globally:**
@@ -289,7 +278,7 @@ It's crucial to use a process manager like **PM2** to keep your application runn
     pm2 save
     ```
 
-**Step 9: Configure a Reverse Proxy (Recommended)**
+**Step 8: Configure a Reverse Proxy (Recommended)**
 To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.

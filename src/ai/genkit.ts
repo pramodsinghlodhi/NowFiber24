@@ -1,12 +1,12 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
+import {firebaseConfig} from '@/lib/firebase';
 
-// Initialize Genkit without specific project details. It will use the
-// application default credentials, which are established by the
-// firebase-admin initialization or the hosting environment.
+// Initialize Genkit and establish it as the primary authenticator for all
+// server-side Google Cloud services by explicitly providing the projectId.
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [googleAI({projectId: firebaseConfig.projectId})],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });
