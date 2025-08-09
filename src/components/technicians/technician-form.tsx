@@ -133,7 +133,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} >
           <div className="grid gap-4 py-4">
             <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
@@ -180,10 +180,11 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Add Technician'}
-            </Button>
+            <Button type="submit" disabled={isLoading} >
+  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+  {isEditing ? 'Save Changes' : 'Add Technician'}
+</Button>
+
           </DialogFooter>
         </form>
       </DialogContent>
