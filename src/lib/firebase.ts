@@ -2,8 +2,6 @@
 import { initializeApp, getApp, getApps, FirebaseOptions } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, ServiceAccount, credential } from 'firebase-admin/app';
-import 'dotenv/config'
 
 const firebaseConfig: FirebaseOptions = {
   "projectId": "fibervision-k710i",
@@ -20,23 +18,4 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-
-// Server-side Firebase Admin SDK initialization
-let adminApp: AdminApp;
-
-if (!getAdminApps().length) {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string) as ServiceAccount;
-        adminApp = initializeAdminApp({
-            credential: credential.cert(serviceAccount)
-        });
-    } else {
-        // This will work in managed environments like Cloud Run, App Engine, etc.
-        adminApp = initializeAdminApp();
-    }
-} else {
-    adminApp = getAdminApps()[0];
-}
-
-
-export { app, auth, db, adminApp };
+export { app, auth, db };

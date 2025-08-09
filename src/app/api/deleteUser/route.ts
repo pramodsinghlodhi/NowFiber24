@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { adminApp } from '@/lib/firebase'; // Import pre-initialized admin app
+import { adminApp } from '@/lib/firebase-admin';
 
 const auth = getAuth(adminApp);
 const db = getFirestore(adminApp);

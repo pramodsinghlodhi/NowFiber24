@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { cookies } from 'next/headers';
-import { adminApp } from '@/lib/firebase'; // Import the pre-initialized admin app
+import { adminApp } from '@/lib/firebase-admin';
 
 const auth = getAuth(adminApp);
 

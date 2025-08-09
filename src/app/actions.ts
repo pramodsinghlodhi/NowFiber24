@@ -8,10 +8,10 @@ import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
 import { createNotification, getTechnicianUserByTechId, createBroadcast as createBroadcastNotification } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
-import { adminApp } from '@/lib/firebase';
 import 'dotenv/config';
 
 
