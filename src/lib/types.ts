@@ -4,6 +4,7 @@
 
 
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -84,7 +85,7 @@ export type Technician = {
   tasksAssigned?: string[]; // Array of infrastructure IDs
   path?: [number, number][];
   avatarUrl?: string;
-  isBlocked?: boolean; // Add this optional field
+  isBlocked?: boolean; 
 };
 
 export type Task = {

@@ -53,16 +53,6 @@ export default function TechniciansPage() {
     const usersQuery = useMemo(() => query(collection(db, 'users')), []);
     const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
 
-    const enrichedTechnicians = useMemo(() => {
-        return technicians.map(tech => {
-            const user = users.find(u => u.id === tech.id);
-            return {
-                ...tech,
-                isBlocked: user?.isBlocked || false,
-            };
-        });
-    }, [technicians, users]);
-
 
     useEffect(() => {
         if (!authLoading && !currentUser) {
@@ -183,7 +173,7 @@ export default function TechniciansPage() {
                 <CardContent>
                     {/* Mobile View */}
                     <div className="md:hidden space-y-4">
-                        {enrichedTechnicians.map((tech) => (
+                        {technicians.map((tech) => (
                             <Card key={tech.id} className={cn("p-4", tech.isBlocked && 'opacity-50 bg-muted')}>
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
@@ -241,7 +231,7 @@ export default function TechniciansPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {enrichedTechnicians.map((tech) => (
+                            {technicians.map((tech) => (
                                 <TableRow key={tech.id} className={cn(tech.isBlocked && 'opacity-50')}>
                                     <TableCell className="font-medium flex items-center gap-3">
                                         <Avatar className={cn("h-9 w-9", tech.isBlocked && 'grayscale')}>

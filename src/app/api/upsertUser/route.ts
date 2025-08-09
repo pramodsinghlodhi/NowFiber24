@@ -37,12 +37,14 @@ export async function POST(request: NextRequest) {
                 name: techData.name,
                 role: techData.role,
                 contact: techData.contact,
-                avatarUrl: techData.avatarUrl
+                avatarUrl: techData.avatarUrl,
+                isBlocked: userData.isBlocked, // Sync isBlocked status
             };
             
             const userUpdateData: Partial<User> = {
                 name: userData.name,
                 avatarUrl: userData.avatarUrl,
+                isBlocked: userData.isBlocked, // Sync isBlocked status
             };
 
             batch.update(techDocRef, techUpdateData);
@@ -105,6 +107,7 @@ export async function POST(request: NextRequest) {
                 lng: techData.lng || -118.2437,
                 isActive: false, // Default to inactive
                 status: 'available',
+                isBlocked: false, // Default to not blocked
                 path: [],
             };
             batch.set(techDocRef, finalTechData);
