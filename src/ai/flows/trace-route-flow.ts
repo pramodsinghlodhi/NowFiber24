@@ -12,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { Infrastructure, Connection } from '@/lib/types';
 
 
@@ -88,10 +88,10 @@ const traceRouteFlow = ai.defineFlow(
   async ({ startDeviceId, endDeviceId }) => {
     
     // Fetch infrastructure and connections from Firestore
-    const infraSnapshot = await getDocs(collection(db, 'infrastructure'));
+    const infraSnapshot = await getDocs(collection(adminDb, 'infrastructure'));
     const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
 
-    const connSnapshot = await getDocs(collection(db, 'connections'));
+    const connSnapshot = await getDocs(collection(adminDb, 'connections'));
     const mockConnections = connSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Connection[];
 
     const path = await findPath(startDeviceId, endDeviceId, mockInfrastructure, mockConnections);

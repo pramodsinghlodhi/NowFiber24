@@ -14,7 +14,7 @@ import * as nodemailer from 'nodemailer';
 
 
 export async function runAutoFaultDetection() {
-  const techniciansCol = collection(db, 'technicians');
+  const techniciansCol = collection(adminDb, 'technicians');
   const q = query(techniciansCol, where('isActive', '==', true));
   const techniciansSnapshot = await getDocs(q);
   const techniciansWithLocation = techniciansSnapshot.docs.map(doc => {
@@ -26,7 +26,7 @@ export async function runAutoFaultDetection() {
       };
   });
 
-  const infrastructureCol = collection(db, 'infrastructure');
+  const infrastructureCol = collection(adminDb, 'infrastructure');
   const faultyDeviceQuery = query(infrastructureCol, where('status', '==', 'offline'), limit(1));
   const faultyDeviceSnapshot = await getDocs(faultyDeviceQuery);
   
@@ -63,7 +63,7 @@ export async function runAutoFaultDetection() {
 }
 
 export async function analyzeMaterials(photoDataUri: string, taskId: string) {
-    const taskDocRef = doc(db, 'tasks', taskId);
+    const taskDocRef = doc(adminDb, 'tasks', taskId);
     const taskDoc = await getDoc(taskDocRef);
     if (!taskDoc.exists()) {
         throw new Error("Task not found");
@@ -72,7 +72,7 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
 
     // This query is now more specific, but for this app, we assume any material issued to a tech could be for any of their tasks.
     // A more complex app might have a direct task-to-assignment link.
-    const assignmentsQuery = query(collection(db, 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
+    const assignmentsQuery = query(collection(adminDb, 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
     const assignmentsSnapshot = await getDocs(assignmentsQuery);
     const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
