@@ -2,15 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { adminApp } from '@/lib/firebase'; // Import pre-initialized admin app
 import { User, Technician } from '@/lib/types';
 
-if (!getApps().length) {
-    initializeApp();
-}
-
-const auth = getAuth();
-const db = getFirestore();
+const auth = getAuth(adminApp);
+const db = getFirestore(adminApp);
 
 export async function POST(request: NextRequest) {
     const { isEditing, techData, userData, oldTechId } = await request.json();

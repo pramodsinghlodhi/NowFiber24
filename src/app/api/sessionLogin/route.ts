@@ -1,17 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
+import { adminApp } from '@/lib/firebase'; // Import the pre-initialized admin app
 
-// Correctly initialize the Firebase Admin SDK.
-// This is the recommended pattern for Next.js API routes, allowing it to
-// work in managed environments where credentials are automatically discovered.
-if (!getApps().length) {
-    initializeApp();
-}
-
-const auth = getAuth();
+const auth = getAuth(adminApp);
 
 export async function POST(request: NextRequest) {
   try {
