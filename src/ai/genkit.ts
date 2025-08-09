@@ -13,5 +13,8 @@ configureGenkit({
 
 // The 'ai' object is exported for use in AI flows.
 export const ai = genkit({
+  plugins: [googleAI()],
+  logLevel: 'debug',
+  enableTracingAndMetrics: true,
   model: 'googleai/gemini-2.0-flash',
 });
