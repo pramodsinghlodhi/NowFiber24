@@ -1,3 +1,4 @@
+
 # NowFiber24 - FTTH Network Management & Field Engineering Platform
 
 NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
@@ -109,14 +110,16 @@ This application is fully powered by Firebase. **It will not run without a corre
 7.  Select **"Start in production mode"**. Click **"Next"**.
 8.  Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
 
-**E. Create a Service Account (For Seeding Script Only):**
-The one-time database seeding script requires admin privileges.
+**E. Create a Service Account (CRITICAL FOR SERVER-SIDE FUNCTIONALITY):**
+All server-side functionality (AI tools, server actions, etc.) requires a service account for authentication.
 
 1.  In the Firebase Console, click the gear icon next to **Project Overview** and select **Project settings**.
 2.  Go to the **Service accounts** tab.
 3.  Click the **"Generate new private key"** button. A warning will appear; click **"Generate key"** to confirm.
-4.  A JSON file will be downloaded to your computer. **Treat this file like a password; it is highly sensitive.** Rename it to `serviceAccountKey.json`.
-5.  Move this `serviceAccountKey.json` file to the root directory of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.** This key is **only** used by the `db:seed` script and is not needed for the application to run.
+4.  A JSON file will be downloaded to your computer. **Treat this file like a password; it is highly sensitive.**
+5.  Rename this file to `serviceAccountKey.json`.
+6.  Move this `serviceAccountKey.json` file to the **root directory** of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
+7.  This service account is used by both the server actions and the one-time seeding script.
 
 **F. Deploy Security Rules (CRITICAL STEP):**
 Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
@@ -170,12 +173,18 @@ The application will not work without user accounts and initial data. A detailed
     ```
 
 3.  **Set up environment variables:**
-    Create a new file named `.env` in the root of your project. This file is for secret keys and should not be committed to version control.
+    Create a new file named `.env` in the root of your project and add your API keys. This file is for secret keys and should not be committed to version control.
     ```env
     # .env
-    # This key is required for the client-side Genkit AI flows to function.
+    
+    # Genkit API Key (Client-side)
     # Get your key from Google AI Studio.
     GEMINI_API_KEY=your_google_ai_studio_api_key
+
+    # Firebase Service Account (Server-side)
+    # This is CRITICAL for server-side operations (actions, API routes) to work.
+    # Path to your service account JSON file, relative to the project root.
+    GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
     ```
     
 4.  **Run the development server:**
@@ -189,11 +198,11 @@ The application will not work without user accounts and initial data. A detailed
 Use these credentials to log in after setting up the user accounts in Firebase.
 
 -   **Administrator:**
-    -   **User ID:** `admin`
+    -   **Email:** `admin@fibervision.com`
     -   **Password:** `admin` (or the password you set)
 
 -   **Technician:**
-    -   **User ID:** `tech-001`
+    -   **Email:** `tech-001@fibervision.com`
     -   **Password:** `password` (or the password you set)
 
 ### 5. Deployment to a Virtual Private Server (VPS)
@@ -233,26 +242,30 @@ Install the necessary Node.js packages.
 npm install
 ```
 
-**Step 5: Set Up Environment Variables**
+**Step 5: Add Service Account Key**
+Securely transfer your `serviceAccountKey.json` file to the root directory of the project on your VPS. You can use `scp` for this. **Do not commit this file to Git.**
+
+**Step 6: Set Up Environment Variables**
 Create a `.env` file for your production environment variables.
 ```bash
 # Create and open the .env file with nano editor
 nano .env
 ```
-Add your Gemini API key to this file:
+Add your Gemini API key and the path to your service account key:
 ```env
 # .env
 GEMINI_API_KEY=your_production_google_ai_studio_api_key
+GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
 ```
 Press `CTRL+X`, then `Y`, then `Enter` to save and exit `nano`.
 
-**Step 6: Build the Application**
+**Step 7: Build the Application**
 Create a production-optimized build of your Next.js app.
 ```bash
 npm run build
 ```
 
-**Step 7: Run the Application with a Process Manager**
+**Step 8: Run the Application with a Process Manager**
 It's crucial to use a process manager like **PM2** to keep your application running continuously.
 
 1.  **Install PM2 globally:**
@@ -278,7 +291,7 @@ It's crucial to use a process manager like **PM2** to keep your application runn
     pm2 save
     ```
 
-**Step 8: Configure a Reverse Proxy (Recommended)**
+**Step 9: Configure a Reverse Proxy (Recommended)**
 To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
