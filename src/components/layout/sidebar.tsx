@@ -54,7 +54,6 @@ const menuItemsTop = [
 
 const menuItemsBottom = [
   {href: '/settings', icon: Settings, label: 'Settings', admin: true, tech: false},
-  {href: '/support', icon: ShieldQuestion, label: 'Support', admin: true, tech: true},
 ];
 
 export default function AppSidebar() {
