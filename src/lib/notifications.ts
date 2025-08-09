@@ -1,6 +1,5 @@
 
 import { Notification as NotificationType } from '@/lib/types';
-import { collection, addDoc, getDocs, query, where } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
 import { User } from './types';
 
@@ -9,7 +8,7 @@ import { User } from './types';
 
 export const createNotification = async (notification: Omit<NotificationType, 'id'>): Promise<string> => {
     try {
-        const docRef = await addDoc(collection(adminDb, `users/${notification.userId}/notifications`), {
+        const docRef = await adminDb.collection(`users/${notification.userId}/notifications`).add({
             ...notification,
             read: false,
             timestamp: new Date(),
@@ -24,12 +23,12 @@ export const createNotification = async (notification: Omit<NotificationType, 'i
 export const createBroadcast = async (notification: Omit<NotificationType, 'id' | 'userId'>) => {
     try {
         // Fetch all users to send them a notification
-        const usersSnapshot = await getDocs(collection(adminDb, 'users'));
+        const usersSnapshot = await adminDb.collection('users').get();
         const userDocs = usersSnapshot.docs;
 
         const promises = userDocs.map(userDoc => {
             const userId = userDoc.id; // UID
-            return addDoc(collection(adminDb, `users/${userId}/notifications`), {
+            return adminDb.collection(`users/${userId}/notifications`).add({
                 ...notification,
                 read: false,
                 timestamp: new Date(),
@@ -47,9 +46,9 @@ export const createBroadcast = async (notification: Omit<NotificationType, 'id' 
 
 
 export const getTechnicianUserByTechId = async (techId: string): Promise<User | null> => {
-    const usersRef = collection(adminDb, 'users');
-    const q = query(usersRef, where("id", "==", techId), where("role", "==", "Technician"));
-    const querySnapshot = await getDocs(q);
+    const usersRef = adminDb.collection('users');
+    const q = usersRef.where("id", "==", techId).where("role", "==", "Technician");
+    const querySnapshot = await q.get();
 
     if (querySnapshot.empty) {
         console.log(`No technician user found for techId: ${techId}`);

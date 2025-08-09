@@ -5,7 +5,6 @@ import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
-import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification, Connection } from '@/lib/types';
 import { createNotification, createBroadcast as createBroadcastNotification, getTechnicianUserByTechId } from '@/lib/notifications';
@@ -13,9 +12,9 @@ import * as nodemailer from 'nodemailer';
 
 
 export async function runAutoFaultDetection() {
-  const techniciansCol = collection(adminDb, 'technicians');
-  const q = query(techniciansCol, where('isActive', '==', true));
-  const techniciansSnapshot = await getDocs(q);
+  const techniciansCol = adminDb.collection('technicians');
+  const q = techniciansCol.where('isActive', '==', true);
+  const techniciansSnapshot = await q.get();
   const techniciansWithLocation = techniciansSnapshot.docs.map(doc => {
       const data = doc.data() as Technician;
       return {
@@ -25,9 +24,9 @@ export async function runAutoFaultDetection() {
       };
   });
 
-  const infrastructureCol = collection(adminDb, 'infrastructure');
-  const faultyDeviceQuery = query(infrastructureCol, where('status', '==', 'offline'), limit(1));
-  const faultyDeviceSnapshot = await getDocs(faultyDeviceQuery);
+  const infrastructureCol = adminDb.collection('infrastructure');
+  const faultyDeviceQuery = infrastructureCol.where('status', '==', 'offline').limit(1);
+  const faultyDeviceSnapshot = await faultyDeviceQuery.get();
   
   if (faultyDeviceSnapshot.empty) {
     return [{isReachable: true, alertCreated: false, issue: 'No offline devices found to test.'}];
@@ -62,15 +61,15 @@ export async function runAutoFaultDetection() {
 }
 
 export async function analyzeMaterials(photoDataUri: string, taskId: string) {
-    const taskDocRef = doc(adminDb, 'tasks', taskId);
-    const taskDoc = await getDoc(taskDocRef);
+    const taskDocRef = adminDb.collection('tasks').doc(taskId);
+    const taskDoc = await taskDocRef.get();
     if (!taskDoc.exists) {
         throw new Error("Task not found");
     }
     const taskData = taskDoc.data() as Task;
 
-    const assignmentsQuery = query(collection(adminDb, 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
-    const assignmentsSnapshot = await getDocs(assignmentsQuery);
+    const assignmentsQuery = adminDb.collection('assignments').where('technicianId', '==', taskData.tech_id).where('status', '==', 'Issued');
+    const assignmentsSnapshot = await assignmentsQuery.get();
     const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
     const materialsIssuedString = assignments
@@ -87,10 +86,10 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
 }
 
 export async function runTraceRoute(input: Omit<TraceRouteInput, 'infrastructure' | 'connections'>) {
-    const infraSnapshot = await getDocs(collection(adminDb, 'infrastructure'));
+    const infraSnapshot = await adminDb.collection('infrastructure').get();
     const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
 
-    const connSnapshot = await getDocs(collection(adminDb, 'connections'));
+    const connSnapshot = await adminDb.collection('connections').get();
     const mockConnections = connSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Connection[];
     
     const result = await traceRoute({ ...input, infrastructure: mockInfrastructure, connections: mockConnections });
@@ -104,7 +103,7 @@ export async function returnMaterials(photoDataUri: string) {
 
 export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestamp'>) {
   try {
-    const docRef = await addDoc(collection(adminDb, 'tasks'), {
+    const docRef = await adminDb.collection('tasks').add({
       ...taskData,
     });
     
@@ -128,9 +127,9 @@ export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestam
 }
 
 export async function reassignTask(taskId: string, newTechId: string, taskTitle: string) {
-    const taskDocRef = doc(adminDb, 'tasks', taskId);
+    const taskDocRef = adminDb.collection('tasks').doc(taskId);
     try {
-        await updateDoc(taskDocRef, { tech_id: newTechId });
+        await taskDocRef.update({ tech_id: newTechId });
 
         const techUser = await getTechnicianUserByTechId(newTechId);
         if (techUser) {
@@ -150,13 +149,13 @@ export async function reassignTask(taskId: string, newTechId: string, taskTitle:
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: Task['status']) {
-    const taskDocRef = doc(adminDb, 'tasks', taskId);
+    const taskDocRef = adminDb.collection('tasks').doc(taskId);
     try {
         const updateData: any = { status: newStatus };
         if (newStatus === 'Completed') {
-            updateData.completionTimestamp = serverTimestamp();
+            updateData.completionTimestamp = new Date();
         }
-        await updateDoc(taskDocRef, updateData);
+        await taskDocRef.update(updateData);
         return { success: true };
     } catch (error) {
         console.error("Error updating task status:", error);
@@ -165,12 +164,12 @@ export async function updateTaskStatus(taskId: string, newStatus: Task['status']
 }
 
 export async function updateAssignmentStatus(assignmentId: string, newStatus: MaterialAssignment['status']) {
-    const assignmentDocRef = doc(adminDb, 'assignments', assignmentId);
+    const assignmentDocRef = adminDb.collection('assignments').doc(assignmentId);
     try {
-        await updateDoc(assignmentDocRef, { status: newStatus });
+        await assignmentDocRef.update({ status: newStatus });
 
         if (newStatus === 'Issued' || newStatus === 'Rejected') {
-            const assignmentDoc = await getDoc(assignmentDocRef);
+            const assignmentDoc = await assignmentDocRef.get();
             const assignment = assignmentDoc.data() as MaterialAssignment;
             const techUser = await getTechnicianUserByTechId(assignment.technicianId);
             
@@ -234,9 +233,9 @@ export async function createBroadcast(broadcast: Omit<Notification, 'id' | 'user
 }
 
 export async function getTechnician(techId: string): Promise<Technician | null> {
-    const techDocRef = doc(adminDb, 'technicians', techId);
-    const techDoc = await getDoc(techDocRef);
-    if (techDoc.exists()) {
+    const techDocRef = adminDb.collection('technicians').doc(techId);
+    const techDoc = await techDocRef.get();
+    if (techDoc.exists) {
       return { id: techDoc.id, ...techDoc.data() } as Technician;
     }
     return null;
