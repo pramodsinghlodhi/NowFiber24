@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getApps, initializeApp } from 'firebase-admin/app';
-import 'dotenv/config';
 
 if (!getApps().length) {
     initializeApp();

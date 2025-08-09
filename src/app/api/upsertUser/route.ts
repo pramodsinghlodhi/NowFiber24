@@ -4,8 +4,6 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { User, Technician } from '@/lib/types';
-import 'dotenv/config';
-
 
 if (!getApps().length) {
     initializeApp();

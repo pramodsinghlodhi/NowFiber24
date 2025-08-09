@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { cookies } from 'next/headers';
-import 'dotenv/config';
-
 
 // Correctly initialize the Firebase Admin SDK.
 // This is the recommended pattern for Next.js API routes, allowing it to
