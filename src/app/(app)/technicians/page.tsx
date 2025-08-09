@@ -45,7 +45,6 @@ export default function TechniciansPage() {
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
-    // We now fetch users along with technicians to get the `isBlocked` status.
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
 
@@ -151,16 +150,6 @@ export default function TechniciansPage() {
             toast({ title: "Error", description: "Could not update technician status.", variant: "destructive"});
         }
     }
-
-    const handleAddNew = () => {
-        setSelectedTechnician(null);
-        setIsFormOpen(true);
-    }
-
-    const handleEdit = (tech: Technician) => {
-        setSelectedTechnician(tech);
-        setIsFormOpen(true);
-    }
     
     const loading = loadingTechs || loadingUsers || authLoading;
 
@@ -206,10 +195,6 @@ export default function TechniciansPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Edit
-                                            </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                 <BarChart2 className="mr-2 h-4 w-4" />
                                                 View Report
@@ -287,10 +272,6 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEdit(tech)}>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
