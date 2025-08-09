@@ -3,6 +3,7 @@ import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import path from 'path';
+import fs from 'fs';
 
 let adminApp: App;
 let adminAuth: Auth;
@@ -16,9 +17,10 @@ if (!getApps().length) {
         adminApp = initializeApp();
     } else {
         try {
-            // The path needs to be resolved relative to the project root
             const absolutePath = path.resolve(process.cwd(), serviceAccountPath);
-            const serviceAccount = require(absolutePath);
+            const serviceAccountFile = fs.readFileSync(absolutePath, 'utf8');
+            const serviceAccount = JSON.parse(serviceAccountFile);
+            
             console.log("Initializing Firebase Admin SDK with service account...");
             adminApp = initializeApp({
                 credential: cert(serviceAccount)
