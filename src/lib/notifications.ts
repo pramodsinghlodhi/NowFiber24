@@ -1,7 +1,6 @@
 
 import { Notification as NotificationType } from '@/lib/types';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from './firebase';
+import { collection, addDoc, getDocs, query, where } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
 import { User } from './types';
 
@@ -10,7 +9,7 @@ import { User } from './types';
 
 export const createNotification = async (notification: Omit<NotificationType, 'id'>): Promise<string> => {
     try {
-        const docRef = await addDoc(collection(db, `users/${notification.userId}/notifications`), {
+        const docRef = await addDoc(collection(adminDb, `users/${notification.userId}/notifications`), {
             ...notification,
             read: false,
             timestamp: new Date(),
@@ -30,7 +29,7 @@ export const createBroadcast = async (notification: Omit<NotificationType, 'id' 
 
         const promises = userDocs.map(userDoc => {
             const userId = userDoc.id; // UID
-            return addDoc(collection(db, `users/${userId}/notifications`), {
+            return addDoc(collection(adminDb, `users/${userId}/notifications`), {
                 ...notification,
                 read: false,
                 timestamp: new Date(),

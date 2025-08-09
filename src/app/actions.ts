@@ -5,7 +5,7 @@ import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
 import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
-import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification, Connection } from '@/lib/types';
 import { createNotification, createBroadcast as createBroadcastNotification, getTechnicianUserByTechId } from '@/lib/notifications';
@@ -64,13 +64,11 @@ export async function runAutoFaultDetection() {
 export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     const taskDocRef = doc(adminDb, 'tasks', taskId);
     const taskDoc = await getDoc(taskDocRef);
-    if (!taskDoc.exists()) {
+    if (!taskDoc.exists) {
         throw new Error("Task not found");
     }
     const taskData = taskDoc.data() as Task;
 
-    // This query is now more specific, but for this app, we assume any material issued to a tech could be for any of their tasks.
-    // A more complex app might have a direct task-to-assignment link.
     const assignmentsQuery = query(collection(adminDb, 'assignments'), where('technicianId', '==', taskData.tech_id), where('status', '==', 'Issued'));
     const assignmentsSnapshot = await getDocs(assignmentsQuery);
     const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
@@ -88,7 +86,7 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     return result;
 }
 
-export async function runTraceRoute(input: TraceRouteInput) {
+export async function runTraceRoute(input: Omit<TraceRouteInput, 'infrastructure' | 'connections'>) {
     const infraSnapshot = await getDocs(collection(adminDb, 'infrastructure'));
     const mockInfrastructure = infraSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Infrastructure[];
 
@@ -239,7 +237,7 @@ export async function getTechnician(techId: string): Promise<Technician | null> 
     const techDocRef = doc(adminDb, 'technicians', techId);
     const techDoc = await getDoc(techDocRef);
     if (techDoc.exists()) {
-      return { id: techDoc.id, ...doc.data() } as Technician;
+      return { id: techDoc.id, ...techDoc.data() } as Technician;
     }
     return null;
 }
