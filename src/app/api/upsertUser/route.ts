@@ -2,11 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { adminApp } from '@/lib/firebase-admin';
+import { adminApp, adminAuth, adminDb } from '@/lib/firebase-admin';
 import { User, Technician } from '@/lib/types';
 
-const auth = getAuth(adminApp);
-const db = getFirestore(adminApp);
+const auth = adminAuth;
+const db = adminDb;
 
 export async function POST(request: NextRequest) {
     const { isEditing, techData, userData, oldTechId } = await request.json();

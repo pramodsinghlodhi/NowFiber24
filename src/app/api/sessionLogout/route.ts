@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminApp } from '@/lib/firebase-admin'; // Import to ensure admin app is initialized
+import { adminApp } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {

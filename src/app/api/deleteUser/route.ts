@@ -2,10 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { adminApp } from '@/lib/firebase-admin';
+import { adminApp, adminAuth, adminDb } from '@/lib/firebase-admin';
 
-const auth = getAuth(adminApp);
-const db = getFirestore(adminApp);
+const auth = adminAuth;
+const db = adminDb;
 
 export async function POST(request: NextRequest) {
     try {
