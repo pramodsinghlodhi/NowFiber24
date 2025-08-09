@@ -68,7 +68,7 @@ export default function DashboardPage() {
   }, [technicians, alerts, tasks, user]);
 
 
-  const loading = authLoading || loadingTasks;
+  const loading = authLoading || loadingTasks || loadingTechs || loadingAlerts;
 
   if (loading || !user) {
     return (

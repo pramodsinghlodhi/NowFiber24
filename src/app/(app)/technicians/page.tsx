@@ -13,12 +13,13 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, BarChart2, Trash } from 'lucide-react';
+import { MoreHorizontal, BarChart2, Trash, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import TechnicianForm from '@/components/technicians/technician-form';
 
 
 const getActivityBadge = (tech: Technician) => {
@@ -44,6 +45,7 @@ export default function TechniciansPage() {
     const { toast } = useToast();
     const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState(false);
     
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
@@ -109,6 +111,50 @@ export default function TechniciansPage() {
             setSelectedTechnician(null);
         }
     };
+
+    const handleEditClick = (tech: Technician) => {
+        setSelectedTechnician(tech);
+        setIsFormOpen(true);
+    };
+
+    const handleAddNewClick = () => {
+        setSelectedTechnician(null);
+        setIsFormOpen(true);
+    }
+    
+    const handleSave = async (techData: Technician, userData: User & { password?: string}) => {
+        const isEditing = !!selectedTechnician;
+        try {
+            const response = await fetch('/api/upsertUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    isEditing: isEditing,
+                    techData: techData,
+                    userData: userData,
+                    oldTechId: selectedTechnician?.id
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                toast({
+                    title: result.title,
+                    description: result.message
+                });
+                setIsFormOpen(false);
+                setSelectedTechnician(null);
+            } else {
+                 throw new Error(result.message || 'Failed to save technician.');
+            }
+        } catch (error: any) {
+             toast({
+                title: "Error Saving Technician",
+                description: error.message,
+                variant: "destructive"
+            });
+        }
+    }
     
     const loading = loadingTechs || loadingUsers || authLoading;
 
@@ -129,6 +175,10 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
+                     <Button onClick={handleAddNewClick}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Technician
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     {/* Mobile View */}
@@ -154,6 +204,10 @@ export default function TechniciansPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
+                                             <DropdownMenuItem onClick={() => handleEditClick(tech)}>
+                                                <BarChart2 className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                 <BarChart2 className="mr-2 h-4 w-4" />
                                                 View Report
@@ -219,6 +273,10 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEditClick(tech)}>
+                                                    <BarChart2 className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
@@ -254,6 +312,13 @@ export default function TechniciansPage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+        <TechnicianForm
+            isOpen={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            onSave={handleSave}
+            technician={selectedTechnician}
+            allUsers={users}
+        />
     </>
   );
 }

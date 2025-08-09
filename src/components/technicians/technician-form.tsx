@@ -106,7 +106,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         name,
         role: 'Technician',
         avatarUrl,
-        isBlocked: isEditing ? allUsers.find(u => u.id === technician!.id)?.isBlocked || false : false,
+        isBlocked: technician?.isBlocked || false,
         password: password || undefined,
     };
 

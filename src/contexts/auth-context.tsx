@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (firebaseUser) {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
-        if (userDoc.exists() && !userDoc.data().isBlocked) {
+        if (userDoc.exists()) {
           const userData = { uid: userDoc.id, ...userDoc.data() } as User;
           setUser(userData);
 
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setLoading(false);
           }
         } else {
-          // User document doesn't exist or user is blocked
+          // User document doesn't exist
           handleLogout();
         }
       }, (error) => {
