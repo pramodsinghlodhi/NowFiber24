@@ -204,7 +204,7 @@ export default function TechniciansPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                             <DropdownMenuItem onClick={() => handleEditClick(tech)}>
+                                             <DropdownMenuItem onClick={() => handleEditClick(tech)} style={{display: 'none'}}>
                                                 <BarChart2 className="mr-2 h-4 w-4" />
                                                 Edit
                                             </DropdownMenuItem>
@@ -273,7 +273,7 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEditClick(tech)}>
+                                                <DropdownMenuItem onClick={() => handleEditClick(tech)} style={{display: 'none'}}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     Edit
                                                 </DropdownMenuItem>
