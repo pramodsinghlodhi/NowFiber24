@@ -12,7 +12,21 @@ let adminApp: AdminApp;
 const serviceAccount: ServiceAccount = {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+};
+
+// Rename keys to match what Firebase expects BEFORE using the object
+if (serviceAccount.projectId) {
+    serviceAccount.project_id = serviceAccount.projectId;
+    delete serviceAccount.projectId;
+}
+if (serviceAccount.clientEmail) {
+    serviceAccount.client_email = serviceAccount.clientEmail;
+    delete serviceAccount.clientEmail;
+}
+if (serviceAccount.privateKey) {
+    serviceAccount.private_key = (serviceAccount.privateKey || '').replace(/\\n/g, '\n');
+    delete serviceAccount.privateKey;
 }
 
 if (!getAdminApps().length) {
@@ -25,20 +39,5 @@ if (!getAdminApps().length) {
 
 const adminAuth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
-
-// Rename keys to match what Firebase expects
-if (serviceAccount.projectId) {
-    serviceAccount.project_id = serviceAccount.projectId;
-    delete serviceAccount.projectId;
-}
-if (serviceAccount.clientEmail) {
-    serviceAccount.client_email = serviceAccount.clientEmail;
-    delete serviceAccount.clientEmail;
-}
-if (serviceAccount.privateKey) {
-    serviceAccount.private_key = serviceAccount.privateKey;
-    delete serviceAccount.privateKey;
-}
-
 
 export { adminApp, adminAuth, adminDb };
