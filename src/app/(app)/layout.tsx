@@ -28,7 +28,7 @@ export default function AppLayout({
     }, [user, loading, router]);
 
 
-    if (loading || !user) {
+    if (loading) {
         return (
              <div className="flex h-screen w-full items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
@@ -37,6 +37,10 @@ export default function AppLayout({
                 </div>
             </div>
         )
+    }
+    
+    if (!user) {
+        return null; // or a redirect component
     }
 
   return (
