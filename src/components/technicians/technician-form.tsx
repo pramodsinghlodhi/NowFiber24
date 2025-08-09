@@ -16,15 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Technician, User } from '@/lib/types';
-import { Loader2, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Switch } from '../ui/switch';
 
 interface TechnicianFormProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (technician: Omit<Technician, 'id'> & { id: string }, user: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => void;
+  onSave: (technician: Omit<Technician, 'id'> & { id: string }, user: Omit<User, 'uid' | 'id'> & { id: string; password?: string, email: string }) => void;
   technician: Technician | null;
   allUsers: User[];
 }
@@ -32,11 +31,11 @@ interface TechnicianFormProps {
 export default function TechnicianForm({ isOpen, onOpenChange, onSave, technician, allUsers }: TechnicianFormProps) {
   const [name, setName] = useState('');
   const [id, setId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [contact, setContact] = useState('');
   const [role, setRole] = useState<Technician['role']>('Field Engineer');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [isBlocked, setIsBlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -45,22 +44,23 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   useEffect(() => {
     if (isOpen) {
         if (technician) {
+            const technicianUser = allUsers.find(u => u.id === technician.id);
             setName(technician.name);
             setId(technician.id);
+            setEmail(technicianUser?.email || '');
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
-            setIsBlocked(technician.isBlocked || false);
             setPassword(''); 
         } else {
             setName('');
             const newId = `tech-${String(allUsers.filter(u => u.role === 'Technician').length + 1).padStart(3, '0')}`;
             setId(newId);
+            setEmail(`${newId}@fibervision.com`);
             setPassword('');
             setContact('');
             setRole('Field Engineer');
             setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
-            setIsBlocked(false);
         }
     }
   }, [technician, isOpen, allUsers]);
@@ -70,12 +70,13 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     setId(newId);
     if (!isEditing) {
       setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
+      setEmail(`${newId}@fibervision.com`);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !id) {
+    if (!name || !id || !email) {
         toast({ title: 'Missing Fields', description: 'Please fill out all required fields.', variant: 'destructive'});
         return;
     }
@@ -85,8 +86,8 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         return;
     }
 
-    if (!isEditing && allUsers.some(u => u.id === id)) {
-        toast({ title: 'ID already exists', description: 'This technician ID is already in use. Please choose another.', variant: 'destructive'});
+    if (!isEditing && allUsers.some(u => u.id === id || u.email === email)) {
+        toast({ title: 'ID or Email already exists', description: 'This technician ID or email is already in use.', variant: 'destructive'});
         return;
     }
 
@@ -98,7 +99,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         role,
         contact,
         avatarUrl,
-        isBlocked: isBlocked,
+        isBlocked: technician?.isBlocked || false,
         lat: technician?.lat || 34.0522,
         lng: technician?.lng || -118.2437,
         isActive: technician?.isActive || false,
@@ -106,12 +107,13 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         path: technician?.path || [],
     };
     
-    const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string } = {
+    const userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string, email: string } = {
         id: id,
         name,
         role: 'Technician',
         avatarUrl,
-        isBlocked: isBlocked,
+        email,
+        isBlocked: technician?.isBlocked || false,
         password: password || undefined,
     };
 
@@ -156,13 +158,17 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             </div>
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="id">Technician ID (Login ID)</Label>
+                    <Label htmlFor="id">Technician ID</Label>
                     <Input id="id" value={id} onChange={handleIdChange} placeholder="e.g., tech-004" required disabled={isEditing} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditing} placeholder={isEditing ? "Leave blank to keep unchanged" : ""} />
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isEditing} />
                 </div>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEditing} placeholder={isEditing ? "Leave blank to keep unchanged" : ""} />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -180,24 +186,6 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
                     </Select>
                 </div>
             </div>
-             {isEditing && (
-              <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-                <div className="space-y-0.5">
-                    <Label htmlFor="block-access" className="text-base flex items-center gap-2">
-                      {isBlocked ? <ShieldOff className="text-destructive"/> : <ShieldCheck className="text-green-500"/>}
-                      Block Access
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Temporarily block this technician's access to the system.
-                    </p>
-                </div>
-                <Switch 
-                    id="block-access"
-                    checked={isBlocked}
-                    onCheckedChange={setIsBlocked}
-                />
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>

@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 const auth = getAuth(app);
 
 export default function LoginPage() {
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,8 +35,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const email = `${userId}@fibervision.com`;
 
     try {
         const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
@@ -65,7 +63,7 @@ export default function LoginPage() {
         console.error("Login Error:", error);
         let errorMessage = 'Invalid User ID or Password.';
         if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-             errorMessage = 'Invalid User ID or Password.';
+             errorMessage = 'Invalid Email or Password.';
         } else if (error.message) {
             errorMessage = error.message;
         }
@@ -99,13 +97,13 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="userId">User ID</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                    id="userId"
-                    type="text"
-                    placeholder="e.g., admin or tech-001"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="e.g., admin@fibervision.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     />
                 </div>

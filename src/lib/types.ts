@@ -3,6 +3,7 @@
 
 
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -65,6 +66,7 @@ export type User = {
     uid: string; // Firebase Auth UID
     id: string; // Custom login ID (e.g., 'admin', 'tech-001')
     name: string;
+    email: string;
     role: 'Admin' | 'Technician';
     isBlocked: boolean;
     avatarUrl?: string;

@@ -59,7 +59,7 @@ export const getTechnicianUserByTechId = async (techId: string): Promise<User | 
     
     // There should only be one
     const userDoc = querySnapshot.docs[0];
-    return { uid: userDoc.id, ...userDoc.data() } as User;
+    return { uid: userDoc.id, ...userDoc.data(), email: userDoc.data().email } as User;
 }
 
 // Mock data can be kept for testing or as a fallback, but is no longer used by the header.

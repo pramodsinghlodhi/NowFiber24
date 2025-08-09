@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
             const userUpdateData: Partial<User> = {
                 name: userData.name,
                 avatarUrl: userData.avatarUrl,
-                isBlocked: userData.isBlocked,
             };
 
             batch.update(techDocRef, techUpdateData);
@@ -64,13 +63,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Password is required for new users.'}, { status: 400 });
         }
         
-        const email = `${userData.id}@fibervision.com`;
         let newAuthUser;
 
         try {
             // 1. Create the user in Firebase Auth
             newAuthUser = await adminAuth.createUser({
-                email,
+                email: userData.email,
                 password: userData.password,
                 displayName: userData.name,
                 photoURL: userData.avatarUrl,
@@ -89,6 +87,7 @@ export async function POST(request: NextRequest) {
                 id: userData.id, 
                 name: userData.name,
                 role: 'Technician',
+                email: userData.email,
                 isBlocked: false,
                 avatarUrl: userData.avatarUrl,
             };
@@ -125,7 +124,9 @@ export async function POST(request: NextRequest) {
 
             let message = "Could not add new technician.";
             if (error.code === 'auth/email-already-exists') {
-                message = "This Technician ID is already in use.";
+                message = "This email address is already in use.";
+            } else if (error.code === 'auth/invalid-email') {
+                message = "The email address is not valid.";
             } else if (error.code === 'auth/weak-password') {
                 message = "The password must be at least 6 characters long."
             }

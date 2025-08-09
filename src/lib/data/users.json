@@ -1,0 +1,11 @@
+
+{
+    "admin-uid": {
+        "id": "admin",
+        "name": "Admin User",
+        "role": "Admin",
+        "email": "admin@fibervision.com",
+        "isBlocked": false,
+        "avatarUrl": "https://i.pravatar.cc/150?u=admin"
+    }
+}
