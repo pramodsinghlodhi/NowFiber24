@@ -120,7 +120,7 @@ export default function TechniciansPage() {
         try {
             const querySnapshot = await getDocs(q);
             if (querySnapshot.empty) {
-                toast({ title: "Error", description: "User profile not found.", variant: "destructive" });
+                toast({ title: "Error", description: "User profile not found for this technician.", variant: "destructive" });
                 return;
             }
 
@@ -191,6 +191,10 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
+                     <Button onClick={handleAddNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Technician
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     {/* Mobile View */}
