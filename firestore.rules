@@ -2,76 +2,115 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions to check user roles based on their profile in the /users collection.
-    // This is the secure way to perform role-based access control.
-    function isSignedIn() {
+  
+    // =============================================================
+    // Security Helper Functions
+    // =============================================================
+    function isAuth() {
       return request.auth != null;
     }
-
+    
     function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isAuth() && request.auth.uid == userId;
     }
-
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
+    
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'Admin';
+      // Check for a custom claim on the user's auth token
+      return isAuth() && request.auth.token.isAdmin == true;
     }
 
-    function isTechnician() {
-        return isSignedIn() && getUserData().role == 'Technician';
-    }
-
-    // Rules for the 'users' collection.
-    // Users can only read their own profile. Admins can read any profile.
-    // Only admins can create, update, or delete user profiles.
+    // =============================================================
+    // Collection: users
+    // Purpose: Stores user profile information (role, name, etc.)
+    // =============================================================
     match /users/{userId} {
-      allow read: if isUser(userId) || isAdmin();
+      // Users can only read their own data.
+      allow read: if isUser(userId);
+      // Admins can write to any user document. Users can't write their own.
+      allow write: if isAdmin();
+      
+      // A user's notifications are a sub-collection of their user document.
+       match /notifications/{notificationId} {
+        // Users can read and write to their own notifications.
+        allow read, write: if isUser(userId);
+      }
+    }
+
+    // =============================================================
+    // Collection: technicians
+    // Purpose: Stores public-facing data for field technicians
+    // =============================================================
+    match /technicians/{techId} {
+      // Any authenticated user can read technician data (for maps, etc.)
+      allow read: if isAuth();
+      // Only admins can create/delete. Users can update their own location.
+      allow create, delete: if isAdmin();
+      // Allow a technician to update their own document, or an admin to update any.
+      allow update: if isAuth() && (request.auth.token.userId == techId || isAdmin());
+    }
+    
+    // =============================================================
+    // Collections: Most other data
+    // - Authenticated users can read.
+    // - Admins have full write access.
+    // =============================================================
+    match /infrastructure/{deviceId} {
+      allow read: if isAuth();
       allow write: if isAdmin();
     }
     
-    // Rules for 'notifications' subcollection.
-    // A user can only access their own notifications.
-    match /users/{userId}/notifications/{notificationId} {
-        allow read, write: if isUser(userId);
-    }
-
-    // Rules for 'technicians' collection.
-    // All authenticated users can read technician data (needed for maps, tasks, etc.).
-    // A technician can update their own document (for location, status updates).
-    // Only admins can create or delete technicians.
-    match /technicians/{techId} {
-        allow read: if isSignedIn();
-        allow create, delete: if isAdmin();
-        allow update: if isAdmin() || (isTechnician() && techId == getUserData().id);
-    }
-
-    // Rules for 'settings' and 'plans'
-    // Only admins can read or write these collections.
-     match /settings/{docId} {
-        allow read, write: if isAdmin();
-    }
-
-     match /plans/{planId} {
-        allow read, write: if isAdmin();
-    }
-    
-    // Rules for 'contacts'
-    // Contact form is public write, but only Admin read/update
-     match /contacts/{contactId} {
-        allow create;
-        allow read, update, delete: if isAdmin();
-    }
-    
-    // Default-allow read for most other business-logic collections.
-    // Write access is restricted to Admins. This allows the UI to function for all
-    // logged-in users while keeping data modification secure.
-    match /{collection}/{docId} {
-       allow read: if isSignedIn();
+    match /connections/{connectionId} {
+       allow read: if isAuth();
        allow write: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuth();
+      // Admins can write. A technician can update a task assigned to them.
+      allow write: if isAdmin() || (isAuth() && request.resource.data.tech_id == request.auth.token.userId);
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+    
+    match /materials/{materialId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+    
+     match /assignments/{assignmentId} {
+      allow read: if isAuth();
+       // Admins can write. A technician can create (request) an assignment for themselves.
+      allow write: if isAdmin() || (isAuth() && request.resource.data.technicianId == request.auth.token.userId);
+    }
+    
+    match /referrals/{referralId} {
+        // Any authenticated user can read referral data.
+        allow read: if isAuth();
+        // Admins can update status. Technicians can create new referrals.
+        allow create: if isAuth();
+        allow update, delete: if isAdmin();
+    }
+    
+    match /settings/{settingId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /proofOfWork/{proofId} {
+        allow read, write: if isAuth(); // Admins and technicians can access
+    }
+
+    match /plans/{planId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+    }
+    
+    match /contacts/{contactId} {
+        // Only admins can read/write contact form submissions
+        allow read, write: if isAdmin();
     }
   }
 }
