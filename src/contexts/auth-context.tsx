@@ -30,14 +30,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       setLoading(true);
-      if (!fbUser) {
+      if (fbUser) {
+        setFirebaseUser(fbUser);
+      } else {
         setFirebaseUser(null);
         setUser(null);
         setTechnician(null);
         setSettings(null);
         setLoading(false);
-      } else {
-        setFirebaseUser(fbUser);
       }
     });
     return () => unsubscribeAuth();
@@ -45,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!firebaseUser) {
-      setLoading(false);
       return;
     }
 
@@ -55,33 +54,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = { uid: userDoc.id, ...userDoc.data() } as User;
         setUser(userData);
 
-        // Fetch role-specific data after user is confirmed
-        if (userData.role === 'Technician') {
-          const techDocRef = doc(db, 'technicians', userData.id);
-          const techDoc = await getDoc(techDocRef);
-          if (techDoc.exists()) {
-            setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
-          }
-           setSettings(null); // Clear admin settings
-        } else if (userData.role === 'Admin') {
-          const settingsDocRef = doc(db, 'settings', 'live');
-          const settingsDoc = await getDoc(settingsDocRef);
-          if (settingsDoc.exists()) {
-            setSettings(settingsDoc.data() as Settings);
-          }
-          setTechnician(null); // Clear tech data
+        if (userData.role === 'Admin') {
+            const settingsDocRef = doc(db, 'settings', 'live');
+            const settingsDoc = await getDoc(settingsDocRef);
+            if (settingsDoc.exists()) {
+                setSettings(settingsDoc.data() as Settings);
+            }
+            setTechnician(null);
+            setLoading(false);
+        } else if (userData.role === 'Technician') {
+            const techDocRef = doc(db, 'technicians', userData.id);
+            const techDoc = await getDoc(techDocRef);
+            if (techDoc.exists()) {
+                setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+            }
+            setSettings(null);
+            setLoading(false);
+        } else {
+            // No specific role data to load
+            setLoading(false);
         }
-        setLoading(false);
 
       } else {
         if (userDoc.exists() && userDoc.data().isBlocked) {
             console.warn("User is blocked.");
-            logout();
+            logout(); // This will trigger the auth state change and cleanup
+        } else {
+            // User document doesn't exist, treat as logged out
+            setUser(null);
+            setTechnician(null);
+            setSettings(null);
+            setLoading(false);
         }
-        setUser(null);
-        setTechnician(null);
-        setSettings(null);
-        setLoading(false);
       }
     }, (error) => {
       console.error("Error fetching user profile:", error);
@@ -96,16 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseUser]);
 
   const logout = async () => {
-    setLoading(true);
     try {
       await signOut(auth);
-      // The onAuthStateChanged listener will handle the state cleanup
+      // The onAuthStateChanged listener will handle resetting state and loading
       await fetch('/api/sessionLogout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
         console.error("Logout failed:", error);
-    } finally {
-        // The onAuthStateChanged listener will set loading to false
     }
   };
   
