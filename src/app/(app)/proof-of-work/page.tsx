@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogClose, DialogTitle, DialogHeader, DialogDe
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createNotification, getTechnicianUserByTechId } from '@/lib/notifications';
+import { sendNoticeToTechnician } from '@/app/actions';
 
 
 export default function ProofOfWorkPage() {
@@ -101,29 +101,26 @@ export default function ProofOfWorkPage() {
   
   const handleSendNotice = async () => {
     if (!selectedProof || !noticeMessage) return;
+    
     try {
-      const techUser = await getTechnicianUserByTechId(selectedProof.technicianId);
-      if (!techUser) {
-        toast({ title: "Technician not found", description: "Could not find the user profile for this technician.", variant: "destructive" });
-        return;
-      }
-      
-      await createNotification({
-        userId: techUser.uid,
-        type: 'Notice',
-        title: `Notice regarding task #${selectedProof.taskId}`,
-        message: noticeMessage,
-        href: `/tasks`,
-      });
+      const result = await sendNoticeToTechnician(selectedProof.technicianId, `Notice regarding task #${selectedProof.taskId}`, noticeMessage);
 
-      toast({
-        title: "Notice Sent",
-        description: `A notification has been sent to the technician regarding task #${selectedProof.taskId}.`,
-      });
+      if (result.success) {
+        toast({
+          title: "Notice Sent",
+          description: `A notification has been sent to the technician regarding task #${selectedProof.taskId}.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Could not send the notice.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
        toast({
         title: "Error",
-        description: "Could not send the notice.",
+        description: "An unexpected error occurred while sending the notice.",
         variant: "destructive"
       });
     } finally {
@@ -312,5 +309,7 @@ export default function ProofOfWorkPage() {
     </>
   );
 }
+
+    
 
     

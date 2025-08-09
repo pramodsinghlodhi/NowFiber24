@@ -22,6 +22,7 @@ import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getTechnician } from '@/app/actions';
 
 function ReportSkeleton() {
     return (
@@ -100,13 +101,8 @@ export default function TechnicianReportPage() {
     if (techId) {
       const fetchTechnician = async () => {
         setLoadingTechnician(true);
-        const techDocRef = doc(db, 'technicians', techId);
-        const techDoc = await getDoc(techDocRef);
-        if (techDoc.exists()) {
-          setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
-        } else {
-          setTechnician(null);
-        }
+        const tech = await getTechnician(techId);
+        setTechnician(tech);
         setLoadingTechnician(false);
       };
       fetchTechnician();

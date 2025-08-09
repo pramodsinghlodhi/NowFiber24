@@ -6,10 +6,9 @@ import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { collection, getDocs, query, where, limit, doc, getDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { adminDb } from '@/lib/firebase-admin';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
-import { createNotification, getTechnicianUserByTechId, createBroadcast as createBroadcastNotification } from '@/lib/notifications';
+import { createNotification, createBroadcast as createBroadcastNotification, getTechnicianUserByTechId } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
 
 
@@ -229,3 +228,35 @@ export async function createBroadcast(broadcast: Omit<Notification, 'id' | 'user
         return { success: false, message: error.message };
     }
 }
+
+export async function getTechnician(techId: string): Promise<Technician | null> {
+    const techDocRef = doc(adminDb, 'technicians', techId);
+    const techDoc = await getDoc(techDocRef);
+    if (techDoc.exists()) {
+      return { id: techDoc.id, ...techDoc.data() } as Technician;
+    }
+    return null;
+}
+
+export async function sendNoticeToTechnician(technicianId: string, title: string, message: string) {
+    try {
+      const techUser = await getTechnicianUserByTechId(technicianId);
+      if (!techUser) {
+        return { success: false, message: "Technician not found." };
+      }
+      
+      await createNotification({
+        userId: techUser.uid,
+        type: 'Notice',
+        title: title,
+        message: message,
+        href: `/tasks`,
+      });
+
+      return { success: true };
+    } catch (error) {
+       return { success: false, message: "Could not send notice." };
+    }
+}
+
+    
