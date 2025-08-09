@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { getAuth, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { doc, onSnapshot, Unsubscribe, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User, Technician, Settings } from '@/lib/types'; 
 
@@ -29,8 +29,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (!fbUser) {
+      if (fbUser) {
+        setFirebaseUser(fbUser);
+      } else {
+        setFirebaseUser(null);
         setUser(null);
         setTechnician(null);
         setSettings(null);
@@ -41,25 +43,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    let userUnsubscribe: Unsubscribe | undefined;
+    let dataUnsubscribe: Unsubscribe | undefined;
+    
+    const cleanup = () => {
+        if (userUnsubscribe) userUnsubscribe();
+        if (dataUnsubscribe) dataUnsubscribe();
+    }
+
     if (!firebaseUser) {
       setLoading(false);
       return;
     }
 
     const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const userUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+    userUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
       if (userDoc.exists() && !userDoc.data().isBlocked) {
         const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
         setUser(fullUser);
-        setLoading(false); // User profile is loaded
+
+        // Now that we have the user and their role, fetch role-specific data
+        if (fullUser.role === 'Admin') {
+            const settingsDocRef = doc(db, 'settings', 'live');
+            dataUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
+                if (settingsDoc.exists()) {
+                    setSettings(settingsDoc.data() as Settings);
+                }
+                setLoading(false);
+            }, (error) => {
+                console.error("Error fetching settings:", error.message);
+                setLoading(false);
+            });
+            setTechnician(null);
+        } else if (fullUser.role === 'Technician') {
+            const techDocRef = doc(db, 'technicians', fullUser.id);
+            dataUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
+                if (techDoc.exists()) {
+                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+                }
+                setLoading(false);
+            }, (error) => {
+                 console.error("Error fetching technician profile:", error.message);
+                 setLoading(false);
+            });
+            setSettings(null);
+        } else {
+            setLoading(false);
+        }
+
       } else {
         if (userDoc.exists() && userDoc.data().isBlocked) {
             console.warn("User is blocked.");
             logout();
-        } else {
-            // User document doesn't exist, treat as not logged in
-            setUser(null);
         }
+        setUser(null);
         setLoading(false);
       }
     }, (error) => {
@@ -68,49 +105,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => userUnsubscribe();
+    return cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseUser]);
-
-
-  useEffect(() => {
-    let techUnsubscribe: Unsubscribe | undefined;
-    let settingsUnsubscribe: Unsubscribe | undefined;
-
-    const cleanup = () => {
-        if (techUnsubscribe) techUnsubscribe();
-        if (settingsUnsubscribe) settingsUnsubscribe();
-    };
-
-    if (user) {
-        if (user.role === 'Admin') {
-            const settingsDocRef = doc(db, 'settings', 'live');
-            settingsUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
-                if (settingsDoc.exists()) {
-                    setSettings(settingsDoc.data() as Settings);
-                }
-            }, (error) => {
-                console.error("Error fetching admin settings:", error.message);
-            });
-            setTechnician(null); // Ensure tech profile is cleared for admins
-        } else if (user.role === 'Technician') {
-            const techDocRef = doc(db, 'technicians', user.id);
-            techUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
-                if (techDoc.exists()) {
-                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
-                } else {
-                    setTechnician(null);
-                }
-            });
-            setSettings(null); // Ensure settings are cleared for technicians
-        }
-    } else {
-        cleanup();
-    }
-    
-    return cleanup;
-
-  }, [user]);
 
   const logout = async () => {
     try {
