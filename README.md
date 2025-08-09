@@ -180,6 +180,10 @@ The application will not work without user accounts and initial data. A detailed
     # Genkit API Key (Client-side)
     # Get your key from Google AI Studio.
     GEMINI_API_KEY=your_google_ai_studio_api_key
+
+    # Path to your Firebase service account key for the Admin SDK.
+    # This is used for all server-side operations.
+    GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
     ```
     
 4.  **Run the development server:**
@@ -250,6 +254,10 @@ Add your Gemini API key and the path to your service account key:
 ```env
 # .env
 GEMINI_API_KEY=your_production_google_ai_studio_api_key
+
+# This path tells the Firebase Admin SDK where to find its credentials.
+# The path should be relative to your project's root on the server.
+GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
 ```
 Press `CTRL+X`, then `Y`, then `Enter` to save and exit `nano`.
 
