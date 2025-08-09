@@ -46,10 +46,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentFbUser) => {
+      setLoading(true); // Start loading whenever auth state might change
       if (currentFbUser) {
         setFirebaseUser(currentFbUser);
       } else {
-        // User logged out
+        // User logged out or no user found
         setFirebaseUser(null);
         setUser(null);
         setTechnician(null);
@@ -63,54 +64,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let unsubscribeUser: Unsubscribe | undefined;
-    let unsubscribeRole: Unsubscribe | undefined;
+    let unsubscribeRoleSpecific: Unsubscribe | undefined;
 
     if (firebaseUser) {
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
-            if (userDoc.exists() && !userDoc.data().isBlocked) {
-                const userData = { uid: userDoc.id, ...userDoc.data() } as User;
-                setUser(userData);
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
+        if (userDoc.exists() && !userDoc.data().isBlocked) {
+          const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+          setUser(userData);
 
-                // Unsubscribe from any previous role listener
-                if (unsubscribeRole) {
-                    unsubscribeRole();
-                }
-
-                if (userData.role === 'Admin') {
-                    const settingsDocRef = doc(db, 'settings', 'live');
-                    unsubscribeRole = onSnapshot(settingsDocRef, (settingsDoc) => {
-                        setTechnician(null);
-                        setSettings(settingsDoc.exists() ? (settingsDoc.data() as Settings) : null);
-                        setLoading(false);
-                    });
-                } else if (userData.role === 'Technician') {
-                    const techDocRef = doc(db, 'technicians', userData.id);
-                    unsubscribeRole = onSnapshot(techDocRef, (techDoc) => {
-                        setSettings(null);
-                        setTechnician(techDoc.exists() ? ({ id: techDoc.id, ...techDoc.data() } as Technician) : null);
-                        setLoading(false);
-                    });
-                } else {
-                    // No specific role, just stop loading.
-                    setTechnician(null);
-                    setSettings(null);
-                    setLoading(false);
-                }
-            } else {
-                handleLogout();
-            }
-        }, (error) => {
-            console.error("Error fetching user profile:", error);
-            handleLogout();
-        });
+          // Clean up previous role listener before creating a new one
+          if (unsubscribeRoleSpecific) {
+            unsubscribeRoleSpecific();
+            setTechnician(null); // Reset role-specific state
+            setSettings(null);
+          }
+          
+          if (userData.role === 'Admin') {
+            const settingsDocRef = doc(db, 'settings', 'live');
+            unsubscribeRoleSpecific = onSnapshot(settingsDocRef, (settingsDoc) => {
+                setSettings(settingsDoc.exists() ? (settingsDoc.data() as Settings) : null);
+                setLoading(false); // Done loading for Admin
+            });
+          } else if (userData.role === 'Technician') {
+            const techDocRef = doc(db, 'technicians', userData.id);
+            unsubscribeRoleSpecific = onSnapshot(techDocRef, (techDoc) => {
+                setTechnician(techDoc.exists() ? ({ id: techDoc.id, ...techDoc.data() } as Technician) : null);
+                setLoading(false); // Done loading for Technician
+            });
+          } else {
+            // User has a profile but no specific role, stop loading
+            setLoading(false);
+          }
+        } else {
+          // User document doesn't exist or user is blocked
+          handleLogout();
+        }
+      }, (error) => {
+        console.error("Error fetching user profile:", error);
+        handleLogout();
+      });
     } else {
-        setLoading(false);
+      // No firebaseUser, so not loading.
+      setLoading(false);
     }
     
     return () => {
-        if (unsubscribeUser) unsubscribeUser();
-        if (unsubscribeRole) unsubscribeRole();
+      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeRoleSpecific) unsubscribeRoleSpecific();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseUser]);
