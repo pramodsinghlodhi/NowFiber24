@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, UserX, UserCheck, BarChart2, Edit, Trash, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import TechnicianForm from '@/components/technicians/technician-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, doc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const getActivityBadge = (tech: Technician) => {
@@ -42,6 +42,8 @@ export default function TechniciansPage() {
     const { user: currentUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
+    const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
@@ -97,6 +99,44 @@ export default function TechniciansPage() {
             toast({ title: "Error", description: "Could not update technician status.", variant: "destructive"});
         }
     }
+
+    const handleDeleteClick = (tech: Technician) => {
+        setSelectedTechnician(tech);
+        setIsDeleteAlertOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedTechnician) return;
+
+        try {
+            const response = await fetch('/api/deleteUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ techId: selectedTechnician.id }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast({
+                    title: "Technician Deleted",
+                    description: `Technician ${selectedTechnician.name} has been permanently removed.`,
+                    variant: "destructive"
+                });
+            } else {
+                throw new Error(result.message || 'Failed to delete technician.');
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error Deleting Technician",
+                description: error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setIsDeleteAlertOpen(false);
+            setSelectedTechnician(null);
+        }
+    };
     
     const loading = loadingTechs || loadingUsers || authLoading;
 
@@ -158,6 +198,11 @@ export default function TechniciansPage() {
                                                     Block Access
                                                 </DropdownMenuItem>
                                             )}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(tech)}>
+                                                <Trash className="mr-2 h-4 w-4" />
+                                                Delete Technician
+                                            </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
@@ -230,6 +275,11 @@ export default function TechniciansPage() {
                                                         Block Access
                                                     </DropdownMenuItem>
                                                 )}
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(tech)}>
+                                                    <Trash className="mr-2 h-4 w-4" />
+                                                    Delete Technician
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -240,6 +290,22 @@ export default function TechniciansPage() {
                 </CardContent>
             </Card>
         </main>
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the technician's profile, authentication account, and all associated data.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+                    Delete
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </>
   );
 }
