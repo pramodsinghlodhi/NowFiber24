@@ -9,15 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/icons/logo';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence, browserLocalPersistence } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const auth = getAuth(app);
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -37,6 +39,9 @@ export default function LoginPage() {
     const email = `${userId}@fibervision.com`;
 
     try {
+        const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, persistence);
+
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         // The onAuthStateChanged listener in AuthProvider will handle the rest
         toast({ title: 'Login Successful', description: 'Welcome back!' });
@@ -97,6 +102,10 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     />
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(!!checked)} />
+                    <Label htmlFor="remember-me">Remember Me</Label>
                 </div>
             </CardContent>
             <CardFooter>
