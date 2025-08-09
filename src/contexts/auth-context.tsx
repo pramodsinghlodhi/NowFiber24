@@ -27,94 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (!fbUser) {
-        setLoading(false);
-        setUser(null);
-        setTechnician(null);
-        setSettings(null);
-      } else {
-        setLoading(true);
-      }
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!firebaseUser) {
-      return;
-    }
-
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
-      if (userDoc.exists() && !userDoc.data().isBlocked) {
-        const userData = { uid: userDoc.id, ...userDoc.data() } as User;
-        setUser(userData);
-      } else {
-        // User doc doesn't exist or is blocked, treat as logged out
-        setUser(null);
-        setTechnician(null);
-        setSettings(null);
-        setLoading(false);
-        if (userDoc.exists() && userDoc.data().isBlocked) {
-          console.warn("User is blocked.");
-          logout();
-        }
-      }
-    }, (error) => {
-      console.error("Error fetching user profile:", error);
-      setUser(null);
-      setTechnician(null);
-      setSettings(null);
-      setLoading(false);
-    });
-
-    return () => unsubscribeUser();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firebaseUser]);
-
-  useEffect(() => {
-    if (!user) {
-        if (!firebaseUser) setLoading(false);
-        return;
-    }
-
-    let roleUnsubscribe: Unsubscribe = () => {};
-
-    if (user.role === 'Admin') {
-        const settingsDocRef = doc(db, 'settings', 'live');
-        roleUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
-            if (settingsDoc.exists()) {
-                setSettings(settingsDoc.data() as Settings);
-            }
-            setTechnician(null);
-            setLoading(false);
-        });
-    } else if (user.role === 'Technician') {
-        const techDocRef = doc(db, 'technicians', user.id);
-        roleUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
-            if (techDoc.exists()) {
-                setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
-            } else {
-                setTechnician(null);
-            }
-            setSettings(null);
-            setLoading(false);
-        });
-    } else {
-        // No specific role data to load, just stop loading
-        setTechnician(null);
-        setSettings(null);
-        setLoading(false);
-    }
-
-    return () => roleUnsubscribe();
-  }, [user, firebaseUser]);
-
-
-  const logout = async () => {
+  const handleLogout = async () => {
     try {
       await signOut(auth);
       await fetch('/api/sessionLogout', { method: 'POST' });
@@ -130,9 +43,88 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/login');
     }
   };
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentFbUser) => {
+      if (currentFbUser) {
+        setFirebaseUser(currentFbUser);
+      } else {
+        // User logged out
+        setFirebaseUser(null);
+        setUser(null);
+        setTechnician(null);
+        setSettings(null);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+        return; // Wait for firebaseUser to be set
+    }
+
+    // This is the main listener for the user's profile document.
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
+      let roleUnsubscribe: Unsubscribe = () => {};
+
+      if (userDoc.exists() && !userDoc.data().isBlocked) {
+        const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+        setUser(userData);
+        
+        // Based on the user's role, set up another listener for role-specific data.
+        if (userData.role === 'Admin') {
+            const settingsDocRef = doc(db, 'settings', 'live');
+            roleUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
+                setTechnician(null); // Ensure technician data is cleared for admin
+                if (settingsDoc.exists()) {
+                    setSettings(settingsDoc.data() as Settings);
+                }
+                setLoading(false); // Admin data is loaded (or doesn't exist), stop loading.
+            });
+        } else if (userData.role === 'Technician') {
+            const techDocRef = doc(db, 'technicians', userData.id);
+            roleUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
+                setSettings(null); // Ensure settings data is cleared for technician
+                if (techDoc.exists()) {
+                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+                } else {
+                    setTechnician(null); // Handle case where technician doc might be missing
+                }
+                setLoading(false); // Technician data is loaded (or doesn't exist), stop loading.
+            });
+        } else {
+             // If user has no specific role, just stop loading.
+             setTechnician(null);
+             setSettings(null);
+             setLoading(false);
+        }
+      } else {
+        // User doc doesn't exist, or the user is blocked. Log them out.
+        if (userDoc.exists() && userDoc.data().isBlocked) {
+            console.warn("User is blocked. Logging out.");
+        }
+        handleLogout();
+      }
+      
+      // Cleanup function for the role-specific listener
+      return () => {
+          roleUnsubscribe();
+      };
+    }, (error) => {
+      console.error("Error fetching user profile:", error);
+      handleLogout();
+    });
+
+    return () => unsubscribeUser();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firebaseUser]);
   
   return (
-    <AuthContext.Provider value={{ user, technician, settings, firebaseUser, logout, loading }}>
+    <AuthContext.Provider value={{ user, technician, settings, firebaseUser, logout: handleLogout, loading }}>
       {children}
     </AuthContext.Provider>
   );
