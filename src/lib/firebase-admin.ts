@@ -1,9 +1,17 @@
 
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth, Auth } from 'firebase-admin/auth';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+
+let adminApp: AdminApp;
+let adminAuth: Auth;
+let adminDb: Firestore;
 
 function initializeAdmin() {
+    if (getAdminApps().length > 0) {
+        return getAdminApps()[0];
+    }
+
     // When running on App Hosting, the FIREBASE_CONFIG env var is automatically set.
     // This is the recommended way to initialize.
     if (process.env.FIREBASE_CONFIG) {
@@ -29,10 +37,23 @@ function initializeAdmin() {
     }
 }
 
+function getAdminApp(): AdminApp {
+    if (!adminApp) {
+        adminApp = initializeAdmin();
+    }
+    return adminApp;
+}
 
-const adminApp: AdminApp = getAdminApps().length > 0 ? getAdminApps()[0] : initializeAdmin();
+export function getAdminDb(): Firestore {
+    if (!adminDb) {
+        adminDb = getFirestore(getAdminApp());
+    }
+    return adminDb;
+}
 
-const adminAuth = getAuth(adminApp);
-const adminDb = getFirestore(adminApp);
-
-export { adminApp, adminAuth, adminDb };
+export function getAdminAuth(): Auth {
+    if (!adminAuth) {
+        adminAuth = getAuth(getAdminApp());
+    }
+    return adminAuth;
+}

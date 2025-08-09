@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +10,8 @@ export async function POST(request: NextRequest) {
     if (!idToken) {
         return NextResponse.json({ success: false, message: 'ID token is required.' }, { status: 400 });
     }
+    
+    const adminAuth = getAdminAuth();
 
     // Set session expiration to 5 days.
     const expiresIn = 60 * 60 * 24 * 5 * 1000;

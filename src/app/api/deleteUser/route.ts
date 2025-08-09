@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
     try {
@@ -9,6 +9,9 @@ export async function POST(request: NextRequest) {
         if (!techId) {
             return NextResponse.json({ success: false, message: 'Technician ID is required.' }, { status: 400 });
         }
+        
+        const adminAuth = getAdminAuth();
+        const adminDb = getAdminDb();
 
         const usersRef = adminDb.collection('users');
         const userQuery = await usersRef.where('id', '==', techId).limit(1).get();

@@ -1,10 +1,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import { User, Technician } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
     const { isEditing, techData, userData, oldTechId } = await request.json();
+    
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
 
     // Logic for UPDATING an existing technician
     if (isEditing) {
