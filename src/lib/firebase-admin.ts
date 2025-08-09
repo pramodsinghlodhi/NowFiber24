@@ -8,13 +8,22 @@ import 'dotenv/config';
 
 let adminApp: AdminApp;
 
+const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
 if (!getAdminApps().length) {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-        adminApp = initializeAdminApp({
-            credential: credential.cert(serviceAccount)
-        });
+    if (serviceAccountKey) {
+        try {
+            const serviceAccount = JSON.parse(serviceAccountKey);
+            adminApp = initializeAdminApp({
+                credential: credential.cert(serviceAccount)
+            });
+        } catch (e) {
+            console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:", e);
+            // Fallback to default initialization if parsing fails
+            adminApp = initializeAdminApp();
+        }
     } else {
+        console.warn("FIREBASE_SERVICE_ACCOUNT_KEY not found. Using default initialization.");
         adminApp = initializeAdminApp();
     }
 } else {

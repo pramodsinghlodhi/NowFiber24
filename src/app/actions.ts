@@ -12,7 +12,6 @@ import { adminDb } from '@/lib/firebase-admin';
 import { Technician, Infrastructure, Task, MaterialAssignment, Notification } from '@/lib/types';
 import { createNotification, getTechnicianUserByTechId, createBroadcast as createBroadcastNotification } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
-import 'dotenv/config';
 
 
 export async function runAutoFaultDetection() {
