@@ -30,67 +30,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       setLoading(true);
-      if (fbUser) {
-        setFirebaseUser(fbUser);
-      } else {
+      if (!fbUser) {
         setFirebaseUser(null);
         setUser(null);
         setTechnician(null);
         setSettings(null);
         setLoading(false);
+      } else {
+        setFirebaseUser(fbUser);
       }
     });
     return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
-    let userUnsubscribe: Unsubscribe | undefined;
-    let dataUnsubscribe: Unsubscribe | undefined;
-    
-    const cleanup = () => {
-        if (userUnsubscribe) userUnsubscribe();
-        if (dataUnsubscribe) dataUnsubscribe();
-    }
-
     if (!firebaseUser) {
       setLoading(false);
       return;
     }
 
     const userDocRef = doc(db, 'users', firebaseUser.uid);
-    userUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+    const unsubscribeUser = onSnapshot(userDocRef, async (userDoc) => {
       if (userDoc.exists() && !userDoc.data().isBlocked) {
-        const fullUser = { uid: userDoc.id, ...userDoc.data() } as User;
-        setUser(fullUser);
+        const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+        setUser(userData);
 
-        // Now that we have the user and their role, fetch role-specific data
-        if (fullUser.role === 'Admin') {
-            const settingsDocRef = doc(db, 'settings', 'live');
-            dataUnsubscribe = onSnapshot(settingsDocRef, (settingsDoc) => {
-                if (settingsDoc.exists()) {
-                    setSettings(settingsDoc.data() as Settings);
-                }
-                setTechnician(null);
-                setLoading(false);
-            }, (error) => {
-                console.error("Error fetching settings:", error.message);
-                setLoading(false);
-            });
-        } else if (fullUser.role === 'Technician') {
-            const techDocRef = doc(db, 'technicians', fullUser.id);
-            dataUnsubscribe = onSnapshot(techDocRef, (techDoc) => {
-                if (techDoc.exists()) {
-                    setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
-                }
-                setSettings(null);
-                setLoading(false);
-            }, (error) => {
-                 console.error("Error fetching technician profile:", error.message);
-                 setLoading(false);
-            });
-        } else {
-            setLoading(false);
+        // Fetch role-specific data after user is confirmed
+        if (userData.role === 'Technician') {
+          const techDocRef = doc(db, 'technicians', userData.id);
+          const techDoc = await getDoc(techDocRef);
+          if (techDoc.exists()) {
+            setTechnician({ id: techDoc.id, ...techDoc.data() } as Technician);
+          }
+           setSettings(null); // Clear admin settings
+        } else if (userData.role === 'Admin') {
+          const settingsDocRef = doc(db, 'settings', 'live');
+          const settingsDoc = await getDoc(settingsDocRef);
+          if (settingsDoc.exists()) {
+            setSettings(settingsDoc.data() as Settings);
+          }
+          setTechnician(null); // Clear tech data
         }
+        setLoading(false);
 
       } else {
         if (userDoc.exists() && userDoc.data().isBlocked) {
@@ -110,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return cleanup;
+    return () => unsubscribeUser();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseUser]);
 
@@ -124,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         console.error("Logout failed:", error);
     } finally {
-        setLoading(false);
+        // The onAuthStateChanged listener will set loading to false
     }
   };
   
