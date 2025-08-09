@@ -43,7 +43,22 @@ export default function LoginPage() {
         await setPersistence(auth, persistence);
 
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        // The onAuthStateChanged listener in AuthProvider will handle the rest
+        
+        // After successful Firebase login, get the ID token
+        const idToken = await userCredential.user.getIdToken();
+        
+        // Call the API route to create a session cookie
+        const response = await fetch('/api/sessionLogin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Session creation failed.');
+        }
+
         toast({ title: 'Login Successful', description: 'Welcome back!' });
         router.push('/dashboard');
     } catch (error: any) {
@@ -56,6 +71,7 @@ export default function LoginPage() {
         }
         
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
+    } finally {
         setIsLoading(false);
     }
   };
