@@ -42,8 +42,6 @@ export default function TechniciansPage() {
     const { user: currentUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
-    const [isFormOpen, setIsFormOpen] = useState(false);
     
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
@@ -72,57 +70,6 @@ export default function TechniciansPage() {
         }
     }, [currentUser, authLoading, router]);
 
-    const handleDelete = async (tech: Technician) => {
-        if (!window.confirm(`Are you sure you want to delete ${tech.name}? This will permanently remove their login and data.`)) return;
-
-        try {
-            const response = await fetch('/api/deleteUser', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ techId: tech.id }),
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                toast({
-                    title: `Deleted Technician`,
-                    description: result.message,
-                    variant: "destructive"
-                });
-            } else {
-                 toast({ title: "Error", description: result.message, variant: "destructive" });
-            }
-        } catch (error) {
-            console.error("Error deleting technician: ", error);
-            toast({ title: "Network Error", description: "Could not delete technician. Please check your connection.", variant: "destructive" });
-        }
-    }
-
-    const handleSave = async (techData: Omit<Technician, 'id'> & { id: string }, userData: Omit<User, 'uid' | 'id'> & { id: string; password?: string }) => {
-        const isEditing = !!selectedTechnician;
-        
-        try {
-            const response = await fetch('/api/upsertUser', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isEditing, techData, userData, oldTechId: selectedTechnician?.id }),
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                toast({ title: result.title, description: result.message });
-                setIsFormOpen(false);
-                setSelectedTechnician(null);
-            } else {
-                 toast({ title: "Error", description: result.message, variant: "destructive" });
-            }
-        } catch (error) {
-            console.error("Error saving technician: ", error);
-            toast({ title: "Network Error", description: "Could not save technician. Please check your connection.", variant: "destructive" });
-        }
-    }
     
     const handleToggleBlock = async (techId: string, currentIsBlocked: boolean) => {
         const usersRef = collection(db, 'users');
@@ -211,11 +158,6 @@ export default function TechniciansPage() {
                                                     Block Access
                                                 </DropdownMenuItem>
                                             )}
-                                            <DropdownMenuSeparator/>
-                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                    <Trash className="mr-2 h-4 w-4" />
-                                                    Delete
-                                            </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
@@ -288,11 +230,6 @@ export default function TechniciansPage() {
                                                         Block Access
                                                     </DropdownMenuItem>
                                                 )}
-                                                <DropdownMenuSeparator/>
-                                                 <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
-                                                      <Trash className="mr-2 h-4 w-4" />
-                                                      Delete
-                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -303,13 +240,8 @@ export default function TechniciansPage() {
                 </CardContent>
             </Card>
         </main>
-       <TechnicianForm
-            isOpen={isFormOpen}
-            onOpenChange={setIsFormOpen}
-            onSave={handleSave}
-            technician={selectedTechnician}
-            allUsers={users}
-        />
     </>
   );
 }
+
+    
