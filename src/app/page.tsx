@@ -123,6 +123,7 @@ export default function LandingPage() {
                 alt="Hero"
                 data-ai-hint="network infrastructure technology"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
+                priority
               />
             </div>
           </div>
@@ -232,5 +233,3 @@ export default function LandingPage() {
     </div>
   )
 }
-
-    

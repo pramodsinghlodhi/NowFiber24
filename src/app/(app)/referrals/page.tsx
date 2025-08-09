@@ -15,7 +15,7 @@ import { MoreHorizontal, HardHat, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, Timestamp, query, orderBy } from 'firebase/firestore';
+import { collection, doc, updateDoc, Timestamp, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -37,7 +37,7 @@ export default function ReferralsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const referralsQuery = useMemo(() => query(collection(db, 'referrals'), orderBy('timestamp', 'desc')), []);
+  const referralsQuery = useMemo(() => query(collection(db, 'referrals'), orderBy('timestamp', 'desc'), limit(50)), []);
   const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
 
   const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
@@ -97,7 +97,7 @@ export default function ReferralsPage() {
         <CardHeader>
           <CardTitle>Customer Referrals</CardTitle>
           <CardDescription>
-            {user.role === 'Admin' ? 'View and manage all customer referrals from technicians.' : 'Track the status of your submitted referrals.'}
+            {user.role === 'Admin' ? 'View and manage all customer referrals from technicians. Showing latest 50.' : 'Track the status of your submitted referrals.'}
           </CardDescription>
         </CardHeader>
         <CardContent>

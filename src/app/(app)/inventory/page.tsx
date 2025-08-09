@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import DeviceForm from '@/components/inventory/device-form';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, setDoc, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -39,7 +39,7 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const [selectedDevice, setSelectedDevice] = useState<Infrastructure | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const devicesQuery = useMemo(() => query(collection(db, 'infrastructure'), orderBy('id')), []);
+  const devicesQuery = useMemo(() => query(collection(db, 'infrastructure'), orderBy('id'), limit(50)), []);
   const { data: devices, loading } = useFirestoreQuery<Infrastructure>(devicesQuery);
 
   const handleDelete = async (deviceId: string) => {
@@ -122,7 +122,7 @@ export default function InventoryPage() {
           <CardHeader className="flex flex-row items-center justify-between">
               <div>
                   <CardTitle>Network Inventory</CardTitle>
-                  <CardDescription>Manage all network devices and equipment.</CardDescription>
+                  <CardDescription>Manage all network devices and equipment. Showing latest 50.</CardDescription>
               </div>
               <Button onClick={handleAddNew}>
                   <PlusCircle className="mr-2 h-4 w-4" />

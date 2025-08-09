@@ -118,7 +118,7 @@ export default function AppSidebar() {
               isNavItemVisible(item) && (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
-                    <Link href={item.href} onClick={handleLinkClick}>
+                    <Link href={item.href} onClick={handleLinkClick} prefetch={true}>
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                                 <item.icon />
@@ -155,7 +155,7 @@ export default function AppSidebar() {
                 isNavItemVisible(item) && (
                     <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
-                           <Link href={item.href} onClick={handleLinkClick}>
+                           <Link href={item.href} onClick={handleLinkClick} prefetch={true}>
                                 <item.icon />
                                 <span>{item.label}</span>
                            </Link>
@@ -174,5 +174,3 @@ export default function AppSidebar() {
     </Sidebar>
   );
 }
-
-    
