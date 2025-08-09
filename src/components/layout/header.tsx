@@ -253,10 +253,6 @@ export default function Header() {
                 Settings
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => router.push('/support')}>
-                <User className="mr-2 h-4 w-4" />
-                Support
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
