@@ -1,15 +1,22 @@
 
 'use server';
 
-import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp } from 'firebase-admin/app';
+import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, cert, ServiceAccount } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 let adminApp: AdminApp;
 
+const serviceAccount: ServiceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+}
+
 if (!getAdminApps().length) {
-    // This will automatically use Application Default Credentials in a managed environment
-    adminApp = initializeAdminApp();
+    adminApp = initializeAdminApp({
+        credential: cert(serviceAccount)
+    });
 } else {
     adminApp = getAdminApps()[0];
 }

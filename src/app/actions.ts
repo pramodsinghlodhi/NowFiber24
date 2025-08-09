@@ -102,7 +102,7 @@ export async function returnMaterials(photoDataUri: string) {
 
 export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestamp'>) {
   try {
-    const docRef = await addDoc(collection(db, 'tasks'), {
+    const docRef = await addDoc(collection(adminDb, 'tasks'), {
       ...taskData,
     });
     
@@ -126,7 +126,7 @@ export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestam
 }
 
 export async function reassignTask(taskId: string, newTechId: string, taskTitle: string) {
-    const taskDocRef = doc(db, 'tasks', taskId);
+    const taskDocRef = doc(adminDb, 'tasks', taskId);
     try {
         await updateDoc(taskDocRef, { tech_id: newTechId });
 
@@ -148,7 +148,7 @@ export async function reassignTask(taskId: string, newTechId: string, taskTitle:
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: Task['status']) {
-    const taskDocRef = doc(db, 'tasks', taskId);
+    const taskDocRef = doc(adminDb, 'tasks', taskId);
     try {
         const updateData: any = { status: newStatus };
         if (newStatus === 'Completed') {
@@ -163,7 +163,7 @@ export async function updateTaskStatus(taskId: string, newStatus: Task['status']
 }
 
 export async function updateAssignmentStatus(assignmentId: string, newStatus: MaterialAssignment['status']) {
-    const assignmentDocRef = doc(db, 'assignments', assignmentId);
+    const assignmentDocRef = doc(adminDb, 'assignments', assignmentId);
     try {
         await updateDoc(assignmentDocRef, { status: newStatus });
 

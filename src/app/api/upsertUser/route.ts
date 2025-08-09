@@ -1,12 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { adminApp, adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { User, Technician } from '@/lib/types';
-
-const auth = adminAuth;
-const db = adminDb;
 
 export async function POST(request: NextRequest) {
     const { isEditing, techData, userData, oldTechId } = await request.json();
@@ -18,7 +13,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: false, message: 'Original technician ID is required for editing.'}, { status: 400 });
             }
 
-            const usersRef = db.collection('users');
+            const usersRef = adminDb.collection('users');
             const userQuery = await usersRef.where('id', '==', oldTechId).limit(1).get();
             
             if (userQuery.empty) {
@@ -28,15 +23,15 @@ export async function POST(request: NextRequest) {
             const uid = userDoc.id; // The document ID is the UID
 
             // Update Firebase Auth user
-            await auth.updateUser(uid, {
+            await adminAuth.updateUser(uid, {
                 displayName: userData.name,
                 photoURL: userData.avatarUrl,
             });
 
             // Update Firestore documents in a batch
-            const batch = db.batch();
-            const techDocRef = db.collection('technicians').doc(oldTechId);
-            const userDocRef = db.collection('users').doc(uid);
+            const batch = adminDb.batch();
+            const techDocRef = adminDb.collection('technicians').doc(oldTechId);
+            const userDocRef = adminDb.collection('users').doc(uid);
             
             const techUpdateData: Partial<Technician> = {
                 name: techData.name,
@@ -73,7 +68,7 @@ export async function POST(request: NextRequest) {
 
         try {
             // 1. Create the user in Firebase Auth
-            newAuthUser = await auth.createUser({
+            newAuthUser = await adminAuth.createUser({
                 email,
                 password: userData.password,
                 displayName: userData.name,
@@ -81,13 +76,13 @@ export async function POST(request: NextRequest) {
             });
             
             // 2. Set custom claims for role-based access control
-            await auth.setCustomUserClaims(newAuthUser.uid, { role: 'Technician', userId: userData.id });
+            await adminAuth.setCustomUserClaims(newAuthUser.uid, { role: 'Technician', userId: userData.id });
 
             // 3. Create the corresponding documents in Firestore
-            const batch = db.batch();
+            const batch = adminDb.batch();
             
             // User profile document
-            const userDocRef = db.collection('users').doc(newAuthUser.uid);
+            const userDocRef = adminDb.collection('users').doc(newAuthUser.uid);
             const finalUserData: User = { 
                 uid: newAuthUser.uid,
                 id: userData.id, 
@@ -99,7 +94,7 @@ export async function POST(request: NextRequest) {
             batch.set(userDocRef, finalUserData);
             
             // Technician data document
-            const techDocRef = db.collection('technicians').doc(techData.id);
+            const techDocRef = adminDb.collection('technicians').doc(techData.id);
             const finalTechData: Technician = {
                 id: techData.id,
                 name: techData.name,
@@ -123,7 +118,7 @@ export async function POST(request: NextRequest) {
             
             // If something fails after creating the auth user, roll back the user creation
             if (newAuthUser) {
-                await auth.deleteUser(newAuthUser.uid);
+                await adminAuth.deleteUser(newAuthUser.uid);
                 console.log("Rolled back auth user creation due to Firestore error.");
             }
 

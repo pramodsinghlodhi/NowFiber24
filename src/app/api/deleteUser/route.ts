@@ -1,11 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { adminApp, adminAuth, adminDb } from '@/lib/firebase-admin';
-
-const auth = adminAuth;
-const db = adminDb;
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,13 +10,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Technician ID is required.' }, { status: 400 });
         }
 
-        const usersRef = db.collection('users');
+        const usersRef = adminDb.collection('users');
         const userQuery = await usersRef.where('id', '==', techId).limit(1).get();
 
         if (userQuery.empty) {
             // If no user found in 'users' collection, maybe it exists in auth but not firestore, or just in technicians collection.
             // We should still try to delete the technician document.
-            const techDocRef = db.collection('technicians').doc(techId);
+            const techDocRef = adminDb.collection('technicians').doc(techId);
             const techDoc = await techDocRef.get();
             if (techDoc.exists) {
                 await techDocRef.delete();
@@ -35,7 +30,7 @@ export async function POST(request: NextRequest) {
 
         // Delete from Firebase Authentication
         try {
-            await auth.deleteUser(uid);
+            await adminAuth.deleteUser(uid);
             console.log(`Successfully deleted auth user with UID: ${uid}`);
         } catch(authError: any) {
              if (authError.code === 'auth/user-not-found') {
@@ -47,9 +42,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Delete from Firestore using a batch
-        const batch = db.batch();
-        const userDocRef = db.collection('users').doc(uid);
-        const techDocRef = db.collection('technicians').doc(techId);
+        const batch = adminDb.batch();
+        const userDocRef = adminDb.collection('users').doc(uid);
+        const techDocRef = adminDb.collection('technicians').doc(techId);
 
         batch.delete(userDocRef);
         batch.delete(techDocRef);
