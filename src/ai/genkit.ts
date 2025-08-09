@@ -1,15 +1,12 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
-import { firebaseConfig } from '@/lib/firebase';
 
-// By initializing the googleAI plugin with the project ID, we are establishing
-// the authentication context for all Google Cloud services on the server,
-// including the Firebase Admin SDK.
+// Initialize Genkit without specific project details. It will use the
+// application default credentials, which are established by the
+// firebase-admin initialization or the hosting environment.
 export const ai = genkit({
-  plugins: [googleAI({
-    projectId: firebaseConfig.projectId,
-  })],
+  plugins: [googleAI()],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });
