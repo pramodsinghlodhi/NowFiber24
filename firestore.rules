@@ -1,36 +1,85 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isUserAuthenticated() {
-      return request.auth != null;
+  
+    // Function to check if a user is an admin by reading their user profile
+    function isAllowed(role) {
+      // request.auth.uid is the user's firebase auth id.
+      // get() is a firestore function that allows you to read a document.
+      // exists() is a firestore function that returns true if a document exists.
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
-    function isUserAdmin() {
-      return isUserAuthenticated() && request.auth.token.isAdmin == true;
+    // Allow public read access to some collections, but no writes
+    match /settings/live {
+      allow read, write: if isAllowed('Admin');
     }
 
-    function isUserTechnician(userId) {
-      return isUserAuthenticated() && request.auth.uid == userId;
+    match /users/{userId} {
+      // Users can read/update their own profile, Admins can read/update any
+      allow read, update: if request.auth.uid == userId || isAllowed('Admin');
+      // Admins can create/delete users
+      allow create, delete: if isAllowed('Admin');
+    }
+
+    // Technicians can create referrals, Admins can manage them
+    match /referrals/{referralId} {
+      allow create: if request.auth != null; // Any authenticated user can create
+      allow read, update, delete: if isAllowed('Admin');
     }
     
-    // Public access for contact form submissions
     match /contacts/{contactId} {
-        allow create: if true;
-        allow read, update, delete: if isUserAdmin();
-    }
-    
-    // Rules for all other collections
-    match /{path=**}/documents/{documentId} {
-       allow read, write: if isUserAdmin();
+      allow create: if request.auth == null || request.auth != null; // Allow anyone to create
+      allow read, write: if isAllowed('Admin'); // Admins can manage
     }
 
-    // Default deny all other reads/writes
-    match /{document=**} {
-      allow read, write: if false;
+    // Admins can manage these collections fully
+    match /technicians/{techId} {
+      allow read, write, create, delete: if isAllowed('Admin');
+    }
+    
+    match /tasks/{taskId} {
+       allow create, delete: if isAllowed('Admin');
+       allow read, update: if isAllowed('Admin') || (request.auth != null && request.auth.token.userId == resource.data.tech_id);
+    }
+    
+    match /alerts/{alertId} {
+      allow read: if request.auth != null; // All authenticated users can read alerts
+      allow create, update, delete: if isAllowed('Admin');
+    }
+    
+     match /infrastructure/{infraId} {
+       allow read: if request.auth != null;
+       allow write, create, delete: if isAllowed('Admin');
+    }
+     match /connections/{connId} {
+       allow read: if request.auth != null;
+       allow write, create, delete: if isAllowed('Admin');
+    }
+
+    match /materials/{matId} {
+      allow read: if request.auth != null;
+      allow write, create, delete: if isAllowed('Admin');
+    }
+    
+    match /assignments/{assignId} {
+        allow create: if request.auth != null;
+        allow read, update, delete: if isAllowed('Admin');
+    }
+    
+    match /proofOfWork/{powId} {
+        allow create: if request.auth != null;
+        allow read, delete: if isAllowed('Admin');
+    }
+    
+    match /plans/{planId} {
+        allow read: if request.auth != null;
+        allow write, create, delete: if isAllowed('Admin');
+    }
+    
+     match /users/{userId}/notifications/{notificationId} {
+        allow read, write, create, delete: if request.auth.uid == userId; // Users can only manage their own notifications
     }
   }
 }
