@@ -1,14 +1,12 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
+import { firebaseConfig } from '@/lib/firebase';
 
-// IMPORTANT: The Firebase Admin SDK in `src/lib/firebase-admin.ts` now handles its own
-// robust authentication via a service account. Genkit should use its default credential
-// discovery process to avoid conflicts. It will automatically pick up the same
-// credentials if the environment is set up correctly.
+// IMPORTANT: This file is now the single source of truth for server-side
+// Google Cloud authentication. The Genkit plugin initializes first, and the
+// Firebase Admin SDK relies on the context it establishes.
 
 export const ai = genkit({
-  plugins: [googleAI()],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
+  plugins: [googleAI({ projectId: firebaseConfig.projectId })],
 });
