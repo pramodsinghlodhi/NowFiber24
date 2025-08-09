@@ -16,9 +16,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Technician, User } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldOff } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Switch } from '../ui/switch';
 
 interface TechnicianFormProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   const [contact, setContact] = useState('');
   const [role, setRole] = useState<Technician['role']>('Field Engineer');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [isBlocked, setIsBlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -48,6 +50,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
+            setIsBlocked(technician.isBlocked || false);
             setPassword(''); 
         } else {
             setName('');
@@ -57,6 +60,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             setContact('');
             setRole('Field Engineer');
             setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
+            setIsBlocked(false);
         }
     }
   }, [technician, isOpen, allUsers]);
@@ -94,6 +98,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         role,
         contact,
         avatarUrl,
+        isBlocked: isBlocked,
         lat: technician?.lat || 34.0522,
         lng: technician?.lng || -118.2437,
         isActive: technician?.isActive || false,
@@ -106,7 +111,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         name,
         role: 'Technician',
         avatarUrl,
-        isBlocked: technician?.isBlocked || false,
+        isBlocked: isBlocked,
         password: password || undefined,
     };
 
@@ -175,16 +180,33 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
                     </Select>
                 </div>
             </div>
+             {isEditing && (
+              <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+                <div className="space-y-0.5">
+                    <Label htmlFor="block-access" className="text-base flex items-center gap-2">
+                      {isBlocked ? <ShieldOff className="text-destructive"/> : <ShieldCheck className="text-green-500"/>}
+                      Block Access
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Temporarily block this technician's access to the system.
+                    </p>
+                </div>
+                <Switch 
+                    id="block-access"
+                    checked={isBlocked}
+                    onCheckedChange={setIsBlocked}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading} >
-  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-  {isEditing ? 'Save Changes' : 'Add Technician'}
-</Button>
-
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditing ? 'Save Changes' : 'Add Technician'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

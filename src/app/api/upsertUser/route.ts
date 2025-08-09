@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
             
             const userUpdateData: Partial<User> = {
                 name: userData.name,
-                avatarUrl: userData.avatarUrl
+                avatarUrl: userData.avatarUrl,
+                isBlocked: userData.isBlocked,
             };
 
             batch.update(techDocRef, techUpdateData);
