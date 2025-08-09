@@ -285,20 +285,19 @@ export default function TechniciansPage() {
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     View Report
                                                 </DropdownMenuItem>
-                                                
-                                                <DropdownMenuSeparator/>
+                                                <DropdownMenuSeparator />
                                                 {techUser && (
-                                                    techUser.isBlocked ? (
-                                                        <DropdownMenuItem onClick={() => handleToggleBlock(techUser)}>
-                                                            <UserCheck className="mr-2 h-4 w-4" />
-                                                            Unblock Access
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(techUser)}>
-                                                            <UserX className="mr-2 h-4 w-4" />
-                                                            Block Access
-                                                        </DropdownMenuItem>
-                                                    )
+                                                  techUser.isBlocked ? (
+                                                    <DropdownMenuItem onClick={() => handleToggleBlock(techUser)}>
+                                                      <UserCheck className="mr-2 h-4 w-4" />
+                                                      Unblock Access
+                                                    </DropdownMenuItem>
+                                                  ) : (
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleToggleBlock(techUser)}>
+                                                      <UserX className="mr-2 h-4 w-4" />
+                                                      Block Access
+                                                    </DropdownMenuItem>
+                                                  )
                                                 )}
                                                 <DropdownMenuSeparator/>
                                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tech)}>
