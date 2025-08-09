@@ -1,9 +1,6 @@
 
 'use server';
 
-import {config} from 'dotenv';
-config();
-
 // The main genkit.ts file, which contains the Genkit configuration,
 // is imported here to ensure it is loaded and initialized.
 import './genkit';
