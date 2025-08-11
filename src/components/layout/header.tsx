@@ -13,7 +13,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown, Moon, Sun, AlertTriangle, ListTodo, Wrench, MessageSquare, CheckCircle, Trash2 } from "lucide-react";
+import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown, Moon, Sun, AlertTriangle, ListTodo, Wrench, MessageSquare, CheckCircle, Trash2, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "../ui/badge";
@@ -52,6 +52,7 @@ export default function Header() {
   const { toast } = useToast();
   const { setTheme } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isClearingNotifications, setIsClearingNotifications] = useState(false);
   
   const isClockedIn = technician?.isActive ?? false;
   const isGpsTrackingEnabled = settings?.technicianManagement?.enableGpsTracking ?? false;
@@ -149,11 +150,18 @@ export default function Header() {
   
   const handleClearAllNotifications = async () => {
     if (!user) return;
-    const result = await clearAllNotifications(user.uid);
-    if (result.success) {
-        toast({ title: 'Notifications Cleared', description: 'Your notification list is empty.' });
-    } else {
-        toast({ title: 'Error', description: result.message, variant: 'destructive' });
+    setIsClearingNotifications(true);
+    try {
+        const result = await clearAllNotifications(user.uid);
+        if (result.success) {
+            toast({ title: 'Notifications Cleared', description: 'Your notification list is empty.' });
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error: any) {
+         toast({ title: 'Error', description: error.message || 'Failed to clear notifications.', variant: 'destructive' });
+    } finally {
+        setIsClearingNotifications(false);
     }
   }
 
@@ -220,8 +228,8 @@ export default function Header() {
                 <DropdownMenuLabel className="flex justify-between items-center">
                     <span>Notifications</span>
                     {notifications.length > 0 && (
-                        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={handleClearAllNotifications}>
-                            <Trash2 className="mr-1 h-3 w-3" />
+                        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={handleClearAllNotifications} disabled={isClearingNotifications}>
+                             {isClearingNotifications ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Trash2 className="mr-1 h-3 w-3" />}
                             Clear All
                         </Button>
                     )}
