@@ -279,8 +279,8 @@ export async function clearAllNotifications(userId: string) {
         await batch.commit();
         return { success: true, message: 'All notifications cleared.' };
 
-    } catch (error) {
-        console.error('Error clearing notifications:', error);
-        return { success: false, message: 'Failed to clear notifications.' };
+    } catch (error: any) {
+        console.error(`Error clearing notifications for user ${userId}:`, error.code, error.message);
+        return { success: false, message: `Failed to clear notifications: ${error.message}` };
     }
 }

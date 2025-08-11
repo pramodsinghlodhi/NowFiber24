@@ -42,7 +42,20 @@ This is the **only manual step** required. You must create a user profile docume
 6.  Click **Save**.
 
 ---
-## 2. Deploy Security Rules (CRITICAL STEP)
+## 2. Grant Permissions to Service Account (CRITICAL STEP)
+
+The server-side code (including the seeding script) uses a service account to interact with Firebase. By default, this account may not have permission to delete data, which is required for features like "Clear All Notifications".
+
+1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
+2.  Find the service account associated with your Firebase project. It will typically be named `firebase-adminsdk-...@...` or have a name related to your project ID.
+3.  Click the **pencil icon** (Edit principal) for that service account.
+4.  Click **"+ ADD ANOTHER ROLE"**.
+5.  In the "Select a role" dropdown, search for and select **"Cloud Datastore User"**. This role provides the necessary permissions for creating and deleting documents.
+6.  Click **Save**.
+
+---
+
+## 3. Deploy Security Rules (CRITICAL STEP)
 
 Your database is currently locked down by default. You must deploy the included security rules to allow the app to access data.
 
@@ -58,7 +71,7 @@ Your database is currently locked down by default. You must deploy the included 
 
 ---
 
-## 3. Prepare the Environment for the Seeding Script
+## 4. Prepare the Environment for the Seeding Script
 
 The script needs your admin credentials to log in. You will provide these in a local environment file that is safely ignored by Git.
 
@@ -73,7 +86,7 @@ The script needs your admin credentials to log in. You will provide these in a l
 
 ---
 
-## 4. Run the Automated Seeding Script (IMPORTANT)
+## 5. Run the Automated Seeding Script (IMPORTANT)
 
 Now you are ready to populate the entire database. This script performs two critical functions:
 1.  **Sets an Admin Claim**: It uses the Admin SDK to set a custom user claim (`isAdmin: true`) on your `admin@fibervision.com` user. This is required for the new security rules to grant admin permissions.

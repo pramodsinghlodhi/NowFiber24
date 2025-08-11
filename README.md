@@ -119,9 +119,18 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
 4.  A JSON file will be downloaded to your computer. **Treat this file like a password; it is highly sensitive.**
 5.  Rename this file to `serviceAccountKey.json`.
 6.  Move this `serviceAccountKey.json` file to the **root directory** of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
-7.  This service account is used by both the server actions and the one-time seeding script.
 
-**F. Deploy Security Rules (CRITICAL STEP):**
+**F. Grant Permissions to Service Account (CRITICAL STEP):**
+The server-side code uses the service account to interact with Firebase. By default, this account may not have permission to delete data, which is required for features like "Clear All Notifications".
+
+1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
+2.  Find the service account associated with your Firebase project. It will typically be named `firebase-adminsdk-...@...` or have a name related to your project ID.
+3.  Click the **pencil icon** (Edit principal) for that service account.
+4.  Click **"+ ADD ANOTHER ROLE"**.
+5.  In the "Select a role" dropdown, search for and select **"Cloud Datastore User"**. This role provides the necessary permissions for creating and deleting documents.
+6.  Click **Save**.
+
+**G. Deploy Security Rules (CRITICAL STEP):**
 Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
 1.  Open your terminal in the project's root directory.
 2.  Log in to Firebase: `firebase login`
@@ -132,7 +141,7 @@ Your database is currently locked down. You must deploy the included security ru
     ```
     This command reads the `firestore.rules` file and applies them to your database.
 
-**G. Create User Accounts & Data (Required for Login):**
+**H. Create User Accounts & Data (Required for Login):**
 The application will not work without user accounts and initial data. A detailed guide on how to create the collections and documents is in **`src/lib/data/README.md`**.
 
 1.  **Create Admin User**: You must create at least one admin user in Firebase Authentication. This user's credentials will be used by the automated seeding script.
