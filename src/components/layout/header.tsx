@@ -10,22 +10,24 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown, Moon, Sun, AlertTriangle, ListTodo, Wrench, MessageSquare, CheckCircle } from "lucide-react";
+import { Bell, User, LogOut, Settings as SettingsIcon, Coffee, Timer, ChevronDown, Moon, Sun, AlertTriangle, ListTodo, Wrench, MessageSquare, CheckCircle, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "../ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Notification } from "@/lib/notifications";
+import { Notification } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLocationTracker } from "@/hooks/use-location-tracker";
 import { collection, doc, query, orderBy, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateTechnicianStatus } from "@/app/actions/technician-actions";
+import { clearAllNotifications } from "@/app/actions";
 
 
 const getNotificationIcon = (type: Notification['type']) => {
@@ -144,6 +146,16 @@ export default function Header() {
         router.push(notification.href);
     }
   }
+  
+  const handleClearAllNotifications = async () => {
+    if (!user) return;
+    const result = await clearAllNotifications(user.uid);
+    if (result.success) {
+        toast({ title: 'Notifications Cleared', description: 'Your notification list is empty.' });
+    } else {
+        toast({ title: 'Error', description: result.message, variant: 'destructive' });
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
@@ -205,20 +217,30 @@ export default function Header() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[350px]">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuLabel className="flex justify-between items-center">
+                    <span>Notifications</span>
+                    {notifications.length > 0 && (
+                        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={handleClearAllNotifications}>
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Clear All
+                        </Button>
+                    )}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {notifications.length > 0 ? (
-                    notifications.map(notification => (
-                        <DropdownMenuItem key={notification.id} onClick={() => handleNotificationClick(notification)} className={cn("flex items-start gap-3 cursor-pointer", !notification.read && "bg-accent/50")}>
-                            {getNotificationIcon(notification.type)}
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold">{notification.title}</p>
-                                <p className="text-sm text-muted-foreground">{notification.message}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(notification.timestamp.toDate(), { addSuffix: true })}</p>
-                            </div>
-                            {!notification.read && <div className="h-2 w-2 rounded-full bg-primary mt-1"></div>}
-                        </DropdownMenuItem>
-                    ))
+                    <DropdownMenuGroup className="max-h-80 overflow-y-auto">
+                        {notifications.map(notification => (
+                            <DropdownMenuItem key={notification.id} onClick={() => handleNotificationClick(notification)} className={cn("flex items-start gap-3 cursor-pointer", !notification.read && "bg-accent/50")}>
+                                {getNotificationIcon(notification.type)}
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold">{notification.title}</p>
+                                    <p className="text-sm text-muted-foreground">{notification.message}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(notification.timestamp.toDate(), { addSuffix: true })}</p>
+                                </div>
+                                {!notification.read && <div className="h-2 w-2 rounded-full bg-primary mt-1"></div>}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuGroup>
                 ) : (
                     <p className="p-4 text-center text-sm text-muted-foreground">No new notifications</p>
                 )}

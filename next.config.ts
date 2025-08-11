@@ -1,7 +1,14 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb', // For image uploads
+      timeout: 120, // 2 minutes for long-running AI tasks
+    },
+  },
   images: {
     remotePatterns: [
       {

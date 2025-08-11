@@ -261,3 +261,26 @@ export async function sendNoticeToTechnician(technicianId: string, title: string
        return { success: false, message: "Could not send notice." };
     }
 }
+
+export async function clearAllNotifications(userId: string) {
+    try {
+        const notificationsRef = adminDb.collection(`users/${userId}/notifications`);
+        const snapshot = await notificationsRef.get();
+
+        if (snapshot.empty) {
+            return { success: true, message: 'No notifications to delete.' };
+        }
+
+        const batch = adminDb.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        return { success: true, message: 'All notifications cleared.' };
+
+    } catch (error) {
+        console.error('Error clearing notifications:', error);
+        return { success: false, message: 'Failed to clear notifications.' };
+    }
+}

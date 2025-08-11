@@ -23,7 +23,7 @@ export default function MobileNav() {
     }
     
     // Only show mobile nav for technicians on app pages
-    if (user.role !== 'Technician' || pathname === '/') {
+    if (user.role !== 'Technician') {
         return null;
     }
     
