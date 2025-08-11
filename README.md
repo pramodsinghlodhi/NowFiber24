@@ -242,33 +242,36 @@ Install the necessary Node.js packages.
 npm install
 ```
 
-**Step 5: Add Service Account Key**
-Securely transfer your `serviceAccountKey.json` file to the root directory of the project on your VPS. You can use `scp` for this. **Do not commit this file to Git.**
+**Step 5: Set Up Environment Variables on the Server**
+You must provide your secret keys to the production application. Instead of using a file, it's more secure to set them as actual environment variables on the server.
 
-**Step 6: Set Up Environment Variables**
-Create a `.env` file for your production environment variables.
-```bash
-# Create and open the .env file with nano editor
-nano .env
-```
-Add your Gemini API key and the path to your service account key:
-```env
-# .env
-GEMINI_API_KEY=your_production_google_ai_studio_api_key
+1. **Add `serviceAccountKey.json`**:
+   Securely transfer your `serviceAccountKey.json` file to the root directory of the project on your VPS. You can use `scp` for this.
 
-# This path tells the Firebase Admin SDK where to find its credentials.
-# The path should be relative to your project's root on the server.
-GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
-```
-Press `CTRL+X`, then `Y`, then `Enter` to save and exit `nano`.
+2. **Set Environment Variables**:
+   Edit your shell's profile script (e.g., `~/.bashrc`, `~/.profile`, or `~/.zshrc`) to export the variables.
+   ```bash
+   nano ~/.bashrc
+   ```
+   Add these lines to the end of the file:
+   ```bash
+   export GEMINI_API_KEY="your_production_google_ai_studio_api_key"
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/project/serviceAccountKey.json" 
+   # Make sure this is the FULL, absolute path from the root of the server, e.g., /home/your_user/your_project/serviceAccountKey.json
+   ```
+   Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
+   ```bash
+   source ~/.bashrc
+   ```
+   This method is more secure than placing secrets in a git-ignored file on a production server.
 
-**Step 7: Build the Application**
+**Step 6: Build the Application**
 Create a production-optimized build of your Next.js app.
 ```bash
 npm run build
 ```
 
-**Step 8: Run the Application with a Process Manager**
+**Step 7: Run the Application with a Process Manager**
 It's crucial to use a process manager like **PM2** to keep your application running continuously.
 
 1.  **Install PM2 globally:**
@@ -294,7 +297,7 @@ It's crucial to use a process manager like **PM2** to keep your application runn
     pm2 save
     ```
 
-**Step 9: Configure a Reverse Proxy (Recommended)**
+**Step 8: Configure a Reverse Proxy (Recommended)**
 To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.

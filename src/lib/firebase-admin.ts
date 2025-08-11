@@ -3,7 +3,7 @@ import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-// IMPORTANT: This file is now the single source of truth for server-side
+// IMPORTANT: This file is the single source of truth for server-side
 // Firebase Admin SDK authentication. It relies on the GOOGLE_APPLICATION_CREDENTIALS
 // environment variable pointing to the serviceAccountKey.json file.
 
@@ -15,7 +15,7 @@ try {
   if (!getApps().length) {
     // The SDK will automatically use the project ID from the service account.
     adminApp = initializeApp();
-    console.log("Firebase Admin SDK initialized successfully using service account.");
+    console.log("Firebase Admin SDK initialized using GOOGLE_APPLICATION_CREDENTIALS.");
   } else {
     adminApp = getApps()[0];
   }
