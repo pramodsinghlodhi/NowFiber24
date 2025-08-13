@@ -5,6 +5,10 @@ import { adminAuth } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!adminAuth) {
+      throw new Error("Firebase Admin SDK not initialized. Check server logs for details.");
+    }
+    
     const { idToken } = await request.json();
     
     if (!idToken) {
