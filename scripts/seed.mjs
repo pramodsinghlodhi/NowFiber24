@@ -1,106 +1,86 @@
-import {initializeApp, cert} from 'firebase-admin/app';
-import {getFirestore, Timestamp} from 'firebase-admin/firestore';
-import {getAuth, signInWithEmailAndPassword} from 'firebase/auth';
-import {getAuth as getAdminAuth} from 'firebase-admin/auth';
-import {readFileSync, readdirSync} from 'fs';
-import {join, dirname} from 'path';
-import {fileURLToPath} from 'url';
-import 'dotenv/config';
 
-// --- IMPORTANT: CONFIGURE YOUR FIREBASE ADMIN SDK ---
-// 1. Go to your Firebase Project Settings -> Service Accounts.
-// 2. Click "Generate new private key" and download the JSON file.
-// 3. Save it in the root of this project as `service-account.json`.
-// 4. Ensure `service-account.json` is listed in your `.gitignore` file.
-const serviceAccount = JSON.parse(
-  readFileSync('./service-account.json', 'utf8')
-);
+import {initializeApp} from 'firebase/app';
+import {getAuth, signInWithEmailAndPassword, getIdTokenResult} from 'firebase/auth';
+import {getFirestore, collection, doc, setDoc, writeBatch, serverTimestamp} from 'firebase/firestore';
+import {firebaseConfig} from '../src/lib/firebase.js';
+import fs from 'fs';
+import path from 'path';
 
-const app = initializeApp({
-  credential: cert(serviceAccount),
-});
+// Load environment variables from .env.local
+import dotenv from 'dotenv';
+dotenv.config({ path: './.env.local' });
 
-const clientAppConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-};
-const clientAuth = getAuth(initializeApp(clientAppConfig, 'client-app'));
-
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
-const adminAuth = getAdminAuth(app);
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, '../src/lib/data');
+const seedCollection = async (collectionName, data) => {
+  const collectionRef = collection(db, collectionName);
+  const batch = writeBatch(db);
+  let count = 0;
 
-async function setAdminClaim(email) {
-  try {
-    const user = await adminAuth.getUserByEmail(email);
-    await adminAuth.setCustomUserClaims(user.uid, {isAdmin: true});
-    console.log(`Custom claim { isAdmin: true } set for ${email}.`);
-  } catch (error) {
-    console.error(`Error setting custom claim for ${email}:`, error);
-    throw new Error('Failed to set admin claim. Ensure the admin user exists in Firebase Authentication.');
-  }
-}
+  console.log(`> Uploading ${collectionName}.json...`);
 
-async function seedCollection(fileName) {
-  const collectionName = fileName.replace('.json', '');
-  
-  // The 'users' collection is handled manually and by the API, not by this script.
-  if (collectionName === 'users') {
-    return;
-  }
-  
-  console.log(`Uploading ${fileName}...`);
-  const fileContents = readFileSync(join(dataDir, fileName), 'utf8');
-  const data = JSON.parse(fileContents);
-  const collectionRef = db.collection(collectionName);
-  
   for (const docId in data) {
     if (Object.prototype.hasOwnProperty.call(data, docId)) {
-        let docData = data[docId];
-        
-        // Convert ISO string dates to Firestore Timestamps where applicable
+        const docRef = doc(collectionRef, docId);
+        const docData = data[docId];
+
+        // Convert ISO string timestamps to Firestore Timestamps
         if (docData.timestamp) {
-            docData.timestamp = Timestamp.fromDate(new Date(docData.timestamp));
+            docData.timestamp = new Date(docData.timestamp);
         }
-        if (docData.completionTimestamp) {
-            docData.completionTimestamp = Timestamp.fromDate(new Date(docData.completionTimestamp));
+         if (docData.completionTimestamp) {
+            docData.completionTimestamp = new Date(docData.completionTimestamp);
         }
 
-        await collectionRef.doc(docId).set(docData);
+        batch.set(docRef, docData);
+        count++;
     }
   }
-}
 
-async function main() {
-  console.log('> Seeding database...');
+  await batch.commit();
+  console.log(`> Uploaded ${count} documents to '${collectionName}' collection.`);
+};
 
-  const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
-  const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
 
-  if (!adminEmail || !adminPassword) {
-    console.error(
-      'Error: FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in your .env.local file.'
-    );
-    return;
-  }
+const main = async () => {
+    console.log('> Seeding database...');
 
-  // Set the admin claim first
-  console.log('> Setting custom claim for admin user...');
-  await setAdminClaim(adminEmail);
+    const adminEmail = process.env.FIREBASE_ADMIN_EMAIL;
+    const adminPassword = process.env.FIREBASE_ADMIN_PASSWORD;
 
-  // Authenticate to get an ID token (though not strictly needed for Admin SDK writes, it confirms credentials work)
-  await signInWithEmailAndPassword(clientAuth, adminEmail, adminPassword);
-  
-  const files = readdirSync(dataDir).filter(f => f.endsWith('.json'));
-  console.log(`> Reading files from ${dataDir}...`);
+    if (!adminEmail || !adminPassword) {
+        console.error('ERROR: FIREBASE_ADMIN_EMAIL and FIREBASE_ADMIN_PASSWORD must be set in your .env.local file.');
+        return;
+    }
+    
+    try {
+        // Sign in as the admin user to perform operations
+        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        console.log(`> Successfully authenticated as ${adminEmail}.`);
 
-  for (const file of files) {
-    await seedCollection(file);
-  }
+        // Read all JSON files from the data directory
+        const dataDir = path.join(process.cwd(), 'src', 'lib', 'data');
+        const files = fs.readdirSync(dataDir).filter(file => file.endsWith('.json') && file !== 'users.json');
 
-  console.log('> Database seeding completed successfully!');
-}
+        console.log('> Reading files from src/lib/data...');
+        
+        for (const file of files) {
+            const collectionName = path.basename(file, '.json');
+            const rawData = fs.readFileSync(path.join(dataDir, file), 'utf-8');
+            const data = JSON.parse(rawData);
+            await seedCollection(collectionName, data);
+        }
 
-main().catch(console.error);
+        console.log('> Database seeding completed successfully!');
+        process.exit(0);
+
+    } catch (error) {
+        console.error('Database seeding failed:', error);
+        process.exit(1);
+    }
+};
+
+main();

@@ -39,6 +39,7 @@ This is the **only manual step** required. You must create a user profile docume
     *   `role`: (string) `Admin`
     *   `isBlocked`: (boolean) `false`
     *   `avatarUrl`: (string) `https://i.pravatar.cc/150?u=admin`
+    *   `email`: (string) `admin@fibervision.com`
 6.  Click **Save**.
 
 ---
@@ -86,24 +87,18 @@ The script needs your admin credentials to log in. You will provide these in a l
 
 ---
 
-## 5. Run the Automated Seeding Script (IMPORTANT)
+## 5. Run the Automated Seeding Script
 
-Now you are ready to populate the entire database. This script performs two critical functions:
-1.  **Sets an Admin Claim**: It uses the Admin SDK to set a custom user claim (`isAdmin: true`) on your `admin@fibervision.com` user. This is required for the new security rules to grant admin permissions.
-2.  **Uploads Data**: It populates your Firestore database with all the data from the `.json` files in this directory (`alerts.json`, `tasks.json`, `settings.json`, etc.).
-
-**You must run this script for the application's permissions to work correctly.**
+Now you are ready to populate the entire database.
 
 1.  Open your terminal in the project's root directory.
 2.  Run the following command:
     ```bash
     npm run db:seed
     ```
-3.  The script will now execute. You will see output in your terminal as it authenticates, sets the custom claim, and then uploads data to Firestore.
+3.  The script will now execute. You will see output in your terminal as it authenticates and then uploads data to Firestore.
     ```
     > Seeding database...
-    > Setting custom claim for admin user...
-    > Custom claim { isAdmin: true } set for admin@fibervision.com.
     > Reading files from src/lib/data...
     > Uploading alerts.json...
     > Uploading assignments.json...
@@ -111,4 +106,4 @@ Now you are ready to populate the entire database. This script performs two crit
     > Database seeding completed successfully!
     ```
 
-Once the script finishes, your admin user will have the correct permissions, your database will be populated, and the application will be ready to use without permission errors.
+Once the script finishes, your database will be populated, and the application will be ready to use without permission errors.

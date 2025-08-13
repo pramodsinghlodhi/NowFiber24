@@ -4,111 +4,100 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Helper functions
+    // Helper function to check if the user is authenticated.
     function isAuth() {
       return request.auth != null;
     }
-    
-    function isAuthOwner(userId) {
-      return isAuth() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isAuth() && request.auth.token.isAdmin == true;
+
+    // Helper function to check if the user has an Admin role in their user document.
+    // This is the correct way to check roles for client-side queries.
+    function isUserAdmin() {
+      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
-    // Users: Can only read/write their own user document. No one can list all users.
+    // Users can only read their own profile. Admins can read any profile.
     match /users/{userId} {
-      allow read, update, delete: if isAuthOwner(userId) || isAdmin();
-      allow create: if isAuth(); // Allow creation for new sign-ups
-      allow list: if isAdmin();
+      allow read: if isAuth() && (request.auth.uid == userId || isUserAdmin());
+      allow write: if isUserAdmin(); // Only admins can create/update user profiles.
+      
+      // Notifications are a subcollection of users.
+      // A user can read, write, and delete their own notifications.
+      match /notifications/{notificationId} {
+        allow read, write, delete: if isAuth() && request.auth.uid == userId;
+      }
     }
-    
-    // Notifications: Users can only manage their own notifications.
-    match /users/{userId}/notifications/{notificationId} {
-        allow read, write, delete, list: if isAuthOwner(userId);
-    }
-    
-    // Technicians: Readable by any authenticated user (for maps, task assignment), writable only by admin.
+
+    // Admins can read/list all technicians. Authenticated users can read individual documents.
     match /technicians/{techId} {
       allow get: if isAuth();
-      allow list: if isAuth();
-      allow write: if isAdmin();
+      allow list: if isUserAdmin();
+      allow write: if isUserAdmin(); // Only admins (or server actions) can update technician data.
     }
     
-    // Tasks: Readable by any authenticated user (for maps, task lists), writable only by admin.
+    // Admins can read/list all tasks. Authenticated users can read individual tasks.
     match /tasks/{taskId} {
       allow get: if isAuth();
-      allow list: if isAuth();
-      allow write: if isAdmin();
+      allow list: if isUserAdmin();
+      allow write: if isUserAdmin(); // Only admins can create/update/delete tasks.
     }
     
-    // Alerts: Readable by any authenticated user, writable only by admin (or server process).
+    // Admins can read/list all alerts. Authenticated users can read individual alerts.
     match /alerts/{alertId} {
-      allow get: if isAuth();
-      allow list: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Infrastructure: Readable by any authenticated user, writable by admin.
-    match /infrastructure/{deviceId} {
-      allow get: if isAuth();
-      allow list: if isAuth();
-      allow write: if isAdmin();
-    }
-    
-    // Connections: Readable by any authenticated user, writable by admin.
-    match /connections/{connectionId} {
-      allow get: if isAuth();
-      allow list: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Materials: Readable by any authenticated user, writable by admin.
-    match /materials/{materialId} {
-      allow get: if isAuth();
-      allow list: if isAuth();
-      allow write: if isAdmin();
-    }
-    
-    // Assignments: Readable by auth'd users, writable by admin.
-    match /assignments/{assignmentId} {
-      allow get: if isAuth();
-      allow list: if isAuth();
-      allow create: if isAuth(); // Techs need to create requests
-      allow update, delete: if isAdmin();
-    }
-    
-    // Referrals: Techs can create, Admins can manage.
-    match /referrals/{referralId} {
-      allow get: if isAuth();
-      allow list: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAdmin();
-    }
-    
-    // ProofOfWork: Techs can create, Admins can read/delete.
-    match /proofOfWork/{proofId} {
-      allow list, get, delete: if isAdmin();
-      allow create: if isAuth();
-    }
-
-    // Settings: Only editable by Admins.
-    match /settings/live {
-        allow read, write: if isAdmin();
-    }
-    
-    // Plans: Readable by authenticated users, writable by admin
-    match /plans/{planId} {
         allow get: if isAuth();
-        allow list: if isAuth();
-        allow write: if isAdmin();
+        allow list: if isUserAdmin();
+        allow write: if isUserAdmin();
+    }
+    
+    // Any authenticated user can read infrastructure data. Only admins can modify it.
+    match /infrastructure/{deviceId} {
+        allow read: if isAuth();
+        allow write: if isUserAdmin();
     }
 
-    // Contacts: Writable by anyone (public form), readable only by admin.
-    match /contacts/{contactId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+    // Any authenticated user can read connection data. Only admins can modify it.
+    match /connections/{connectionId} {
+      allow read: if isAuth();
+      allow write: if isUserAdmin();
     }
+
+    // Any authenticated user can read materials data. Only admins can modify it.
+    match /materials/{materialId} {
+      allow read: if isAuth();
+      allow write: if isUserAdmin();
+    }
+    
+    // Admins can list all assignments. Authenticated users can read individual assignments.
+    match /assignments/{assignmentId} {
+        allow get: if isAuth();
+        allow list: if isUserAdmin();
+        allow write: if isUserAdmin(); // Only admins can create/update assignments
+        allow create: if isAuth(); // Technicians can create new requests (assignments)
+    }
+
+    // Any authenticated user can read referrals. Technicians can create new ones. Admins can update.
+    match /referrals/{referralId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update: if isUserAdmin();
+    }
+    
+    // Only admins can read or write settings.
+    match /settings/{settingId} {
+        allow read, write: if isUserAdmin();
+    }
+
+    // Only admins can read proof of work submissions.
+    match /proofOfWork/{proofId} {
+      allow read: if isUserAdmin();
+      allow create: if isAuth();
+      allow write, delete: if isUserAdmin();
+    }
+
+    // Authenticated users can submit to the contact form. Admins can manage submissions.
+    match /contacts/{contactId} {
+        allow create: if true; // Open for anyone to submit
+        allow read, update, delete: if isUserAdmin();
+    }
+    
   }
 }
