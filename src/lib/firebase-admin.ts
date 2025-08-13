@@ -1,9 +1,7 @@
 
-import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, App, cert, ServiceAccount } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
-import * as fs from 'fs';
-import * as path from 'path';
 
 interface FirebaseAdmin {
   app: App;
@@ -23,47 +21,26 @@ function initializeAdmin(): FirebaseAdmin {
     };
   }
 
-  const keyFilePath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-
-  if (!keyFilePath) {
-    throw new Error(
-      "The GOOGLE_APPLICATION_CREDENTIALS environment variable is not set. Please create a serviceAccountKey.json and set the variable in your .env file."
-    );
-  }
-
-  if (!fs.existsSync(path.resolve(keyFilePath))) {
-      throw new Error(`Service account key file not found at path: ${keyFilePath}. Please ensure the file exists and the path is correct.`);
-  }
-
-  const serviceAccount = JSON.parse(fs.readFileSync(path.resolve(keyFilePath), 'utf8'));
-
-  const newApp = initializeApp({
-    credential: cert(serviceAccount),
-    projectId: serviceAccount.project_id,
-  });
-
+  // The SDK will automatically find the GOOGLE_APPLICATION_CREDENTIALS environment variable.
+  const app = initializeApp();
+  
   console.log("Firebase Admin SDK initialized successfully.");
 
   return {
-    app: newApp,
-    auth: getAuth(newApp),
-    db: getFirestore(newApp),
+    app: app,
+    auth: getAuth(app),
+    db: getFirestore(app),
   };
 }
 
-// Initialize and export instances
 try {
   if (!adminInstance) {
     adminInstance = initializeAdmin();
   }
 } catch (error) {
     console.error("CRITICAL: Firebase Admin SDK Initialization Failed:", error);
-    // In a real scenario, you might want to prevent the app from starting or have a retry mechanism.
-    // For now, we will allow the app to run but auth and db dependent features will fail.
 }
 
-
-// Export the initialized instances, which might be null if initialization failed.
 export const adminApp = adminInstance?.app;
 export const adminAuth = adminInstance?.auth;
 export const adminDb = adminInstance?.db;
