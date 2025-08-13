@@ -9,7 +9,6 @@ export const firebaseConfig: FirebaseOptions = {
   "storageBucket": "fibervision-k710i.firebasestorage.app",
   "apiKey": "AIzaSyDSJptmjeH4scK305Nz_rBqlfNa3MGF-u8",
   "authDomain": "fibervision-k710i.firebaseapp.com",
-  "measurementId": "",
   "messagingSenderId": "172145809929"
 };
 

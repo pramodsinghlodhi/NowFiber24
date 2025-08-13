@@ -3,99 +3,142 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
+    // Helper functions
     function isAuth() {
       return request.auth != null;
     }
-
+    
     function isAdmin() {
-      // Check for the custom claim set on the user's token
-      return request.auth.token.isAdmin == true;
+      return isAuth() && request.auth.token.isAdmin == true;
     }
     
-    // Users can only read their own user profile document. Admins can read any.
-    // Admins can write to any user document (e.g., for blocking).
+    function isOwner(userId) {
+        return isAuth() && request.auth.uid == userId;
+    }
+
+    // Collection: users
+    // Contains user roles and basic info.
+    // - Only the user themselves can read their own profile.
+    // - Only admins can write to user profiles.
     match /users/{userId} {
-      allow read: if request.auth.uid == userId || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
       allow write: if isAdmin();
-
-      // Notifications subcollection
-      // A user can read, write, list, and delete notifications within their own profile.
-      match /notifications/{notificationId} {
-        allow get, write: if request.auth.uid == userId;
-        allow list, delete: if request.auth.uid == userId || isAdmin();
-      }
     }
 
-    // Technicians collection is readable by any authenticated user for UI purposes.
-    // Only Admins (via server) can create, update, or delete technician records.
+    // Collection: technicians
+    // Contains public-facing technician data.
+    // - Readable by any authenticated user.
+    // - Writable only by admins.
     match /technicians/{techId} {
-      allow read: if isAuth();
+      allow read, list: if isAuth();
       allow write: if isAdmin();
     }
-    
-    // Tasks: Readable by any authenticated user. Writable only by admin.
-    // Admins can query the list of tasks.
+
+    // Collection: tasks
+    // Contains task details.
+    // - Admins can read, write, and query all tasks.
+    // - Any authenticated user can read tasks (e.g., for their own dashboard).
     match /tasks/{taskId} {
-      allow read: if isAuth();
-      allow list: if isAdmin();
+      allow read, list: if isAuth();
       allow write: if isAdmin();
     }
-    
-    // Alerts: Readable by any authenticated user. Writable only by admin.
+
+    // Collection: alerts
+    // Contains network alerts.
+    // - Admins can read, write, and query all alerts.
+    // - Any authenticated user can read alerts.
     match /alerts/{alertId} {
-      allow read: if isAuth();
+      allow read, list: if isAuth();
       allow write: if isAdmin();
     }
 
-    // Infrastructure: Readable by any authenticated user. Writable only by admin.
-    match /infrastructure/{deviceId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Connections: Readable by any authenticated user. Writable only by admin.
-    match /connections/{connectionId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Materials: Readable by any authenticated user. Writable only by admin.
+    // Collection: materials
+    // Contains stock information.
+    // - Readable by any authenticated user.
+    // - Writable only by admins.
     match /materials/{materialId} {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
 
-    // Assignments: Readable by any authenticated user. Writable only by admin.
-    // Admins can query the list of assignments.
+    // Collection: assignments
+    // Contains material assignments for technicians.
+    // - Admins can read, write, and query all assignments.
+    // - Technicians can create new assignments (requests).
+    // - Any authenticated user can read assignments.
     match /assignments/{assignmentId} {
+      allow read, list: if isAuth();
+      allow create: if isAuth(); // Allows technicians to create requests
+      allow update, delete: if isAdmin();
+    }
+
+    // Collection: referrals
+    // Contains customer referrals from technicians.
+    // - Admins can read and write all referrals.
+    // - Technicians can create new referrals.
+    // - Users can read referrals they submitted.
+    match /referrals/{referralId} {
+      allow create: if isAuth();
+      allow read: if isAdmin() || (isAuth() && resource.data.tech_id == request.auth.token.userId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Collection: contacts
+    // Contains messages from the public contact form.
+    // - No reads allowed.
+    // - Anyone can create (submit the form).
+    // - Admins can write (update status, delete).
+    match /contacts/{contactId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Collection: infrastructure
+    // Contains all network device data.
+    // - Readable by any authenticated user.
+    // - Writable only by admins.
+    match /infrastructure/{deviceId} {
+      allow read, list: if isAuth();
+      allow write: if isAdmin();
+    }
+    
+    // Collection: connections
+    // Contains network connection data.
+    match /connections/{connectionId} {
+        allow read, list: if isAuth();
+        allow write: if isAdmin();
+    }
+
+    // Collection: proofOfWork
+    // Contains images and analysis from technicians.
+    // - Admins can read and delete all entries.
+    // - Technicians can create new entries.
+    match /proofOfWork/{proofId} {
+      allow create: if isAuth();
+      allow read, delete: if isAdmin();
+    }
+
+    // Collection: settings
+    // Contains system-wide settings.
+    // - Only readable and writable by admins.
+    match /settings/live {
+        allow read, write: if isAdmin();
+    }
+    
+    // Collection: plans
+    // Contains customer service plans.
+    match /plans/{planId} {
         allow read: if isAuth();
-        allow list: if isAdmin();
         allow write: if isAdmin();
     }
     
-    // Referrals: Readable by any authenticated user. Writable by admin or the referring tech.
-    match /referrals/{referralId} {
-      allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAdmin() || request.resource.data.tech_id == request.auth.uid;
-    }
-
-    // Proof of Work: Writable by any authenticated user, readable only by admin
-    match /proofOfWork/{proofId} {
-        allow create: if isAuth();
-        allow read, delete: if isAdmin();
-    }
-    
-    // Settings are only readable and writable by admins
-    match /settings/live {
-      allow read, write: if isAdmin();
-    }
-
-    // Contact submissions can be created by anyone, but only read/managed by Admins
-    match /contacts/{contactId} {
-        allow create: if true;
-        allow read, update, delete: if isAdmin();
+    // Sub-Collection: notifications
+    // Each user has their own notifications.
+    match /users/{userId}/notifications/{notificationId} {
+        allow read, write, delete, list: if isOwner(userId);
     }
   }
 }

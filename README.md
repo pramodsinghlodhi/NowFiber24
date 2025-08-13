@@ -120,7 +120,7 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
 5.  Rename this file to `serviceAccountKey.json`.
 6.  Move this `serviceAccountKey.json` file to the **root directory** of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
 
-**F. Grant Permissions to Service Account (CRITICAL STEP):**
+**F. Grant Permissions to Service Account (CRUCIAL STEP):**
 The server-side code uses the service account to interact with Firebase. By default, this account may not have permission to delete data, which is required for features like "Clear All Notifications".
 
 1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
@@ -181,7 +181,7 @@ The application will not work without user accounts and initial data. A detailed
     npm install
     ```
 
-3.  **Set up environment variables:**
+3.  **Set up environment variables (CRITICAL):**
     Create a new file named `.env` in the root of your project and add your API keys. This file is for secret keys and should not be committed to version control. Next.js will automatically load this file.
     ```env
     # .env
@@ -193,6 +193,7 @@ The application will not work without user accounts and initial data. A detailed
     # Path to your Firebase service account key for the Admin SDK.
     # This is used for all server-side operations.
     # The Admin SDK and Genkit will automatically find and use this variable.
+    # MAKE SURE THIS FILE EXISTS.
     GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
     ```
     
