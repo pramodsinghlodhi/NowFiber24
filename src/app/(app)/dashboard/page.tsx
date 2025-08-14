@@ -19,8 +19,8 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
-  const alertsQuery = useMemo(() => collection(db, 'alerts'), []);
+  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? collection(db, 'technicians') : null, [user]);
+  const alertsQuery = useMemo(() => user?.role === 'Admin' ? collection(db, 'alerts') : null, [user]);
   
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
@@ -60,6 +60,8 @@ export default function DashboardPage() {
     if (user?.role === 'Technician') {
         return {
             ...baseStats,
+            techniciansOnDuty: 0, // Not needed for technician view, avoids query
+            activeAlerts: 0, // Not needed for technician view, avoids query
             myOpenTasks: tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length,
         }
     }
@@ -67,8 +69,7 @@ export default function DashboardPage() {
     return baseStats;
   }, [technicians, alerts, tasks, user]);
 
-
-  const loading = authLoading || loadingTasks || loadingTechs || loadingAlerts;
+  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
 
   if (loading || !user) {
     return (
@@ -111,15 +112,15 @@ export default function DashboardPage() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
              <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Task Summary</CardTitle>
+                    <CardTitle className="font-headline">My Task Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Open Tasks</span>
+                        <span className="text-muted-foreground">My Open Tasks</span>
                         <span className="font-bold text-2xl">{stats.myOpenTasks ?? 0}</span>
                     </div>
                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Completed Today</span>
+                        <span className="text-muted-foreground">My Completed Today</span>
                         <span className="font-bold text-2xl">{stats.tasksCompletedToday}</span>
                     </div>
                 </CardContent>
@@ -127,16 +128,10 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Network Status</CardTitle>
+                    <CardDescription>A real-time overview of the network.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Active Alerts</span>
-                        <span className="font-bold text-2xl text-destructive">{stats.activeAlerts}</span>
-                    </div>
-                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Technicians On Duty</span>
-                        <span className="font-bold text-2xl">{stats.techniciansOnDuty}</span>
-                    </div>
+                     <p className="text-sm text-muted-foreground">Please see the Alerts page for details on network status.</p>
                 </CardContent>
              </Card>
         </div>
@@ -147,7 +142,7 @@ export default function DashboardPage() {
                 <CardDescription>Your assigned tasks that are pending or in progress.</CardDescription>
             </CardHeader>
             <CardContent>
-                <TasksList tasks={tasks.filter(t => t.status !== 'Completed')} technicians={technicians} />
+                <TasksList tasks={tasks.filter(t => t.status !== 'Completed')} technicians={[]} />
             </CardContent>
         </Card>
     </main>

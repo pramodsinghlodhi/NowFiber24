@@ -70,8 +70,9 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   }
 
   const assignedTechnician = useMemo(() => {
+    if (user?.role === 'Technician') return user;
     return technicians.find(t => t.id === assignedTechId);
-  }, [technicians, assignedTechId]);
+  }, [technicians, assignedTechId, user]);
 
 
   return (
