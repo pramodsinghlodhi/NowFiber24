@@ -3,87 +3,116 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
+    // Helper Functions
     function isAuth() {
       return request.auth != null;
     }
 
+    function isUser(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+    
     function isAdmin() {
       return isAuth() && request.auth.token.role == 'Admin';
     }
 
-    function isTechnician() {
-        return isAuth() && request.auth.token.role == 'Technician';
-    }
-    
+    // Collection: users
+    // Users can only read their own profile. Admins can read all profiles.
+    // Only the server (Admin SDK) can create/update/delete user profiles.
     match /users/{userId} {
-      allow read, update: if request.auth.uid == userId || isAdmin();
-      allow list, create, delete: if isAdmin();
-    }
-
-    match /technicians/{techId} {
-        allow read, list: if isAuth();
-        allow create, update, delete: if isAdmin();
-    }
-
-    match /tasks/{taskId} {
-        allow read: if isAuth();
-        allow create, update, delete: if isAdmin();
-        // Allow query if it's from an admin OR if the query is filtering by the user's own UID
-        allow list: if isAdmin() || (isTechnician() && request.auth.uid == request.query.where.tech_id);
+      allow read: if isUser(userId) || isAdmin();
+      allow write: if isAdmin(); // Let admin block/unblock users
+      
+      // Notifications Subcollection
+      match /notifications/{notificationId} {
+        allow read, write, delete: if isUser(userId);
+      }
     }
     
-    match /alerts/{alertId} {
-        allow read, list: if isAuth();
-        allow create, update, delete: if isAdmin();
+    // Collection: technicians
+    // Admins can manage technicians. Technicians can read all technician data for map view.
+    match /technicians/{techId} {
+      allow read, list: if isAuth();
+      allow write: if isAdmin();
     }
 
+    // Collection: tasks
+    // Admins can manage all tasks. Technicians can query their own tasks.
+    match /tasks/{taskId} {
+      allow read: if isAuth();
+      allow list: if isAdmin() || (isAuth() && request.query.where.to_list().size() > 0 && request.query.where.to_list()[0][1] == 'tech_id' && request.query.where.to_list()[0][2] == request.auth.uid);
+      allow create, update: if isAuth();
+      allow delete: if isAdmin();
+    }
+
+    // Collection: alerts
+    // All authenticated users can read and list alerts.
+    // Only the server (Admin SDK) can create/update/delete alerts.
+    match /alerts/{alertId} {
+      allow read, list: if isAuth();
+      allow write: if false; // Server-only
+    }
+    
+    // Collection: infrastructure & connections
+    // All authenticated users can read/list for the map. Admins can manage.
     match /infrastructure/{deviceId} {
         allow read, list: if isAuth();
-        allow create, update, delete: if isAdmin();
+        allow write: if isAdmin();
     }
     
-    match /connections/{connectionId} {
+    match /connections/{connId} {
         allow read, list: if isAuth();
-        allow create, update, delete: if isAdmin();
-    }
-
-    match /materials/{materialId} {
-        allow read, list: if isAuth();
-        allow create, update, delete: if isAdmin();
-    }
-
-    match /assignments/{assignmentId} {
-        allow read, create: if isAuth();
-        allow list: if isAdmin() || (isTechnician() && request.auth.uid == request.query.where.tech_id);
-        allow update, delete: if isAdmin();
-    }
-
-    match /referrals/{referralId} {
-        allow read, create: if isAuth();
-        allow list: if isAdmin() || (isTechnician() && request.auth.uid == request.query.where.tech_id);
-        allow update, delete: if isAdmin();
-    }
-
-    match /proofOfWork/{proofId} {
-        allow read, create: if isAuth();
-        allow list, delete: if isAdmin();
-    }
-
-    match /settings/live {
-        allow read: if isAuth();
         allow write: if isAdmin();
     }
 
-    match /contacts/{contactId} {
-        allow create: if true; // Allow anyone to submit the contact form
-        allow read, list, update, delete: if isAdmin();
+    // Collection: materials & assignments
+    // Admins can manage materials. Technicians can read materials for requests.
+    match /materials/{materialId} {
+        allow read, list: if isAuth();
+        allow write: if isAdmin();
+    }
+    
+    match /assignments/{assignmentId} {
+        allow read: if isAuth();
+        allow list: if isAdmin() || (isAuth() && request.query.where.to_list().size() > 0 && request.query.where.to_list()[0][1] == 'technicianId' && request.query.where.to_list()[0][2] == request.auth.uid);
+        allow create: if isAuth();
+        allow update, delete: if isAdmin();
     }
 
-    // Notifications subcollection for each user
-    match /users/{userId}/notifications/{notificationId} {
-      allow read, list, update, delete: if request.auth.uid == userId;
-      allow create: if isAuth(); // Can be created by server actions
+    // Collection: referrals
+    // Admins can manage all referrals. Technicians can query their own.
+    match /referrals/{referralId} {
+        allow read: if isAuth();
+        allow list: if isAdmin() || (isAuth() && request.query.where.to_list().size() > 0 && request.query.where.to_list()[0][1] == 'tech_id' && request.query.where.to_list()[0][2] == request.auth.uid);
+        allow create: if isAuth();
+        allow update, delete: if isAdmin();
+    }
+    
+    // Collection: proofOfWork
+    // Admins can read/delete. Technicians can create.
+    match /proofOfWork/{proofId} {
+      allow read, list, delete: if isAdmin();
+      allow create: if isAuth();
+    }
+    
+    // Collection: contacts
+    // Anyone can create (submit form). Admins can read/update/delete.
+    match /contacts/{contactId} {
+        allow create: if true;
+        allow read, list, update, delete: if isAdmin();
+    }
+    
+    // Collection: plans
+    // Only server can access.
+     match /plans/{planId} {
+      allow read, write: if false;
+    }
+
+    // Collection: settings
+    // Only Admins can read/write the single settings document.
+    match /settings/live {
+        allow read, write: if isAdmin();
     }
   }
 }
