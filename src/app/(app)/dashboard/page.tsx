@@ -22,11 +22,9 @@ export default function DashboardPage() {
   // Admin-specific queries
   const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
   const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts')) : null, [user]);
-  const usersQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'users'), where('role', '==', 'Technician')) : null, [user]);
-
+  
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
-  const { data: techUsers, loading: loadingTechUsers } = useFirestoreQuery<User>(usersQuery);
   
   // Role-based task query
   const tasksQuery = useMemo(() => {
@@ -75,20 +73,8 @@ export default function DashboardPage() {
     };
   }, [technicians, alerts, tasks, user]);
 
-  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts || loadingTechUsers));
+  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
   
-  const allTechniciansForAdmin = useMemo(() => {
-    if (user?.role !== 'Admin') return [];
-    // A simple join of users and technicians data for the admin tasks list
-    return techUsers.map(u => {
-        const techData = technicians.find(t => t.id === u.id);
-        return {
-            ...u,
-            ...techData,
-        } as Technician & User;
-    });
-  }, [user, techUsers, technicians]);
-
   if (loading || !user) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -113,7 +99,7 @@ export default function DashboardPage() {
                         <CardDescription>A summary of recently updated tasks.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <TasksList tasks={tasks.slice(0, 5)} technicians={allTechniciansForAdmin} />
+                        <TasksList tasks={tasks.slice(0, 5)} technicians={technicians} />
                     </CardContent>
                 </Card>
                 <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Task, Technician, User } from '@/lib/types';
+import { Task, Technician } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, HardHat, Camera } from 'lucide-react';
 import ProofOfWorkForm from '@/components/tasks/proof-of-work-form';
@@ -34,7 +34,7 @@ const getStatusIcon = (status: 'Pending' | 'In Progress' | 'Completed') => {
 
 type TaskItemProps = {
   task: Task;
-  technicians: (Technician & User)[];
+  technicians: Technician[];
 };
 
 function TaskItem({ task, technicians }: TaskItemProps) {
@@ -43,7 +43,7 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   
   const assignedTechnician = useMemo(() => {
     if (user?.role === 'Technician') return user;
-    return technicians.find(t => t.uid === task.tech_id);
+    return technicians.find(t => t.id === task.tech_id);
   }, [technicians, task.tech_id, user]);
 
   const [assignedTechId, setAssignedTechId] = useState(assignedTechnician?.id || '');
@@ -134,7 +134,7 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   );
 }
 
-export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: (Technician & User)[]}) {
+export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: Technician[]}) {
   if (!tasks || tasks.length === 0) {
     return <p className="text-muted-foreground text-sm p-4 text-center">No tasks in this category.</p>;
   }

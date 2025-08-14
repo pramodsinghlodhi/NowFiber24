@@ -155,6 +155,15 @@ export default function TechniciansPage() {
             </div>
         );
     }
+    
+    const allTechnicians = technicians.map(tech => {
+        const user = users.find(u => u.id === tech.id);
+        return {
+            ...tech,
+            ...user
+        }
+    })
+
 
   return (
     <>
@@ -165,7 +174,7 @@ export default function TechniciansPage() {
                         <CardTitle>Field Technicians</CardTitle>
                         <CardDescription>Manage and monitor your field engineering team.</CardDescription>
                     </div>
-                     <Button onClick={handleAddNewClick} style={{display: 'none'}}>
+                     <Button onClick={handleAddNewClick}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Add Technician
                     </Button>
@@ -194,7 +203,7 @@ export default function TechniciansPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                             <DropdownMenuItem onClick={() => handleEditClick(tech)} style={{display: 'none'}}>
+                                             <DropdownMenuItem onClick={() => handleEditClick(tech)}>
                                                 <BarChart2 className="mr-2 h-4 w-4" />
                                                 Edit
                                             </DropdownMenuItem>
@@ -263,7 +272,7 @@ export default function TechniciansPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEditClick(tech)} style={{display: 'none'}}>
+                                                <DropdownMenuItem onClick={() => handleEditClick(tech)}>
                                                     <BarChart2 className="mr-2 h-4 w-4" />
                                                     Edit
                                                 </DropdownMenuItem>
@@ -312,5 +321,3 @@ export default function TechniciansPage() {
     </>
   );
 }
-
-    
