@@ -19,16 +19,19 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? collection(db, 'technicians') : null, [user]);
-  const alertsQuery = useMemo(() => user?.role === 'Admin' ? collection(db, 'alerts') : null, [user]);
+  // Admin-specific queries
+  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
+  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts')) : null, [user]);
   
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
   
+  // Role-based task query
   const tasksQuery = useMemo(() => {
     if (!user) return null;
+    // Admin gets all tasks, Technician gets only their own tasks for efficiency
     return user.role === 'Admin' 
-      ? collection(db, 'tasks')
+      ? query(collection(db, 'tasks'))
       : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
   }, [user]);
 
@@ -44,29 +47,30 @@ export default function DashboardPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const baseStats = {
-      techniciansOnDuty: technicians.filter(t => t.isActive).length,
-      onlineDevices: 0, // This will be static since we removed the devices query for this view
-      activeAlerts: alerts.length,
-      tasksCompletedToday: tasks.filter(t => {
-          if (t.status === 'Completed' && t.completionTimestamp) {
-              const completionDate = t.completionTimestamp.toDate ? t.completionTimestamp.toDate() : new Date(t.completionTimestamp as any);
-              return completionDate >= today;
-          }
-          return false;
-      }).length,
-    };
+    const completedToday = tasks.filter(t => {
+        if (t.status === 'Completed' && t.completionTimestamp) {
+            const completionDate = t.completionTimestamp.toDate ? t.completionTimestamp.toDate() : new Date(t.completionTimestamp as any);
+            return completionDate >= today;
+        }
+        return false;
+    }).length;
 
     if (user?.role === 'Technician') {
         return {
-            ...baseStats,
-            techniciansOnDuty: 0, // Not needed for technician view, avoids query
-            activeAlerts: 0, // Not needed for technician view, avoids query
+            techniciansOnDuty: 0,
+            activeAlerts: 0,
+            onlineDevices: 0,
+            tasksCompletedToday: completedToday,
             myOpenTasks: tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length,
         }
     }
 
-    return baseStats;
+    return {
+      techniciansOnDuty: technicians.filter(t => t.isActive).length,
+      onlineDevices: 0, // This will be static since we removed the devices query for this view
+      activeAlerts: alerts.length,
+      tasksCompletedToday: completedToday,
+    };
   }, [technicians, alerts, tasks, user]);
 
   const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
