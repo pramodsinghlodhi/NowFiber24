@@ -4,82 +4,48 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper functions
     function isAuth() {
       return request.auth != null;
     }
 
     function isAdmin() {
-      return request.auth.token.role == 'Admin';
+      return isAuth() && request.auth.token.role == 'Admin';
     }
 
+    // A user can only access their own user document
     match /users/{userId} {
       allow read: if isAuth() && request.auth.uid == userId;
       allow write: if isAdmin();
-      
-      // Allow user to access their own notifications
+
+      // Notifications are a subcollection of users
       match /notifications/{notificationId} {
-        allow read, write, list, delete: if isAuth() && request.auth.uid == userId;
+        allow read, write, delete: if isAuth() && request.auth.uid == userId;
+        // Allow the owner of the notifications to list their own notifications
+        allow list: if isAuth() && request.auth.uid == userId;
       }
     }
 
+    // Admins can manage technicians. Technicians can read their own document.
     match /technicians/{techId} {
-      allow read, list: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    match /tasks/{taskId} {
       allow read: if isAuth();
-      // Admins can list all tasks. Techs can only list tasks if they are querying by their own tech_id.
-      allow list: if isAdmin() || (request.query.where.to_list().size() > 0 && request.query.where.to_list()[0][1] == 'tech_id' && request.query.where.to_list()[0][2] == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
     
-    match /alerts/{alertId} {
-        allow read, list: if isAuth();
-        allow write: if isAdmin();
-    }
-
-    match /materials/{materialId} {
-        allow read, list: if isAuth();
-        allow write: if isAdmin();
-    }
-
-    match /assignments/{assignmentId} {
-        allow read: if isAuth();
-        allow write, list: if isAdmin();
+    // Admins can manage tasks. Technicians can query their own tasks and update them.
+    match /tasks/{taskId} {
+      allow get: if isAuth();
+      // Allow a list query if it's an admin OR if the query is filtering by the user's own tech_id
+      allow list: if isAdmin() || (isAuth() && request.query.where['tech_id'] == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuth() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
     }
     
-    match /referrals/{referralId} {
-        allow read: if isAuth();
-        allow write, list: if isAdmin();
-    }
-    
-    match /infrastructure/{infraId} {
-        allow read, list: if isAuth();
-        allow write: if isAdmin();
-    }
-    
-     match /connections/{connId} {
-        allow read, list: if isAuth();
-        allow write: if isAdmin();
-    }
-
-    match /proofOfWork/{proofId} {
-      allow read, list: if isAdmin();
-      allow create: if isAuth();
-      allow delete: if isAdmin();
-    }
-
-    match /settings/live {
+    // Admins can manage everything else. Authenticated users can read most things.
+    match /{collection}/{docId} {
         allow read: if isAuth();
         allow write: if isAdmin();
-    }
-
-    match /contacts/{contactId} {
-      // Allow anyone to submit the form
-      allow create;
-      // Only admins can read, update, or delete submissions
-      allow read, list, update, delete: if isAdmin();
     }
   }
 }
