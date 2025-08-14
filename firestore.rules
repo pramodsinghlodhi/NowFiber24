@@ -4,7 +4,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
     function isAuth() {
       return request.auth != null;
     }
@@ -13,39 +12,78 @@ service cloud.firestore {
       return isAuth() && request.auth.token.role == 'Admin';
     }
 
-    // A user can only access their own user document
+    function isTechnician() {
+        return isAuth() && request.auth.token.role == 'Technician';
+    }
+    
     match /users/{userId} {
-      allow read: if isAuth() && request.auth.uid == userId;
-      allow write: if isAdmin();
-
-      // Notifications are a subcollection of users
-      match /notifications/{notificationId} {
-        allow read, write, delete: if isAuth() && request.auth.uid == userId;
-        // Allow the owner of the notifications to list their own notifications
-        allow list: if isAuth() && request.auth.uid == userId;
-      }
+      allow read, update: if request.auth.uid == userId || isAdmin();
+      allow list, create, delete: if isAdmin();
     }
 
-    // Admins can manage technicians. Technicians can read their own document.
     match /technicians/{techId} {
-      allow read: if isAuth();
-      allow list: if isAdmin();
-      allow write: if isAdmin();
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin();
     }
-    
-    // Admins can manage tasks. Technicians can query their own tasks and update them.
+
     match /tasks/{taskId} {
-      allow get: if isAuth();
-      // Allow a list query if it's an admin OR if the query is filtering by the user's own tech_id
-      allow list: if isAdmin() || (isAuth() && request.query.where['tech_id'] == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isAuth() && resource.data.tech_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id);
+        allow read: if isAuth();
+        allow create, update, delete: if isAdmin();
+        // Allow query if it's from an admin OR if the query is filtering by the user's own UID
+        allow list: if isAdmin() || (isTechnician() && request.auth.uid == request.query.where.tech_id);
     }
     
-    // Admins can manage everything else. Authenticated users can read most things.
-    match /{collection}/{docId} {
+    match /alerts/{alertId} {
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin();
+    }
+
+    match /infrastructure/{deviceId} {
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin();
+    }
+    
+    match /connections/{connectionId} {
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin();
+    }
+
+    match /materials/{materialId} {
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin();
+    }
+
+    match /assignments/{assignmentId} {
+        allow read, create: if isAuth();
+        allow list: if isAdmin() || (isTechnician() && request.auth.uid == request.query.where.tech_id);
+        allow update, delete: if isAdmin();
+    }
+
+    match /referrals/{referralId} {
+        allow read, create: if isAuth();
+        allow list: if isAdmin() || (isTechnician() && request.auth.uid == request.query.where.tech_id);
+        allow update, delete: if isAdmin();
+    }
+
+    match /proofOfWork/{proofId} {
+        allow read, create: if isAuth();
+        allow list, delete: if isAdmin();
+    }
+
+    match /settings/live {
         allow read: if isAuth();
         allow write: if isAdmin();
+    }
+
+    match /contacts/{contactId} {
+        allow create: if true; // Allow anyone to submit the contact form
+        allow read, list, update, delete: if isAdmin();
+    }
+
+    // Notifications subcollection for each user
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, list, update, delete: if request.auth.uid == userId;
+      allow create: if isAuth(); // Can be created by server actions
     }
   }
 }

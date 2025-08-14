@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Task, Technician } from '@/lib/types';
+import { Task, Technician, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, HardHat, Camera } from 'lucide-react';
 import ProofOfWorkForm from '@/components/tasks/proof-of-work-form';
@@ -34,13 +34,20 @@ const getStatusIcon = (status: 'Pending' | 'In Progress' | 'Completed') => {
 
 type TaskItemProps = {
   task: Task;
-  technicians: Technician[];
+  technicians: (Technician & User)[];
 };
 
 function TaskItem({ task, technicians }: TaskItemProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [assignedTechId, setAssignedTechId] = useState(task.tech_id);
+  
+  const assignedTechnician = useMemo(() => {
+    if (user?.role === 'Technician') return user;
+    return technicians.find(t => t.uid === task.tech_id);
+  }, [technicians, task.tech_id, user]);
+
+  const [assignedTechId, setAssignedTechId] = useState(assignedTechnician?.id || '');
+
 
   const handleStatusChange = async (newStatus: Task['status']) => {
     const result = await updateTaskStatus(task.id, newStatus);
@@ -54,12 +61,12 @@ function TaskItem({ task, technicians }: TaskItemProps) {
     }
   };
 
-  const handleReassign = async (newTechId: string) => {
-    const techName = technicians.find(t => t.id === newTechId)?.name;
-    const result = await reassignTask(task.id, newTechId, task.title);
+  const handleReassign = async (newTechCustomId: string) => {
+    const techName = technicians.find(t => t.id === newTechCustomId)?.name;
+    const result = await reassignTask(task.id, newTechCustomId, task.title);
 
     if (result.success) {
-        setAssignedTechId(newTechId);
+        setAssignedTechId(newTechCustomId);
         toast({
             title: "Task Re-assigned",
             description: `${task.title} has been assigned to ${techName}.`
@@ -68,12 +75,6 @@ function TaskItem({ task, technicians }: TaskItemProps) {
         toast({ title: 'Error', description: 'Failed to re-assign task.', variant: 'destructive'});
     }
   }
-
-  const assignedTechnician = useMemo(() => {
-    if (user?.role === 'Technician') return user;
-    return technicians.find(t => t.id === assignedTechId);
-  }, [technicians, assignedTechId, user]);
-
 
   return (
     <div className="flex flex-col p-3 rounded-lg hover:bg-muted/50 transition-colors border-b last:border-b-0">
@@ -133,7 +134,7 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   );
 }
 
-export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: Technician[]}) {
+export default function TasksList({tasks, technicians}: {tasks: Task[], technicians: (Technician & User)[]}) {
   if (!tasks || tasks.length === 0) {
     return <p className="text-muted-foreground text-sm p-4 text-center">No tasks in this category.</p>;
   }

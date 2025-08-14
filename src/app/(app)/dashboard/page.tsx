@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useRouter }from 'next/navigation';
-import { Technician, Task, Alert, Stats } from '@/lib/types';
+import { Technician, Task, Alert, Stats, User } from '@/lib/types';
 import StatsCard from '@/components/dashboard/stats-card';
 import TasksList from '@/components/dashboard/tasks-list';
 import AlertsList from '@/components/dashboard/alerts-list';
@@ -22,9 +22,11 @@ export default function DashboardPage() {
   // Admin-specific queries
   const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
   const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts')) : null, [user]);
-  
+  const usersQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'users'), where('role', '==', 'Technician')) : null, [user]);
+
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
+  const { data: techUsers, loading: loadingTechUsers } = useFirestoreQuery<User>(usersQuery);
   
   // Role-based task query
   const tasksQuery = useMemo(() => {
@@ -32,7 +34,7 @@ export default function DashboardPage() {
     // Admin gets all tasks, Technician gets only their own tasks for efficiency
     return user.role === 'Admin' 
       ? query(collection(db, 'tasks'))
-      : query(collection(db, 'tasks'), where('tech_id', '==', user.id));
+      : query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); // Query by UID
   }, [user]);
 
   const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
@@ -73,7 +75,19 @@ export default function DashboardPage() {
     };
   }, [technicians, alerts, tasks, user]);
 
-  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
+  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts || loadingTechUsers));
+  
+  const allTechniciansForAdmin = useMemo(() => {
+    if (user?.role !== 'Admin') return [];
+    // A simple join of users and technicians data for the admin tasks list
+    return techUsers.map(u => {
+        const techData = technicians.find(t => t.id === u.id);
+        return {
+            ...u,
+            ...techData,
+        } as Technician & User;
+    });
+  }, [user, techUsers, technicians]);
 
   if (loading || !user) {
     return (
@@ -99,7 +113,7 @@ export default function DashboardPage() {
                         <CardDescription>A summary of recently updated tasks.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <TasksList tasks={tasks.slice(0, 5)} technicians={technicians} />
+                        <TasksList tasks={tasks.slice(0, 5)} technicians={allTechniciansForAdmin} />
                     </CardContent>
                 </Card>
                 <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />

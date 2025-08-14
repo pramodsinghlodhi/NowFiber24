@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Technician, Task } from '@/lib/types';
+import { Technician, Task, User } from '@/lib/types';
 import TasksList from '@/components/dashboard/tasks-list';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
@@ -58,21 +58,18 @@ export default function TasksPage() {
 
     const tasksQuery = useMemo(() => {
         if (!user) return null;
-        return query(collection(db, 'tasks'), orderBy('status'));
+        if (user.role === 'Admin') {
+            return query(collection(db, 'tasks'), orderBy('status'));
+        }
+        return query(collection(db, 'tasks'), where('tech_id', '==', user.uid), orderBy('status'));
     }, [user]);
     
-    const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
+    const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
+    const usersQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'users'), where('role', '==', 'Technician')) : null, [user]);
 
-    const { data: allTasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
+    const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
-
-    const tasks = useMemo(() => {
-        if (user?.role === 'Admin') {
-            return allTasks;
-        }
-        return allTasks.filter(task => task.tech_id === user?.id);
-    }, [allTasks, user]);
-
+    const { data: techUsers, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
 
     const { inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
         const inProgress = tasks.filter(task => task.status === 'In Progress');
@@ -91,7 +88,18 @@ export default function TasksPage() {
         }
     }
 
-    const loading = authLoading || loadingTasks || loadingTechs;
+    const allTechniciansForAdmin = useMemo(() => {
+        if (user?.role !== 'Admin') return [];
+        return techUsers.map(u => {
+            const techData = technicians.find(t => t.id === u.id);
+            return {
+                ...u,
+                ...techData,
+            } as Technician & User;
+        });
+    }, [user, techUsers, technicians]);
+
+    const loading = authLoading || loadingTasks || loadingTechs || loadingUsers;
 
     if (loading || !user) {
         return (
@@ -130,7 +138,7 @@ export default function TasksPage() {
                 </CardHeader>
                 <CardContent>
                     {inProgressTasks.length > 0 ? (
-                        <TasksList tasks={inProgressTasks} technicians={technicians} />
+                        <TasksList tasks={inProgressTasks} technicians={allTechniciansForAdmin} />
                     ) : (
                         <p className="text-muted-foreground text-sm">No tasks currently in progress.</p>
                     )}
@@ -145,7 +153,7 @@ export default function TasksPage() {
                 </CardHeader>
                 <CardContent>
                     {pendingTasks.length > 0 ? (
-                       <TasksList tasks={pendingTasks} technicians={technicians} />
+                       <TasksList tasks={pendingTasks} technicians={allTechniciansForAdmin} />
                     ) : (
                         <p className="text-muted-foreground text-sm">No pending tasks.</p>
                     )}
@@ -160,7 +168,7 @@ export default function TasksPage() {
                 </CardHeader>
                 <CardContent>
                     {completedTasks.length > 0 ? (
-                       <TasksList tasks={completedTasks} technicians={technicians} />
+                       <TasksList tasks={completedTasks} technicians={allTechniciansForAdmin} />
                     ) : (
                         <p className="text-muted-foreground text-sm">No tasks completed yet.</p>
                     )}

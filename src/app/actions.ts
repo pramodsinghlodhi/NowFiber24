@@ -6,7 +6,7 @@ import {analyzeMaterialsUsed} from '@/ai/flows/analyze-materials-used';
 import {traceRoute, TraceRouteInput} from '@/ai/flows/trace-route-flow';
 import {returnMaterialsFlow} from '@/ai/flows/return-materials-flow';
 import { adminDb } from '@/lib/firebase-admin';
-import { Technician, Infrastructure, Task, MaterialAssignment, Notification, Connection } from '@/lib/types';
+import { Technician, Infrastructure, Task, MaterialAssignment, Notification, Connection, User } from '@/lib/types';
 import { createNotification, createBroadcast as createBroadcastNotification, getTechnicianUserByTechId } from '@/lib/notifications';
 import * as nodemailer from 'nodemailer';
 
@@ -68,7 +68,15 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     }
     const taskData = taskDoc.data() as Task;
 
-    const assignmentsQuery = adminDb.collection('assignments').where('technicianId', '==', taskData.tech_id).where('status', '==', 'Issued');
+    // The tech_id on a task is now the user's UID.
+    const userDocRef = adminDb.collection('users').doc(taskData.tech_id);
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists) {
+        throw new Error("Assigned technician's user profile not found");
+    }
+    const techUserId = (userDoc.data() as User).id; // Get custom ID like 'tech-001'
+
+    const assignmentsQuery = adminDb.collection('assignments').where('technicianId', '==', techUserId).where('status', '==', 'Issued');
     const assignmentsSnapshot = await assignmentsQuery.get();
     const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
@@ -103,21 +111,23 @@ export async function returnMaterials(photoDataUri: string) {
 
 export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestamp'>) {
   try {
+    const techUser = await getTechnicianUserByTechId(taskData.tech_id); // tech_id is custom id from form
+    if (!techUser) {
+        return { success: false, message: "Technician user not found." };
+    }
+
     const docRef = await adminDb.collection('tasks').add({
       ...taskData,
+      tech_id: techUser.uid, // Store the UID in the task document
     });
     
-    // Create a notification for the assigned technician
-    const techUser = await getTechnicianUserByTechId(taskData.tech_id);
-    if (techUser) {
-        await createNotification({
-            userId: techUser.uid,
-            type: 'Task Assigned',
-            title: 'New Task Assigned',
-            message: `You have been assigned a new task: ${taskData.title}`,
-            href: '/tasks'
-        });
-    }
+    await createNotification({
+        userId: techUser.uid,
+        type: 'Task Assigned',
+        title: 'New Task Assigned',
+        message: `You have been assigned a new task: ${taskData.title}`,
+        href: '/tasks'
+    });
 
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -126,21 +136,24 @@ export async function createTask(taskData: Omit<Task, 'id' | 'completionTimestam
   }
 }
 
-export async function reassignTask(taskId: string, newTechId: string, taskTitle: string) {
+export async function reassignTask(taskId: string, newTechCustomId: string, taskTitle: string) {
     const taskDocRef = adminDb.collection('tasks').doc(taskId);
     try {
-        await taskDocRef.update({ tech_id: newTechId });
-
-        const techUser = await getTechnicianUserByTechId(newTechId);
-        if (techUser) {
-            await createNotification({
-                userId: techUser.uid,
-                type: 'Task Assigned',
-                title: 'Task Re-assigned',
-                message: `You have been assigned a new task: ${taskTitle}`,
-                href: '/tasks'
-            });
+        const techUser = await getTechnicianUserByTechId(newTechCustomId);
+        if (!techUser) {
+            return { success: false, message: 'Technician to assign not found.' };
         }
+
+        await taskDocRef.update({ tech_id: techUser.uid }); // Update with UID
+
+        await createNotification({
+            userId: techUser.uid,
+            type: 'Task Assigned',
+            title: 'Task Re-assigned',
+            message: `You have been assigned a new task: ${taskTitle}`,
+            href: '/tasks'
+        });
+        
         return { success: true };
     } catch (error) {
         console.error("Error re-assigning task:", error);
@@ -176,7 +189,7 @@ export async function updateAssignmentStatus(assignmentId: string, newStatus: Ma
             if (techUser) {
                 await createNotification({
                     userId: techUser.uid,
-                    type: 'Material Approved', // Using a generic type for both cases
+                    type: 'Material Approved',
                     title: `Material Request ${newStatus}`,
                     message: `Your request for ${assignment.quantityAssigned}x ${assignment.materialId} has been ${newStatus.toLowerCase()}.`,
                     href: '/materials'
@@ -199,7 +212,7 @@ export async function sendTestEmail(smtpConfig: { host: string, port: number, us
         const transporter = nodemailer.createTransport({
             host: smtpConfig.host,
             port: smtpConfig.port,
-            secure: smtpConfig.port === 465, // true for 465, false for other ports
+            secure: smtpConfig.port === 465, 
             auth: {
                 user: smtpConfig.user,
                 pass: smtpConfig.pass,

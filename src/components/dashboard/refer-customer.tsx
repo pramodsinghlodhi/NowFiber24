@@ -41,13 +41,13 @@ export default function ReferCustomer() {
 
     try {
       await addDoc(collection(db, 'referrals'), {
-        tech_id: user.id,
+        tech_id: user.uid, // Store the UID
         customer_name: name,
         phone,
         address,
         notes,
         status: 'Pending',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       });
 
       setIsLoading(false);

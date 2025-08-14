@@ -5,7 +5,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { Referral, Technician } from '@/lib/types';
+import { Referral, Technician, User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { MoreHorizontal, HardHat, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, doc, updateDoc, Timestamp, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, updateDoc, Timestamp, query, orderBy, limit, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -37,24 +37,24 @@ export default function ReferralsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const referralsQuery = useMemo(() => query(collection(db, 'referrals'), orderBy('timestamp', 'desc'), limit(50)), []);
-  const techniciansQuery = useMemo(() => collection(db, 'technicians'), []);
+  const referralsQuery = useMemo(() => {
+    if (!user) return null;
+    if (user.role === 'Admin') {
+      return query(collection(db, 'referrals'), orderBy('timestamp', 'desc'), limit(50));
+    }
+    return query(collection(db, 'referrals'), where('tech_id', '==', user.uid), orderBy('timestamp', 'desc'));
+  }, [user]);
+
+  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'users'), where('role', '==', 'Technician')) : null, [user]);
 
   const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
-  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+  const { data: techUsers, loading: loadingTechs } = useFirestoreQuery<User>(techniciansQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [authLoading, user, router]);
-  
-  const filteredReferrals = useMemo(() => {
-    if (!user) return [];
-    if (user.role === 'Admin') return referrals;
-    return referrals.filter(r => r.tech_id === user.id);
-  }, [user, referrals]);
-
 
   const handleStatusChange = async (referralId: string, newStatus: Referral['status']) => {
     const docRef = doc(db, 'referrals', referralId);
@@ -69,7 +69,6 @@ export default function ReferralsPage() {
   const renderTimestamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
     try {
-      // Firestore Timestamps have a toDate() method
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
       if (isNaN(date.getTime())) {
         return 'Invalid Date';
@@ -101,9 +100,8 @@ export default function ReferralsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Mobile View */}
             <div className="md:hidden space-y-4">
-                {filteredReferrals.map((referral: Referral) => (
+                {referrals.map((referral: Referral) => (
                     <Card key={referral.id} className="p-4 space-y-3">
                          <div className="flex justify-between items-start">
                             <div>
@@ -116,7 +114,7 @@ export default function ReferralsPage() {
                             <p className="flex items-center gap-2"><Phone size={14}/> {referral.phone}</p>
                             <p className="flex items-center gap-2"><MapPin size={14}/> {referral.address}</p>
                             {user.role === 'Admin' && (
-                                 <p className="flex items-center gap-2"><HardHat size={14}/> {technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</p>
+                                 <p className="flex items-center gap-2"><HardHat size={14}/> {techUsers.find(t => t.uid === referral.tech_id)?.name || 'Unknown'}</p>
                             )}
                         </div>
                         {user.role === 'Admin' && (
@@ -137,7 +135,6 @@ export default function ReferralsPage() {
                 ))}
             </div>
 
-          {/* Desktop View */}
           <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
@@ -151,14 +148,14 @@ export default function ReferralsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReferrals.map((referral: Referral) => (
+              {referrals.map((referral: Referral) => (
                 <TableRow key={referral.id}>
                   <TableCell className="font-medium">{referral.customer_name}</TableCell>
                   <TableCell>{referral.phone}</TableCell>
                   <TableCell>{referral.address}</TableCell>
                   <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
                   {user.role === 'Admin' && (
-                    <TableCell>{technicians.find(t => t.id === referral.tech_id)?.name || 'Unknown'}</TableCell>
+                    <TableCell>{techUsers.find(t => t.uid === referral.tech_id)?.name || 'Unknown'}</TableCell>
                   )}
                   <TableCell>{getStatusBadge(referral.status)}</TableCell>
                    <TableCell className="text-right">
