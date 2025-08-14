@@ -42,21 +42,18 @@ This is the **only manual step** required. You must create a user profile docume
     *   `email`: (string) `admin@fibervision.com`
 6.  Click **Save**.
 
----
-## 2. Grant Permissions to Service Account (CRITICAL STEP)
+### Step 1.4: Set Admin Custom Claim (CRITICAL)
+For the security rules to work correctly, you must set a custom claim on the admin user's account. This is done via the Firebase Admin SDK. The easiest way is to temporarily use a cloud function or a local admin script.
 
-The server-side code (including the seeding script) uses a service account to interact with Firebase. By default, this account may not have permission to delete data, which is required for features like "Clear All Notifications".
+**This project's seeding script handles this for you!** The first time you run `npm run db:seed`, it will attempt to set this custom claim on the admin user. However, for this to work, the service account used by the script needs permission to set custom claims.
 
-1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
-2.  Find the service account associated with your Firebase project. It will typically be named `firebase-adminsdk-...@...` or have a name related to your project ID.
-3.  Click the **pencil icon** (Edit principal) for that service account.
-4.  Click **"+ ADD ANOTHER ROLE"**.
-5.  In the "Select a role" dropdown, search for and select **"Cloud Datastore User"**. This role provides the necessary permissions for creating and deleting documents.
-6.  Click **Save**.
+1.  In your **Google Cloud Console**, navigate to **IAM & Admin -> IAM**.
+2.  Find your service account (`firebase-adminsdk-...`).
+3.  Click the pencil icon to edit its roles.
+4.  Add the role **"Firebase Admin"** or **"Firebase Authentication Admin"**. This grants the necessary permissions.
 
 ---
-
-## 3. Deploy Security Rules (CRITICAL STEP)
+## 2. Deploy Security Rules (CRITICAL STEP)
 
 Your database is currently locked down by default. You must deploy the included security rules to allow the app to access data.
 
@@ -72,7 +69,7 @@ Your database is currently locked down by default. You must deploy the included 
 
 ---
 
-## 4. Prepare the Environment for the Seeding Script
+## 3. Prepare the Environment for the Seeding Script
 
 The script needs your admin credentials to log in. You will provide these in a local environment file that is safely ignored by Git.
 
@@ -87,7 +84,7 @@ The script needs your admin credentials to log in. You will provide these in a l
 
 ---
 
-## 5. Run the Automated Seeding Script
+## 4. Run the Automated Seeding Script
 
 Now you are ready to populate the entire database.
 
