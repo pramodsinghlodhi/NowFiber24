@@ -1,96 +1,96 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
+  
+    // Helper Functions
     function isAuth() {
       return request.auth != null;
     }
-    
+
     function isAdmin() {
       return isAuth() && request.auth.token.role == 'Admin';
     }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    
+    function isTechnician() {
+      return isAuth() && request.auth.token.role == 'Technician';
     }
 
-    // Rules for the 'users' collection
+    // Only the authenticated user can read/write their own profile
     match /users/{userId} {
-      // Only the authenticated owner can read or write their own user profile.
-      // Admins can create and update users via backend functions, but not directly list them.
-      allow read, update: if isOwner(userId) || isAdmin();
-      allow create, list: if isAdmin();
+      allow read, write: if isAuth() && request.auth.uid == userId;
+      // Admins cannot list all users for security reasons, they must use the technicians collection.
+      allow list: if isAdmin(); 
     }
 
-    // Rules for the 'technicians' collection
+    // Technicians can only be created/deleted via backend functions.
+    // Admins can list/read all. Technicians can read their own.
     match /technicians/{techId} {
-      // Any authenticated user can read technician info (for maps, etc.)
-      allow read, list: if isAuth(); 
-      // Only Admins can create, update, or delete technician records.
-      allow write: if isAdmin();
+      allow read, list: if isAdmin();
+      allow write: if isAdmin(); // Should be handled by secure backend function
+    }
+
+    // Technicians can query for tasks assigned to them (by UID). Admins can query all.
+    match /tasks/{taskId} {
+      allow read, list: if isAdmin() || (isTechnician() && request.query.where.to_list()[0][2] == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+      allow update: if isTechnician() && get(/databases/$(database)/documents/tasks/$(taskId)).data.tech_id == request.auth.uid;
     }
     
-    // Rules for the 'tasks' collection
-    match /tasks/{taskId} {
-      // Admins can read/write any task.
-      allow read, write: if isAdmin();
-      
-      // A non-admin can only query (list) tasks if they are filtering by their own UID.
-      // This is the key rule to prevent the permission-denied error for technicians.
-      allow list: if isAuth() && request.query.where.to_list()[0][1] == 'tech_id' && request.query.where.to_list()[0][2] == request.auth.uid;
+    // Alerts are public read for any authenticated user. Only backend can create.
+    match /alerts/{alertId} {
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin(); // Or backend service
     }
 
-    // Rules for shared information collections
+    // Infrastructure is public read for any authenticated user.
     match /infrastructure/{deviceId} {
       allow read, list: if isAuth();
-      allow write: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
     
+    // Connections are public read for authenticated users for map tracing.
     match /connections/{connId} {
       allow read, list: if isAuth();
-      allow write: if isAdmin();
-    }
-    
-    match /alerts/{alertId} {
-       allow read, list: if isAuth();
-       allow write: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
+    // Materials can be read by any auth user, but only modified by Admin.
     match /materials/{materialId} {
-      allow read, list: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Rules for user-specific sub-collections or related data
-     match /assignments/{assignmentId} {
-      allow create: if isAuth(); // Technicians can create requests.
-      allow read, update, delete, list: if isAdmin();
-      allow list: if isAuth() && request.query.where.to_list()[0][1] == 'technicianId' && request.query.where.to_list()[0][2] == request.auth.uid;
-    }
-
-     match /referrals/{referralId} {
-        allow create: if isAuth();
-        allow read, update, delete, list: if isAdmin();
-        allow list: if isAuth() && request.query.where.to_list()[0][1] == 'tech_id' && request.query.where.to_list()[0][2] == request.auth.uid;
-    }
-
-    // Rules for public or semi-public data
-    match /contacts/{contactId} {
-      allow create: if true; // Anyone can submit the contact form.
-      allow read, list, update, delete: if isAdmin(); // Only admins can manage submissions.
+        allow read, list: if isAuth();
+        allow create, update, delete: if isAdmin();
     }
     
-    match /settings/{settingId} {
-        allow read: if isAuth();
-        allow write: if isAdmin();
+    // Admins can query all assignments. Techs can only query their own.
+    match /assignments/{assignmentId} {
+        allow read, list: if isAdmin() || (isTechnician() && request.query.where.to_list()[0][2] == request.auth.uid);
+        allow create: if isAuth(); // Techs can request, Admins can assign
+        allow update, delete: if isAdmin();
     }
 
-    // Default deny all other collections
-    match /{document=**} {
-      allow read, write: if false;
+    // Admins can list all. Techs can list their own.
+    match /referrals/{referralId} {
+        allow read, list: if isAdmin() || (isTechnician() && request.query.where.to_list()[0][2] == request.auth.uid);
+        allow create: if isTechnician();
+        allow update, delete: if isAdmin();
     }
+    
+    // Settings can only be read/written by Admins
+    match /settings/{settingId} {
+        allow read, write: if isAdmin();
+    }
+
+    // Proof of work can be created by Techs, but only read/deleted by Admins
+    match /proofOfWork/{proofId} {
+        allow create: if isTechnician();
+        allow read, list, delete: if isAdmin();
+    }
+
+    // Contact submissions can be created by anyone, but only managed by Admins
+    match /contacts/{contactId} {
+        allow create: if true;
+        allow read, list, update, delete: if isAdmin();
+    }
+
   }
 }

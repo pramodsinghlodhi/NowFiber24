@@ -20,13 +20,11 @@ export default function DashboardPage() {
   const router = useRouter();
   
   const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians'), limit(50)) : null, [user?.role]);
-  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), limit(10)) : null, [user?.role]);
+  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), orderBy('timestamp', 'desc'), limit(10)) : null, [user?.role]);
   
-  // This is the updated, secure query logic for tasks.
   const tasksQuery = useMemo(() => {
     if (!user) return null;
     
-    // Admins can query the entire collection (ordered and limited for performance).
     if (user.role === 'Admin') {
       return query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'), limit(50));
     }
