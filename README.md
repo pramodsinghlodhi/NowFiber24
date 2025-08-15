@@ -121,13 +121,15 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
 6.  Move this `serviceAccountKey.json` file to the **root directory** of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
 
 **F. Grant Permissions to Service Account (CRUCIAL STEP):**
-The server-side code uses the service account to interact with Firebase. By default, this account may not have permission to delete data, which is required for features like "Clear All Notifications".
+The server-side code uses the service account to interact with Firebase. By default, this account may not have the necessary permissions.
 
 1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
 2.  Find the service account associated with your Firebase project. It will typically be named `firebase-adminsdk-...@...` or have a name related to your project ID.
 3.  Click the **pencil icon** (Edit principal) for that service account.
 4.  Click **"+ ADD ANOTHER ROLE"**.
-5.  In the "Select a role" dropdown, search for and select **"Cloud Datastore User"**. This role provides the necessary permissions for creating and deleting documents.
+5.  In the "Select a role" dropdown, search for and select the following two roles:
+    *   **"Cloud Datastore User"**: This role provides the necessary permissions for creating and deleting documents from server-side scripts.
+    *   **"Firebase Authentication Admin"**: This role is required for the seeding script to set custom user claims (e.g., making the admin user an 'Admin').
 6.  Click **Save**.
 
 **G. Deploy Security Rules (CRITICAL STEP):**
