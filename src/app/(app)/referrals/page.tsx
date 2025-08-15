@@ -42,13 +42,15 @@ export default function ReferralsPage() {
     if (user.role === 'Admin') {
       return query(collection(db, 'referrals'), orderBy('timestamp', 'desc'), limit(50));
     }
-    return query(collection(db, 'referrals'), where('tech_id', '==', user.uid), orderBy('timestamp', 'desc'));
+    // Technician-specific query
+    return query(collection(db, 'referrals'), where('tech_id', '==', user.uid), orderBy('timestamp', 'desc'), limit(50));
   }, [user]);
 
-  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'users'), where('role', '==', 'Technician')) : null, [user]);
+  // Only admins need to query all technicians to show who referred what
+  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user?.role]);
 
   const { data: referrals, loading: loadingReferrals } = useFirestoreQuery<Referral>(referralsQuery);
-  const { data: techUsers, loading: loadingTechs } = useFirestoreQuery<User>(techniciansQuery);
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -80,7 +82,15 @@ export default function ReferralsPage() {
     }
   };
 
-  const loading = authLoading || loadingReferrals || loadingTechs;
+  const getTechnicianName = (tech_id: string): string => {
+      if (user?.role === 'Technician' && user.uid === tech_id) {
+          return user.name;
+      }
+      const tech = technicians.find(t => t.id === tech_id);
+      return tech?.name || 'Unknown';
+  };
+
+  const loading = authLoading || loadingReferrals || (user?.role === 'Admin' && loadingTechs);
 
   if (loading || !user) {
     return (
@@ -114,7 +124,7 @@ export default function ReferralsPage() {
                             <p className="flex items-center gap-2"><Phone size={14}/> {referral.phone}</p>
                             <p className="flex items-center gap-2"><MapPin size={14}/> {referral.address}</p>
                             {user.role === 'Admin' && (
-                                 <p className="flex items-center gap-2"><HardHat size={14}/> {techUsers.find(t => t.uid === referral.tech_id)?.name || 'Unknown'}</p>
+                                 <p className="flex items-center gap-2"><HardHat size={14}/> {getTechnicianName(referral.tech_id)}</p>
                             )}
                         </div>
                         {user.role === 'Admin' && (
@@ -155,7 +165,7 @@ export default function ReferralsPage() {
                   <TableCell>{referral.address}</TableCell>
                   <TableCell>{renderTimestamp(referral.timestamp)}</TableCell>
                   {user.role === 'Admin' && (
-                    <TableCell>{techUsers.find(t => t.uid === referral.tech_id)?.name || 'Unknown'}</TableCell>
+                    <TableCell>{getTechnicianName(referral.tech_id)}</TableCell>
                   )}
                   <TableCell>{getStatusBadge(referral.status)}</TableCell>
                    <TableCell className="text-right">
@@ -186,3 +196,4 @@ export default function ReferralsPage() {
     </main>
   );
 }
+
