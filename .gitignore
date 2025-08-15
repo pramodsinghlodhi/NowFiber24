@@ -46,3 +46,4 @@ genkit.log
 
 # App Hosting
 .firebase/apphosting-state.json
+serviceAccountKey.json
