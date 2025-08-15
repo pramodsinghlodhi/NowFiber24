@@ -19,16 +19,20 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user?.role]);
+  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians'), limit(50)) : null, [user?.role]);
   const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), limit(10)) : null, [user?.role]);
   
+  // This is the updated, secure query logic for tasks.
   const tasksQuery = useMemo(() => {
     if (!user) return null;
+    
+    // Admins can query the entire collection (ordered and limited for performance).
     if (user.role === 'Admin') {
-      return query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'));
+      return query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'), limit(50));
     }
-    // Technician gets their own tasks filtered by their UID.
-    return query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); 
+    
+    // Technicians MUST constrain their query to their own UID to comply with security rules.
+    return query(collection(db, 'tasks'), where('tech_id', '==', user.uid), limit(50)); 
   }, [user]);
 
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
