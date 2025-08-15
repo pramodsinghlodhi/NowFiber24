@@ -22,20 +22,21 @@ export default function DashboardPage() {
   // Admin-specific queries, optimized to fetch less data
   const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
   const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), limit(10)) : null, [user]);
-  const allTasksQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'tasks')) : null, [user?.role]);
-
+  
   // Role-based task query
   const tasksQuery = useMemo(() => {
     if (!user) return null;
-    return user.role === 'Admin' 
-      ? query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'), limit(5)) // Admin gets most recent tasks for the list
-      : query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); // Technician gets all their own tasks
+    if (user.role === 'Admin') {
+      // This combined query will be used for both stats and the recent tasks list for Admins
+      return query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'));
+    }
+    // Technician gets all their own tasks for their stats calculation
+    return query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); 
   }, [user]);
 
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
   const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
   const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
-  const { data: allTasks, loading: loadingAllTasks } = useFirestoreQuery<Task>(allTasksQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -47,9 +48,7 @@ export default function DashboardPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const taskSource = user?.role === 'Admin' ? allTasks : tasks;
-
-    const completedToday = taskSource.filter(t => {
+    const completedToday = tasks.filter(t => {
         if (t.status === 'Completed' && t.completionTimestamp) {
             const completionDate = t.completionTimestamp.toDate ? t.completionTimestamp.toDate() : new Date(t.completionTimestamp as any);
             return completionDate >= today;
@@ -69,13 +68,13 @@ export default function DashboardPage() {
 
     return {
       techniciansOnDuty: technicians.filter(t => t.isActive).length,
-      onlineDevices: 0, // This will be static since we removed the devices query for this view
+      onlineDevices: 0, 
       activeAlerts: alerts.length,
       tasksCompletedToday: completedToday,
     };
-  }, [technicians, alerts, tasks, allTasks, user]);
+  }, [technicians, alerts, tasks, user]);
 
-  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts || loadingAllTasks));
+  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
   
   if (loading || !user) {
     return (
@@ -101,7 +100,7 @@ export default function DashboardPage() {
                         <CardDescription>A summary of recently updated tasks.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <TasksList tasks={tasks} technicians={technicians} />
+                        <TasksList tasks={tasks.slice(0, 5)} technicians={technicians} />
                     </CardContent>
                 </Card>
                 <AlertsList alerts={alerts} />
