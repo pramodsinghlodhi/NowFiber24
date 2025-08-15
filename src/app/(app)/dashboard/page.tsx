@@ -12,30 +12,30 @@ import { useAuth } from '@/contexts/auth-context';
 import { Users, Wifi, Siren, ListChecks } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, limit, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  // Admin-specific queries
+  // Admin-specific queries, optimized to fetch less data
   const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
-  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts')) : null, [user]);
-  
-  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
-  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
-  
+  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), limit(10)) : null, [user]);
+  const allTasksQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'tasks')) : null, [user?.role]);
+
   // Role-based task query
   const tasksQuery = useMemo(() => {
     if (!user) return null;
-    // Admin gets all tasks, Technician gets only their own tasks for efficiency
     return user.role === 'Admin' 
-      ? query(collection(db, 'tasks'))
-      : query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); // Query by UID
+      ? query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'), limit(5)) // Admin gets most recent tasks for the list
+      : query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); // Technician gets all their own tasks
   }, [user]);
 
+  const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
+  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
   const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
+  const { data: allTasks, loading: loadingAllTasks } = useFirestoreQuery<Task>(allTasksQuery);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -47,7 +47,9 @@ export default function DashboardPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const completedToday = tasks.filter(t => {
+    const taskSource = user?.role === 'Admin' ? allTasks : tasks;
+
+    const completedToday = taskSource.filter(t => {
         if (t.status === 'Completed' && t.completionTimestamp) {
             const completionDate = t.completionTimestamp.toDate ? t.completionTimestamp.toDate() : new Date(t.completionTimestamp as any);
             return completionDate >= today;
@@ -71,9 +73,9 @@ export default function DashboardPage() {
       activeAlerts: alerts.length,
       tasksCompletedToday: completedToday,
     };
-  }, [technicians, alerts, tasks, user]);
+  }, [technicians, alerts, tasks, allTasks, user]);
 
-  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
+  const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts || loadingAllTasks));
   
   if (loading || !user) {
     return (
@@ -99,10 +101,10 @@ export default function DashboardPage() {
                         <CardDescription>A summary of recently updated tasks.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <TasksList tasks={tasks.slice(0, 5)} technicians={technicians} />
+                        <TasksList tasks={tasks} technicians={technicians} />
                     </CardContent>
                 </Card>
-                <AlertsList alerts={alerts.filter(a => a.severity === 'Critical' || a.severity === 'High')} />
+                <AlertsList alerts={alerts} />
              </div>
         </main>
       )

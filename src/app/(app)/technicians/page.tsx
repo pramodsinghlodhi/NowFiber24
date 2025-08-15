@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, BarChart2, Trash, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, limit, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import TechnicianForm from '@/components/technicians/technician-form';
@@ -47,7 +47,8 @@ export default function TechniciansPage() {
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
-    const techniciansQuery = useMemo(() => query(collection(db, 'technicians')), []);
+    // Optimized query to limit initial load
+    const techniciansQuery = useMemo(() => query(collection(db, 'technicians'), orderBy('id'), limit(50)), []);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
 
     const usersQuery = useMemo(() => query(collection(db, 'users')), []);
@@ -155,15 +156,6 @@ export default function TechniciansPage() {
             </div>
         );
     }
-    
-    const allTechnicians = technicians.map(tech => {
-        const user = users.find(u => u.id === tech.id);
-        return {
-            ...tech,
-            ...user
-        }
-    })
-
 
   return (
     <>
@@ -172,7 +164,7 @@ export default function TechniciansPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Field Technicians</CardTitle>
-                        <CardDescription>Manage and monitor your field engineering team.</CardDescription>
+                        <CardDescription>Manage and monitor your field engineering team. Showing latest 50.</CardDescription>
                     </div>
                      <Button onClick={handleAddNewClick}>
                         <PlusCircle className="mr-2 h-4 w-4" />

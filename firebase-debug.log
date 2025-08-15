@@ -79,3 +79,9 @@ INFO: Detected non-HTTP/2 connection.
 [debug] [2025-08-15T06:06:44.098Z] Aug 15, 2025 6:06:44 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
  {"metadata":{"emulator":{"name":"firestore"},"message":"Aug 15, 2025 6:06:44 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected HTTP/2 connection.\n"}}
+[debug] [2025-08-15T06:06:46.812Z] <<< [apiv2][status] PUT http://127.0.0.1:8080/emulator/v1/projects/demo-app:securityRules 200
+[debug] [2025-08-15T06:06:46.813Z] <<< [apiv2][body] PUT http://127.0.0.1:8080/emulator/v1/projects/demo-app:securityRules {"issues":[{"sourcePosition":{"fileName":"security.rules","line":63,"column":70,"currentOffset":2221,"endOffset":2227},"description":"Invalid function name: to_list.","severity":"WARNING"},{"sourcePosition":{"fileName":"security.rules","line":71,"column":70,"currentOffset":2649,"endOffset":2655},"description":"Invalid function name: to_list.","severity":"WARNING"},{"sourcePosition":{"fileName":"security.rules","line":79,"column":70,"currentOffset":3021,"endOffset":3027},"description":"Invalid function name: to_list.","severity":"WARNING"}]}
+[warn] ⚠  firestore.rules:63:70 - WARNING Invalid function name: to_list. 
+[warn] ⚠  firestore.rules:71:70 - WARNING Invalid function name: to_list. 
+[warn] ⚠  firestore.rules:79:70 - WARNING Invalid function name: to_list. 
+[info] ✔  firestore: Rules updated. 

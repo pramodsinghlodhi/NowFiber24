@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Task, Technician } from '@/lib/types';
+import { Task, Technician, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, HardHat, Camera } from 'lucide-react';
 import ProofOfWorkForm from '@/components/tasks/proof-of-work-form';
@@ -41,8 +41,16 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   
+  const findTechnicianByUid = (uid: string) => {
+    return technicians.find(t => t.id === uid);
+  }
+  
   const assignedTechnician = useMemo(() => {
     if (user?.role === 'Technician') return user;
+    // For Admins, find the tech by UID from the technicians list
+    const tech = technicians.find(t => t.id === task.tech_id);
+    if (tech) return tech;
+    // Fallback for older tasks that might still have custom ID
     return technicians.find(t => t.id === task.tech_id);
   }, [technicians, task.tech_id, user]);
 

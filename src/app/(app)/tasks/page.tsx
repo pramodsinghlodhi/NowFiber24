@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -59,17 +59,16 @@ export default function TasksPage() {
     const tasksQuery = useMemo(() => {
         if (!user) return null;
         if (user.role === 'Admin') {
+            // Optimized to fetch all tasks but this could be further refined with pagination
             return query(collection(db, 'tasks'), orderBy('status'));
         }
         return query(collection(db, 'tasks'), where('tech_id', '==', user.uid), orderBy('status'));
     }, [user]);
     
     const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
-    const usersQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'users'), where('role', '==', 'Technician')) : null, [user]);
 
     const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
-    const { data: techUsers, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
 
     const { inProgressTasks, pendingTasks, completedTasks } = useMemo(() => {
         const inProgress = tasks.filter(task => task.status === 'In Progress');
@@ -90,16 +89,10 @@ export default function TasksPage() {
 
     const allTechniciansForAdmin = useMemo(() => {
         if (user?.role !== 'Admin') return [];
-        return techUsers.map(u => {
-            const techData = technicians.find(t => t.id === u.id);
-            return {
-                ...u,
-                ...techData,
-            } as Technician & User;
-        });
-    }, [user, techUsers, technicians]);
+        return technicians;
+    }, [user, technicians]);
 
-    const loading = authLoading || loadingTasks || loadingTechs || loadingUsers;
+    const loading = authLoading || loadingTasks || loadingTechs;
 
     if (loading || !user) {
         return (
