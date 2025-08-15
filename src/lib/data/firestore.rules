@@ -3,81 +3,89 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
+    // Helper Functions
     function isAuth() {
       return request.auth != null;
     }
-
+    
     function isAdmin() {
-      return request.auth.token.isAdmin == true;
+      return isAuth() && request.auth.token.role == 'Admin';
     }
     
+    function isTechnician() {
+        return isAuth() && request.auth.token.role == 'Technician';
+    }
+    
+    // A user can only access their own user document
     match /users/{userId} {
-      allow read: if request.auth.uid == userId || isAdmin();
-      allow write: if isAdmin();
-      
-      // Notifications Subcollection
-      match /notifications/{notificationId} {
-        allow read, write: if request.auth.uid == userId || isAdmin();
-      }
+      allow read, update: if isAuth() && request.auth.uid == userId;
+      // Deny list and create for all
+      allow list, create: if false;
     }
 
+    // Admins can read all technician profiles. Technicians cannot list all others.
     match /technicians/{techId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
+      allow read, list: if isAdmin();
+      // Allow a technician to read their own document for profile info
+      allow get: if isTechnician() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == techId;
     }
     
+    // Shared data, readable by all authenticated users
+    match /infrastructure/{docId} {
+      allow read, list: if isAuth();
+    }
+
+    match /alerts/{docId} {
+        allow read, list: if isAuth();
+    }
+    
+    match /connections/{docId} {
+        allow read, list: if isAuth();
+    }
+
+    match /materials/{docId} {
+        allow read, list: if isAuth();
+    }
+    
+    // Tasks can be listed by Admins freely. Technicians can only list their own.
     match /tasks/{taskId} {
-      allow read: if isAuth();
-      allow list: if isAdmin();
-      allow write: if isAdmin();
+      allow read, list: if isAdmin() || (isTechnician() && request.query.filters[0].value == request.auth.uid);
+      allow create, update: if isAuth();
     }
     
-    match /alerts/{alertId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-    
-    match /infrastructure/{deviceId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-    
-    match /connections/{connectionId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-    
-    match /materials/{materialId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-    
+    // Assignments follow the same pattern as tasks.
     match /assignments/{assignmentId} {
-      allow read: if isAuth();
-      allow list: if isAdmin();
-      allow write: if isAdmin();
+        allow read, list: if isAdmin() || (isTechnician() && request.query.filters[0].value == request.auth.uid);
+        allow create, update: if isAuth();
+    }
+
+    // Referrals follow the same pattern as tasks.
+    match /referrals/{referralId} {
+        allow read, list: if isAdmin() || (isTechnician() && request.query.filters[0].value == request.auth.uid);
+        allow create, update: if isAuth();
+    }
+
+    // Settings are admin-only
+    match /settings/{docId} {
+        allow read, write: if isAdmin();
     }
     
-    match /referrals/{referralId} {
-      allow read: if isAuth();
-      allow write: if isAdmin();
-    }
-
-    match /proofOfWork/{proofId} {
-      allow read: if isAuth();
-      allow write: if isAuth(); // Techs can write their own
-      allow delete: if isAdmin();
-    }
-
+    // Anyone can submit to contacts, but only admins can read.
     match /contacts/{contactId} {
-        allow create: if true; // Anyone can send a message
-        allow read, write, delete: if isAdmin();
+        allow create: if true;
+        allow read, list, update, delete: if isAdmin();
     }
-
-    match /settings/live {
-        allow read: if isAuth(); // All authenticated users need some settings
-        allow write: if isAdmin();
+    
+    // Proof of work is admin-only for review.
+    match /proofOfWork/{proofId} {
+        allow read, list: if isAdmin();
+        // Allow create for any authenticated user (technicians)
+        allow create: if isAuth();
+    }
+    
+    match /plans/{planId} {
+        allow read, list: if isAdmin();
     }
   }
 }

@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, BarChart2, Trash, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, BarChart2, Trash, PlusCircle, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestoreQuery } from '@/hooks/use-firestore-query';
 import { collection, query, limit, orderBy } from 'firebase/firestore';
@@ -191,7 +191,7 @@ export default function TechniciansPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                              <DropdownMenuItem onClick={() => handleEditClick(tech)}>
-                                                <BarChart2 className="mr-2 h-4 w-4" />
+                                                <Edit className="mr-2 h-4 w-4" />
                                                 Edit
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
@@ -260,7 +260,7 @@ export default function TechniciansPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem onClick={() => handleEditClick(tech)}>
-                                                    <BarChart2 className="mr-2 h-4 w-4" />
+                                                    <Edit className="mr-2 h-4 w-4" />
                                                     Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => router.push(`/technicians/${tech.id}/report`)}>
