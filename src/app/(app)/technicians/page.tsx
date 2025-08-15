@@ -47,13 +47,8 @@ export default function TechniciansPage() {
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     
-    // Optimized query to limit initial load
     const techniciansQuery = useMemo(() => query(collection(db, 'technicians'), orderBy('id'), limit(50)), []);
     const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
-
-    const usersQuery = useMemo(() => query(collection(db, 'users')), []);
-    const { data: users, loading: loadingUsers } = useFirestoreQuery<User>(usersQuery);
-
 
     useEffect(() => {
         if (!authLoading && !currentUser) {
@@ -147,7 +142,7 @@ export default function TechniciansPage() {
         }
     }
     
-    const loading = loadingTechs || loadingUsers || authLoading;
+    const loading = loadingTechs || authLoading;
 
     if (!currentUser || loading) {
         return (
@@ -308,7 +303,6 @@ export default function TechniciansPage() {
             onOpenChange={setIsFormOpen}
             onSave={handleSave}
             technician={selectedTechnician}
-            allUsers={users}
         />
     </>
   );

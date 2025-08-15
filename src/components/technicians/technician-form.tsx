@@ -25,10 +25,9 @@ interface TechnicianFormProps {
   onOpenChange: (isOpen: boolean) => void;
   onSave: (technician: Omit<Technician, 'id'> & { id: string }, user: Omit<User, 'uid' | 'id'> & { id: string; password?: string, email: string }) => void;
   technician: Technician | null;
-  allUsers: User[];
 }
 
-export default function TechnicianForm({ isOpen, onOpenChange, onSave, technician, allUsers }: TechnicianFormProps) {
+export default function TechnicianForm({ isOpen, onOpenChange, onSave, technician }: TechnicianFormProps) {
   const [name, setName] = useState('');
   const [id, setId] = useState('');
   const [email, setEmail] = useState('');
@@ -44,17 +43,18 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   useEffect(() => {
     if (isOpen) {
         if (technician) {
-            const technicianUser = allUsers.find(u => u.id === technician.id);
             setName(technician.name);
             setId(technician.id);
-            setEmail(technicianUser?.email || '');
+            // In a real app, you'd fetch the user's email securely. For now, we construct it.
+            setEmail(`${technician.id}@fibervision.com`);
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
             setPassword(''); 
         } else {
+            // Logic for creating a new technician ID could be improved.
+            const newId = `tech-${String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}`;
             setName('');
-            const newId = `tech-${String(allUsers.filter(u => u.role === 'Technician').length + 1).padStart(3, '0')}`;
             setId(newId);
             setEmail(`${newId}@fibervision.com`);
             setPassword('');
@@ -63,7 +63,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
         }
     }
-  }, [technician, isOpen, allUsers]);
+  }, [technician, isOpen]);
 
   const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newId = e.target.value;
@@ -83,11 +83,6 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     
     if (!isEditing && !password) {
         toast({ title: 'Missing Password', description: 'Password is required for new technicians.', variant: 'destructive'});
-        return;
-    }
-
-    if (!isEditing && allUsers.some(u => u.id === id || u.email === email)) {
-        toast({ title: 'ID or Email already exists', description: 'This technician ID or email is already in use.', variant: 'destructive'});
         return;
     }
 
