@@ -19,18 +19,15 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  // Admin-specific queries, optimized to fetch less data
-  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
-  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), limit(10)) : null, [user]);
+  const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user?.role]);
+  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), limit(10)) : null, [user?.role]);
   
-  // Role-based task query
   const tasksQuery = useMemo(() => {
     if (!user) return null;
     if (user.role === 'Admin') {
-      // This combined query will be used for both stats and the recent tasks list for Admins
       return query(collection(db, 'tasks'), orderBy('completionTimestamp', 'desc'));
     }
-    // Technician gets all their own tasks for their stats calculation
+    // Technician gets their own tasks filtered by their UID.
     return query(collection(db, 'tasks'), where('tech_id', '==', user.uid)); 
   }, [user]);
 

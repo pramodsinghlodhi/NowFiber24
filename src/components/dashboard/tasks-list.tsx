@@ -41,20 +41,13 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  const findTechnicianByUid = (uid: string) => {
-    return technicians.find(t => t.id === uid);
-  }
-  
   const assignedTechnician = useMemo(() => {
     if (user?.role === 'Technician') return user;
-    // For Admins, find the tech by UID from the technicians list
     const tech = technicians.find(t => t.id === task.tech_id);
-    if (tech) return tech;
-    // Fallback for older tasks that might still have custom ID
-    return technicians.find(t => t.id === task.tech_id);
+    return tech;
   }, [technicians, task.tech_id, user]);
 
-  const [assignedTechId, setAssignedTechId] = useState(assignedTechnician?.id || '');
+  const [assignedTechId, setAssignedTechId] = useState(task.tech_id || '');
 
 
   const handleStatusChange = async (newStatus: Task['status']) => {
@@ -101,7 +94,7 @@ function TaskItem({ task, technicians }: TaskItemProps) {
          <div className="flex items-center justify-between mt-3 pl-9">
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                 <HardHat className="h-4 w-4" />
-                <span>{assignedTechnician?.name || 'Unassigned'}</span>
+                <span>{assignedTechnician?.name || task.tech_id}</span>
             </div>
             {user?.role === 'Admin' && task.status !== 'Completed' && (
                  <Select value={assignedTechId} onValueChange={handleReassign}>
