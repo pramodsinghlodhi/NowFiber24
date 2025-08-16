@@ -68,7 +68,7 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     }
     const taskData = taskDoc.data() as Task;
 
-    // The tech_id on a task is now the user's UID.
+    // The tech_id on a task is the user's UID.
     const userDocRef = adminDb.collection('users').doc(taskData.tech_id);
     const userDoc = await userDocRef.get();
     if (!userDoc.exists) {
@@ -89,6 +89,16 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
         taskDetails: `Task: ${taskData.title}. Description: ${taskData.description}`,
         materialsIssued: materialsIssuedString || "No materials were formally issued for this task.",
     });
+
+    // Save the result to a new 'proofOfWork' collection
+    await adminDb.collection('proofOfWork').add({
+        technicianId: techUserId,
+        taskId: taskId,
+        imageDataUri: photoDataUri,
+        analysisResult: result,
+        timestamp: new Date(),
+    });
+
 
     return result;
 }

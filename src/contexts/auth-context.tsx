@@ -47,30 +47,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
         setFirebaseUser(fbUser);
+        if (!fbUser) {
+            setUser(null);
+            setTechnician(null);
+            setSettings(null);
+            setLoading(false);
+        }
     });
     return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
-    if (firebaseUser === undefined) {
-      // Still waiting for the initial auth state from onAuthStateChanged
-      return;
-    }
-    
-    setLoading(true);
-
     if (!firebaseUser) {
-        setUser(null);
-        setTechnician(null);
-        setSettings(null);
         setLoading(false);
         return;
     }
 
+    setLoading(true);
+    let unsubscribeUser: Unsubscribe | undefined;
+    let unsubscribeRoleSpecific: Unsubscribe | undefined;
+
     const userDocRef = doc(db, 'users', firebaseUser.uid);
-    const unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
+    unsubscribeUser = onSnapshot(userDocRef, (userDoc) => {
         if (!userDoc.exists()) {
-            // This can happen if the user was deleted from Firestore but not Auth
+            console.error("User profile not found in Firestore. Logging out.");
             handleLogout();
             return;
         }
@@ -78,43 +78,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = { uid: userDoc.id, ...userDoc.data() } as User;
         setUser(userData);
 
-        let unsubscribeRoleSpecific: Unsubscribe | undefined;
+        // Clean up previous role-specific listener before creating a new one
+        if (unsubscribeRoleSpecific) {
+            unsubscribeRoleSpecific();
+        }
 
         if (userData.role === 'Admin') {
             const settingsDocRef = doc(db, 'settings', 'live');
             unsubscribeRoleSpecific = onSnapshot(settingsDocRef, (settingsDoc) => {
-                setTechnician(null); // Ensure technician data is cleared for admin
+                setTechnician(null);
                 setSettings(settingsDoc.exists() ? (settingsDoc.data() as Settings) : null);
                 setLoading(false);
+            }, (error) => {
+                 console.error("Error fetching admin settings:", error);
+                 setLoading(false);
             });
         } else if (userData.role === 'Technician') {
             const techDocRef = doc(db, 'technicians', userData.id);
             unsubscribeRoleSpecific = onSnapshot(techDocRef, (techDoc) => {
-                setSettings(null); // Ensure admin settings are cleared for technician
+                setSettings(null);
                 setTechnician(techDoc.exists() ? ({ id: techDoc.id, ...techDoc.data() } as Technician) : null);
+                setLoading(false);
+            }, (error) => {
+                console.error("Error fetching technician details:", error);
                 setLoading(false);
             });
         } else {
-            // User with no specific role data to fetch
             setTechnician(null);
             setSettings(null);
             setLoading(false);
         }
-
-        // Return a cleanup function for the role-specific listener
-        return () => {
-            if (unsubscribeRoleSpecific) {
-                unsubscribeRoleSpecific();
-            }
-        };
     }, (error) => {
         console.error("Error listening to user profile:", error);
         handleLogout();
     });
 
-    // Return a cleanup function for the user listener
     return () => {
-        unsubscribeUser();
+        if (unsubscribeUser) unsubscribeUser();
+        if (unsubscribeRoleSpecific) unsubscribeRoleSpecific();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseUser]);

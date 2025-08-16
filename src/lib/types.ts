@@ -5,6 +5,7 @@
 
 
 
+
 export type Project = {
   projectId: string;
   projectName: string;
@@ -90,7 +91,7 @@ export type Technician = {
 
 export type Task = {
   id: string;
-  tech_id: string;
+  tech_id: string; // This will store the Firebase UID of the assigned technician
   title: string;
   description: string;
   status: 'Pending' | 'In Progress' | 'Completed';
