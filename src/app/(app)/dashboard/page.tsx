@@ -20,7 +20,9 @@ export default function DashboardPage() {
   const router = useRouter();
   
   const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians'), limit(50)) : null, [user?.role]);
-  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), where('severity', 'in', ['Critical', 'High']), orderBy('timestamp', 'desc'), limit(10)) : null, [user?.role]);
+  
+  // Fetch latest alerts and filter on the client to avoid composite index requirement.
+  const alertsQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(50)) : null, [user?.role]);
   
   const tasksQuery = useMemo(() => {
     if (!user) return null;
@@ -34,8 +36,15 @@ export default function DashboardPage() {
   }, [user]);
 
   const { data: technicians, loading: loadingTechs } = useFirestoreQuery<Technician>(techniciansQuery);
-  const { data: alerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
+  const { data: allAlerts, loading: loadingAlerts } = useFirestoreQuery<Alert>(alertsQuery);
   const { data: tasks, loading: loadingTasks } = useFirestoreQuery<Task>(tasksQuery);
+
+  // Client-side filter for high-priority alerts
+  const highPriorityAlerts = useMemo(() => {
+    if (user?.role !== 'Admin') return [];
+    return allAlerts.filter(alert => alert.severity === 'Critical' || alert.severity === 'High');
+  }, [allAlerts, user?.role]);
+
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -68,10 +77,10 @@ export default function DashboardPage() {
     return {
       techniciansOnDuty: technicians.filter(t => t.isActive).length,
       onlineDevices: 0, 
-      activeAlerts: alerts.length,
+      activeAlerts: highPriorityAlerts.length,
       tasksCompletedToday: completedToday,
     };
-  }, [technicians, alerts, tasks, user]);
+  }, [technicians, highPriorityAlerts, tasks, user]);
 
   const loading = authLoading || loadingTasks || (user?.role === 'Admin' && (loadingTechs || loadingAlerts));
   
@@ -102,7 +111,7 @@ export default function DashboardPage() {
                         <TasksList tasks={tasks.slice(0, 5)} technicians={technicians} />
                     </CardContent>
                 </Card>
-                <AlertsList alerts={alerts} />
+                <AlertsList alerts={highPriorityAlerts} />
              </div>
         </main>
       )
