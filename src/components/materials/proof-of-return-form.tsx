@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useState, useRef, useEffect} from 'react';
+import {useState, useRef, useEffect, useCallback} from 'react';
 import {Button} from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {Bot, Upload, Loader2, Camera, Check, RefreshCw, Undo2} from 'lucide-react';
+import {Bot, Upload, Loader2, Camera, Check, RefreshCw, Undo2, SwitchCamera} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import Image from 'next/image';
 import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
@@ -43,21 +43,34 @@ export default function ProofOfReturnForm() {
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const {toast} = useToast();
 
-  useEffect(() => {
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+
+  const stopStream = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
   }, [stream]);
 
-  const getCameraPermission = () => {
+  const getCameraPermission = useCallback(async (deviceId?: string) => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast({ title: "Camera not supported", variant: "destructive" });
         return;
     }
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(s => {
+
+    stopStream();
+
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        setVideoDevices(videoInputs);
+
+        const constraints: MediaStreamConstraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' }
+        };
+        
+        const s = await navigator.mediaDevices.getUserMedia(constraints);
         setHasCameraPermission(true);
         setStream(s);
         if (videoRef.current) {
@@ -67,13 +80,28 @@ export default function ProofOfReturnForm() {
             (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
             (err) => console.warn(`Could not get location: ${err.message}`)
         );
-      })
-      .catch(err => {
-         console.error(err);
-         setHasCameraPermission(false);
-         toast({ title: "Permission Denied", description: "Camera access was denied.", variant: "destructive"});
-      });
-  }
+
+    } catch (err) {
+        console.error("Camera Error:", err);
+        setHasCameraPermission(false);
+        toast({ title: "Camera Access Denied", description: "Could not access the camera. Please check browser permissions.", variant: "destructive"});
+    }
+  }, [toast, stopStream]);
+
+  useEffect(() => {
+    return () => {
+      stopStream();
+    };
+  }, [stopStream]);
+
+  const handleSwitchCamera = () => {
+    if (videoDevices.length > 1) {
+        const nextIndex = (currentDeviceIndex + 1) % videoDevices.length;
+        setCurrentDeviceIndex(nextIndex);
+        getCameraPermission(videoDevices[nextIndex].deviceId);
+    }
+  };
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -94,10 +122,7 @@ export default function ProofOfReturnForm() {
       context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
       const dataUrl = canvas.toDataURL('image/jpeg');
       setPreview(dataUrl);
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      setStream(null);
+      stopStream();
     }
   };
 
@@ -120,17 +145,14 @@ export default function ProofOfReturnForm() {
     }
   };
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setPreview(null);
     setResult(null);
     setIsLoading(false);
     setHasCameraPermission(false);
     setLocation(null);
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-    }
-  }
+    stopStream();
+  }, [stopStream])
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -141,7 +163,7 @@ export default function ProofOfReturnForm() {
 
   const handleRetake = () => {
     setPreview(null);
-    getCameraPermission();
+    getCameraPermission(videoDevices[currentDeviceIndex]?.deviceId);
   }
 
   return (
@@ -161,9 +183,12 @@ export default function ProofOfReturnForm() {
             Take a photo of your remaining materials at the end of the day. The AI will identify them to update your inventory.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="camera" onValueChange={resetState}>
+        <Tabs defaultValue="camera" onValueChange={(tab) => {
+            resetState();
+            if (tab === 'camera') getCameraPermission();
+        }}>
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="camera" onClick={getCameraPermission}><Camera className="mr-2"/> Live Capture</TabsTrigger>
+                <TabsTrigger value="camera"><Camera className="mr-2"/> Live Capture</TabsTrigger>
                 <TabsTrigger value="upload"><Upload className="mr-2"/> Upload Photo</TabsTrigger>
             </TabsList>
             <TabsContent value="camera">
@@ -177,17 +202,25 @@ export default function ProofOfReturnForm() {
                              <div className="text-center p-4">
                                 <Camera className="mx-auto h-8 w-8 mb-2" />
                                 <p className="mb-2">Camera access is required.</p>
-                                <Button onClick={getCameraPermission}>Enable Camera</Button>
+                                <Button onClick={() => getCameraPermission()}>Enable Camera</Button>
                             </div>
                         )
                     )}
                     <canvas ref={canvasRef} className="hidden" />
                 </div>
-                {preview ? (
-                     <Button onClick={handleRetake} variant="outline" className="w-full mt-2"><RefreshCw className="mr-2"/>Retake Photo</Button>
-                ) : (
-                    <Button onClick={handleCapture} disabled={!stream} className="w-full mt-2"><Check className="mr-2"/>Capture Photo</Button>
-                )}
+                <div className="flex gap-2 mt-2">
+                     {preview ? (
+                        <Button onClick={handleRetake} variant="outline" className="w-full"><RefreshCw className="mr-2"/>Retake Photo</Button>
+                    ) : (
+                        <Button onClick={handleCapture} disabled={!stream} className="w-full"><Check className="mr-2"/>Capture Photo</Button>
+                    )}
+                    {videoDevices.length > 1 && !preview && (
+                        <Button onClick={handleSwitchCamera} variant="secondary" size="icon">
+                            <SwitchCamera />
+                            <span className="sr-only">Switch Camera</span>
+                        </Button>
+                    )}
+                </div>
             </TabsContent>
              <TabsContent value="upload">
                  <div
@@ -204,6 +237,9 @@ export default function ProofOfReturnForm() {
                     )}
                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
                 </div>
+                 {preview && (
+                    <Button onClick={() => setPreview(null)} variant="outline" className="w-full mt-2"><RefreshCw className="mr-2"/>Clear Photo</Button>
+                )}
             </TabsContent>
         </Tabs>
         <div className="py-4">
