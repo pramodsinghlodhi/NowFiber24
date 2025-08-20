@@ -128,13 +128,13 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
       const locationStr = location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Location not available';
       
       context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      context.fillRect(0, canvas.height - 60, canvas.width, 60);
-      context.font = '20px Arial';
+      context.fillRect(0, canvas.height - 30, canvas.width, 30);
+      context.font = '14px Arial';
       context.fillStyle = 'white';
       context.textAlign = 'left';
-      context.fillText(`${dateStr} ${timeStr}`, 10, canvas.height - 35);
+      context.fillText(`${dateStr} ${timeStr}`, 10, canvas.height - 10);
       context.textAlign = 'right';
-      context.fillText(locationStr, canvas.width - 10, canvas.height - 35);
+      context.fillText(locationStr, canvas.width - 10, canvas.height - 10);
 
       const dataUrl = canvas.toDataURL('image/jpeg');
       setPreview(dataUrl);

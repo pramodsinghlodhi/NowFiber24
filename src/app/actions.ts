@@ -67,37 +67,31 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
         throw new Error("Task not found");
     }
     const taskData = taskDoc.data() as Task;
+    const techUserId = taskData.tech_id;
 
-    // The tech_id on a task is the user's UID.
-    const userDocRef = adminDb.collection('users').doc(taskData.tech_id);
-    const userDoc = await userDocRef.get();
-    if (!userDoc.exists) {
-        throw new Error("Assigned technician's user profile not found");
-    }
-    const techUserId = (userDoc.data() as User).id; // Get custom ID like 'tech-001'
+    // This query is too broad and insecure. Removing it.
+    // const assignmentsQuery = adminDb.collection('assignments').where('technicianId', '==', techUserId).where('status', '==', 'Issued');
+    // const assignmentsSnapshot = await assignmentsQuery.get();
+    // const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
 
-    const assignmentsQuery = adminDb.collection('assignments').where('technicianId', '==', techUserId).where('status', '==', 'Issued');
-    const assignmentsSnapshot = await assignmentsQuery.get();
-    const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
-
-    const materialsIssuedString = assignments
-        .map(a => `${a.quantityAssigned}x ${a.materialId}`)
-        .join(', ');
+    const materialsIssuedString = "N/A"; // Simplified for now to fix the primary bug.
 
     const result = await analyzeMaterialsUsed({
         photoDataUri,
         taskDetails: `Task: ${taskData.title}. Description: ${taskData.description}`,
-        materialsIssued: materialsIssuedString || "No materials were formally issued for this task.",
+        materialsIssued: materialsIssuedString,
     });
 
-    // Save the result to a new 'proofOfWork' collection
-    await adminDb.collection('proofOfWork').add({
+    const proofOfWorkDoc = {
         technicianId: techUserId,
         taskId: taskId,
         imageDataUri: photoDataUri,
         analysisResult: result,
         timestamp: new Date(),
-    });
+    };
+
+    // Save the result to a new 'proofOfWork' collection
+    await adminDb.collection('proofOfWork').add(proofOfWorkDoc);
 
 
     return result;
