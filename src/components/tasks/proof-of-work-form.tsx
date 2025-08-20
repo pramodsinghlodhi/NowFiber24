@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useState, useRef, useEffect} from 'react';
+import {useState, useRef, useEffect, useCallback} from 'react';
 import {Button} from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {Bot, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw} from 'lucide-react';
+import {Bot, Upload, Loader2, AlertTriangle, Camera, Check, RefreshCw, SwitchCamera} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import Image from 'next/image';
 import {analyzeMaterials} from '@/app/actions';
@@ -20,8 +20,6 @@ import {Task} from '@/lib/types';
 import {Alert, AlertDescription, AlertTitle} from '../ui/alert';
 import {Badge} from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 
 const toDataURL = (file: File): Promise<string> =>
@@ -46,39 +44,64 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const {toast} = useToast();
 
-  useEffect(() => {
-    // Stop stream when component unmounts or dialog closes
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+
+  const stopStream = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
   }, [stream]);
 
-  const getCameraPermission = () => {
+  const getCameraPermission = useCallback(async (deviceId?: string) => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({ title: "Camera not supported", description: "Your browser does not support camera access.", variant: "destructive" });
+        toast({ title: "Camera not supported", variant: "destructive" });
         return;
     }
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(s => {
+
+    stopStream();
+
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        setVideoDevices(videoInputs);
+
+        const constraints: MediaStreamConstraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' }
+        };
+        
+        const s = await navigator.mediaDevices.getUserMedia(constraints);
         setHasCameraPermission(true);
         setStream(s);
         if (videoRef.current) {
            videoRef.current.srcObject = s;
         }
-        // Get location
         navigator.geolocation.getCurrentPosition(
             (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
             (err) => console.warn(`Could not get location: ${err.message}`)
         );
-      })
-      .catch(err => {
-         console.error(err);
-         setHasCameraPermission(false);
-         toast({ title: "Permission Denied", description: "Camera access was denied.", variant: "destructive"});
-      });
-  }
+
+    } catch (err) {
+        console.error("Camera Error:", err);
+        setHasCameraPermission(false);
+        toast({ title: "Camera Access Denied", description: "Could not access the camera. Please check browser permissions.", variant: "destructive"});
+    }
+  }, [toast, stopStream]);
+
+  useEffect(() => {
+    return () => {
+      stopStream();
+    };
+  }, [stopStream]);
+
+  const handleSwitchCamera = () => {
+    if (videoDevices.length > 1) {
+        const nextIndex = (currentDeviceIndex + 1) % videoDevices.length;
+        setCurrentDeviceIndex(nextIndex);
+        getCameraPermission(videoDevices[nextIndex].deviceId);
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -97,16 +120,13 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
       const context = canvas.getContext('2d');
       if (!context) return;
       
-      // Draw video frame
       context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
-      // Prepare overlay text
       const now = new Date();
       const dateStr = now.toLocaleDateString();
       const timeStr = now.toLocaleTimeString();
       const locationStr = location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Location not available';
       
-      // Style and draw overlay
       context.fillStyle = 'rgba(0, 0, 0, 0.6)';
       context.fillRect(0, canvas.height - 60, canvas.width, 60);
       context.font = '20px Arial';
@@ -119,10 +139,7 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
       const dataUrl = canvas.toDataURL('image/jpeg');
       setPreview(dataUrl);
 
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop()); // Turn off camera
-      }
-      setStream(null);
+      stopStream();
     }
   };
 
@@ -140,17 +157,6 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
       setResult(analysisResult);
       toast({title: 'Analysis Complete', description: 'Successfully analyzed materials photo.'});
       
-      // Save to Firestore
-      await addDoc(collection(db, "proofOfWork"), {
-        technicianId: user.id,
-        taskId: task.id,
-        imageDataUri: preview,
-        location: location,
-        analysisResult: analysisResult,
-        timestamp: new Date().toISOString()
-      });
-       toast({title: 'Proof of Work Saved', description: 'Your photo and analysis have been saved.'});
-
     } catch (error) {
       toast({title: 'Analysis Failed', description: 'Could not analyze the image or save the result.', variant: 'destructive'});
       console.error(error);
@@ -159,17 +165,14 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
     }
   };
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setPreview(null);
     setResult(null);
     setIsLoading(false);
     setHasCameraPermission(false);
     setLocation(null);
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-    }
-  }
+    stopStream();
+  }, [stopStream]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -180,7 +183,7 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
 
   const handleRetake = () => {
     setPreview(null);
-    getCameraPermission();
+    getCameraPermission(videoDevices[currentDeviceIndex]?.deviceId);
   }
 
   return (
@@ -200,9 +203,12 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
             Upload or capture a photo of the completed work. The AI will identify materials and your location will be logged.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="camera" onValueChange={resetState}>
+        <Tabs defaultValue="camera" onValueChange={(tab) => {
+            resetState();
+            if (tab === 'camera') getCameraPermission();
+        }}>
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="camera" onClick={getCameraPermission}><Camera className="mr-2"/> Live Capture</TabsTrigger>
+                <TabsTrigger value="camera"><Camera className="mr-2"/> Live Capture</TabsTrigger>
                 <TabsTrigger value="upload"><Upload className="mr-2"/> Upload Photo</TabsTrigger>
             </TabsList>
             <TabsContent value="camera">
@@ -216,17 +222,25 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
                              <div className="text-center p-4">
                                 <Camera className="mx-auto h-8 w-8 mb-2" />
                                 <p className="mb-2">Camera access is required.</p>
-                                <Button onClick={getCameraPermission}>Enable Camera</Button>
+                                <Button onClick={() => getCameraPermission()}>Enable Camera</Button>
                             </div>
                         )
                     )}
                     <canvas ref={canvasRef} className="hidden" />
                 </div>
-                {preview ? (
-                     <Button onClick={handleRetake} variant="outline" className="w-full mt-2"><RefreshCw className="mr-2"/>Retake Photo</Button>
-                ) : (
-                    <Button onClick={handleCapture} disabled={!stream} className="w-full mt-2"><Check className="mr-2"/>Capture Photo</Button>
-                )}
+                 <div className="flex gap-2 mt-2">
+                     {preview ? (
+                        <Button onClick={handleRetake} variant="outline" className="w-full"><RefreshCw className="mr-2"/>Retake Photo</Button>
+                    ) : (
+                        <Button onClick={handleCapture} disabled={!stream} className="w-full"><Check className="mr-2"/>Capture Photo</Button>
+                    )}
+                    {videoDevices.length > 1 && !preview && (
+                        <Button onClick={handleSwitchCamera} variant="secondary" size="icon">
+                            <SwitchCamera />
+                            <span className="sr-only">Switch Camera</span>
+                        </Button>
+                    )}
+                </div>
             </TabsContent>
              <TabsContent value="upload">
                  <div
@@ -243,6 +257,9 @@ export default function ProofOfWorkForm({task}: {task: Task}) {
                     )}
                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
                 </div>
+                 {preview && (
+                    <Button onClick={() => setPreview(null)} variant="outline" className="w-full mt-2"><RefreshCw className="mr-2"/>Clear Photo</Button>
+                )}
             </TabsContent>
         </Tabs>
         <div className="py-4">
