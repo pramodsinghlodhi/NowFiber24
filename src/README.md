@@ -1,7 +1,7 @@
 
 # NowFiber24 - FTTH Network Management & Field Engineering Platform
 
-NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics.
+NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
 
 ## Features
 
@@ -36,131 +36,138 @@ NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service
 
 ---
 
-## Project Structure
+## Production Setup Guide (Step-by-Step)
 
-Here is an overview of the key files and directories in the project:
-
-```
-/
-├── public/                 # Static assets (images, fonts, etc.)
-├── src/
-│   ├── app/                # Next.js App Router: all pages and layouts
-│   │   ├── (admin)/        # Route group for admin-only pages
-│   │   ├── (technician)/   # Route group for technician-only pages
-│   │   ├── api/            # API routes (if needed)
-│   │   ├── layout.tsx      # Root layout for the entire application
-│   │   ├── page.tsx        # The main dashboard page
-│   │   └── login/          # The login page
-│   ├── ai/                 # All Genkit AI-related code
-│   │   ├── flows/          # Genkit flows that define AI tasks
-│   │   └── genkit.ts       # Genkit configuration and initialization
-│   ├── components/         # Reusable React components
-│   │   ├── dashboard/      # Components specific to the dashboard
-│   │   ├── layout/         # Layout components (Header, Sidebar)
-│   │   └── ui/             # ShadCN UI components
-│   ├── contexts/           # React contexts for state management
-│   │   └── auth-context.tsx  # Handles user authentication state
-│   ├── hooks/              # Custom React hooks
-│   │   └── use-firestore-query.ts # Hook for live data from Firestore
-│   ├── lib/                # Libraries, helpers, and configuration
-│   │   ├── firebase.ts     # Firebase initialization and configuration
-│   │   ├── types.ts        # TypeScript type definitions for all data models
-│   │   └── utils.ts        # Utility functions (e.g., cn for styling)
-│   └── styles/             # Global styles and Tailwind CSS configuration
-│       └── globals.css     # Main stylesheet with Tailwind directives and theme variables
-├── .env                    # Environment variables (e.g., API keys)
-├── next.config.mjs         # Next.js configuration
-├── package.json            # Project dependencies and scripts
-└── README.md               # This file
-```
-
-## Production Setup Guide
-
-Follow these steps to set up and run the project on your local machine and prepare it for deployment.
+Follow these steps to set up and run the project on your local machine and prepare it for deployment. This guide assumes you have a basic understanding of Firebase.
 
 ### 1. Prerequisites
 
 Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [npm](https://www.npmjs.com/) (or [yarn](https://yarnpkg.com/))
+- [Firebase CLI](https://firebase.google.com/docs/cli):
+  ```bash
+  npm install -g firebase-tools
+  ```
 
-### 2. Firebase Setup (Crucial Step)
+### 2. Firebase Project Setup (CRUCIAL)
 
-This application is powered by Firebase. You must configure it correctly for the application to run.
+This application is fully powered by Firebase. **It will not run without a correctly configured Firebase project.**
 
 **A. Create a Firebase Project:**
-1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Click **"Add project"** and follow the on-screen instructions to create a new project.
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Click **"Add project"**.
+3.  Enter a project name (e.g., "NowFiber24-prod") and click **"Continue"**.
+4.  You can choose to enable Google Analytics or not for this project. It is not required for the application to function. Click **"Continue"**.
+5.  After a moment, your project will be ready. Click **"Continue"**.
 
 **B. Create a Web App:**
-1. Inside your new project, click the Web icon (`</>`) to create a new Web App.
-2. Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
-3. After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
+1.  Inside your new project, click the Web icon (`</>`) to create a new Web App.
+2.  Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
+3.  After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
 
 **C. Configure the Application:**
-1. In the project's root directory, open the file `src/lib/firebase.ts`.
-2. **Replace the existing `firebaseConfig` object with the one you copied** from the Firebase console. The file should look like this:
+1.  In the project's root directory, open the file `src/lib/firebase.ts`.
+2.  **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
 
-```typescript
-// src/lib/firebase.ts
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+    - **File:** `src/lib/firebase.ts`
+    - **Line to Replace:** Approximately line 6
 
-const firebaseConfig = {
-  // Paste your config object here
-  apiKey: "AIza...",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "...",
-  appId: "1:...",
-  measurementId: "G-..."
-};
+    ```typescript
+    // src/lib/firebase.ts
 
-// Initialize Firebase App
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app); // Firebase Authentication instance
-const db = getFirestore(app); // Firestore Database instance
+    import { initializeApp, getApp, getApps } from 'firebase/app';
+    import { getAuth } from 'firebase/auth';
+    import { getFirestore } from 'firebase/firestore';
 
-export { app, auth, db };
-```
+    // v-- PASTE YOUR FIREBASE CONFIG OBJECT HERE --v
+    const firebaseConfig = {
+      apiKey: "AIza...",
+      authDomain: "your-project-id.firebaseapp.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project-id.appspot.com",
+      messagingSenderId: "...",
+      appId: "1:...",
+      measurementId: "G-..."
+    };
+    // ^-- PASTE YOUR FIREBASE CONFIG OBJECT HERE --^
+
+    // Initialize Firebase
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    export { app, auth, db };
+    ```
 
 **D. Enable Firebase Services:**
-1. In the Firebase Console, go to the **Authentication** section. Click **"Get started"**. On the Sign-in method tab, select **"Email/Password"** from the list of providers. **Enable it and click Save.**
-2. Go to the **Firestore Database** section. Click **"Create database"**, start in **test mode** for now (you can secure it later with Security Rules), and choose a location.
+1.  In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
+2.  Click **"Get started"**.
+3.  On the Sign-in method tab, select **"Email/Password"** from the list of providers.
+4.  **Enable the "Email/Password" provider** and click **"Save"**. This is required for the login to work.
+5.  Next, go to the **Firestore Database** section in the left-hand menu.
+6.  Click **"Create database"**.
+7.  Select **"Start in production mode"**. Click **"Next"**.
+8.  Choose a Cloud Firestore location. Select a location closest to your users for the best performance. Click **"Enable"**.
 
-**E. Create User Accounts:**
-The application will not work without user accounts. You need to create them in Firebase Authentication.
-1. Go to the **Authentication** -> **Users** tab in the Firebase Console.
-2. Click **"Add user"** to create the following accounts. The email is derived from the User ID.
-    - **Admin User**:
-        - **Email**: `admin@fibervision.com`
-        - **Password**: `admin`
-    - **Technician User**:
-        - **Email**: `tech-001@fibervision.com`
-        - **Password**: `password`
+**E. Create a Service Account (CRITICAL FOR SERVER-SIDE FUNCTIONALITY):**
+All server-side functionality (AI tools, server actions, etc.) requires a service account for authentication.
 
-**F. Set up Firestore Data:**
-To see data in the app, you need to add documents to your Firestore database. The application uses the following collections: `users`, `technicians`, `tasks`, `alerts`, `infrastructure`, `connections`, `materials`, `assignments`, and `referrals`.
+1.  In the Firebase Console, click the gear icon next to **Project Overview** and select **Project settings**.
+2.  Go to the **Service accounts** tab.
+3.  Click the **"Generate new private key"** button. A warning will appear; click **"Generate key"** to confirm.
+4.  A JSON file will be downloaded to your computer. **Treat this file like a password; it is highly sensitive.**
+5.  Rename this file to `serviceAccountKey.json`.
+6.  Move this `serviceAccountKey.json` file to the **root directory** of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
 
-1. Go to the **Firestore Database** -> **Data** tab.
-2. Create a collection named `users`.
-3. For each user you created in Authentication, add a corresponding document in the `users` collection. The **Document ID** must be the **User UID** from the Authentication tab.
-    - **Admin Document (ID = UID of `admin@fibervision.com`):**
-      - `id`: "admin"
-      - `name`: "Admin User"
-      - `role`: "Admin"
-      - `isBlocked`: false
-      - `avatarUrl`: "https://i.pravatar.cc/150?u=admin"
-    - **Technician Document (ID = UID of `tech-001@fibervision.com`):**
-      - `id`: "tech-001"
-      - `name`: "John Doe"
-      - `role`: "Technician"
-      - `isBlocked`: false
-      - `avatarUrl`: "https://i.pravatar.cc/150?u=tech-001"
-      
-*You will need to create other collections and add data to them for the application to be fully populated.*
+**F. Grant Permissions to Service Account (CRUCIAL STEP):**
+The server-side code uses the service account to interact with Firebase. By default, this account may not have the necessary permissions.
+
+1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
+2.  Find the service account associated with your Firebase project. It will typically be named `firebase-adminsdk-...@...` or have a name related to your project ID.
+3.  Click the **pencil icon** (Edit principal) for that service account.
+4.  Click **"+ ADD ANOTHER ROLE"**.
+5.  In the "Select a role" dropdown, search for and select the following two roles:
+    *   **"Cloud Datastore User"**: This role provides the necessary permissions for creating and deleting documents from server-side scripts.
+    *   **"Firebase Authentication Admin"**: This role is required for the seeding script to set custom user claims (e.g., making the admin user an 'Admin').
+6.  Click **Save**.
+
+**G. Deploy Security Rules (CRITICAL STEP):**
+Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
+1.  Open your terminal in the project's root directory.
+2.  Log in to Firebase: `firebase login`
+3.  Set the active project: `firebase use YOUR_PROJECT_ID` (replace `YOUR_PROJECT_ID` with the ID from your Firebase console).
+4.  Deploy the rules:
+    ```bash
+    firebase deploy --only firestore
+    ```
+    This command reads the `firestore.rules` file and applies them to your database.
+
+**H. Create User Accounts & Data (Required for Login):**
+The application will not work without user accounts and initial data. A detailed guide on how to create the collections and documents is in **`src/lib/data/README.md`**.
+
+1.  **Create Admin User**: You must create at least one admin user in Firebase Authentication. This user's credentials will be used by the automated seeding script.
+    - Go to **Authentication -> Users** and click **"Add user"**.
+    - **Email**: `admin@fibervision.com`
+    - **Password**: `admin` (or a secure password of your choice)
+    - After creating the user, copy their **User UID**.
+    - Go to **Firestore Database -> Data** and create the `users` collection.
+    - Add a document where the **Document ID is the UID you just copied**.
+    - Add the fields for the admin user (e.g., `id: "admin"`, `name: "Admin User"`, `role: "Admin"`). See `src/lib/data/users.json` for the full structure.
+
+2.  **Automate Data Seeding**:
+    - In your project's root directory, create a file named `.env.local`.
+    - Add your admin user's credentials to this file. **This file is git-ignored and should never be committed.**
+      ```env
+      # .env.local
+      FIREBASE_ADMIN_EMAIL=admin@fibervision.com
+      FIREBASE_ADMIN_PASSWORD=your_admin_password
+      ```
+    - Run the automated seeding script:
+      ```bash
+      npm run db:seed
+      ```
+    - This command will log you in as the admin and upload all the necessary data for technicians, tasks, inventory, etc.
 
 ### 3. Local Development
 
@@ -175,11 +182,20 @@ To see data in the app, you need to add documents to your Firestore database. Th
     npm install
     ```
 
-3.  **Set up environment variables:**
-    Create a new file named `.env` in the root of your project. This file is for secret keys and should not be committed to version control. Add your Gemini API key for the AI features to work.
+3.  **Set up environment variables (CRITICAL):**
+    Create a new file named `.env` in the root of your project and add your API keys. This file is for secret keys and should not be committed to version control. Next.js will automatically load this file.
     ```env
     # .env
+    
+    # Genkit API Key (Client-side)
+    # Get your key from Google AI Studio.
     GEMINI_API_KEY=your_google_ai_studio_api_key
+
+    # Path to your Firebase service account key for the Admin SDK.
+    # This is used for all server-side operations.
+    # The Admin SDK and Genkit will automatically find and use this variable.
+    # MAKE SURE THIS FILE EXISTS.
+    GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
     ```
     
 4.  **Run the development server:**
@@ -193,34 +209,15 @@ To see data in the app, you need to add documents to your Firestore database. Th
 Use these credentials to log in after setting up the user accounts in Firebase.
 
 -   **Administrator:**
-    -   **User ID:** `admin`
-    -   **Password:** `admin`
+    -   **Email:** `admin@fibervision.com`
+    -   **Password:** `admin` (or the password you set)
 
 -   **Technician:**
-    -   **User ID:** `tech-001`
-    -   **Password:** `password`
+    -   **Email:** `tech-001@fibervision.com`
+    -   **Password:** `password` (or the password you set)
 
-### 5. Deployment
+### 5. Deployment to a Virtual Private Server (VPS)
 
-You have multiple options for deploying this Next.js application.
-
-#### Option 1: Firebase Hosting (Recommended)
-1.  Install the Firebase CLI: `npm install -g firebase-tools`
-2.  Login to Firebase: `firebase login`
-3.  Initialize Firebase Hosting: `firebase init hosting`
-    -   Select "Use an existing project" and choose the project you created.
-    -   When asked for your public directory, enter `.next`.
-    -   Configure as a single-page app (SPA): **No**.
-    -   Set up automatic builds and deploys with GitHub: **Yes** (recommended) or No.
-4.  Deploy your application:
-    ```bash
-    npm run build
-    firebase deploy
-    ```
-
-This will deploy your application to a live URL provided by Firebase.
-
-#### Option 2: Deploying to a Virtual Private Server (VPS)
 This guide assumes you have a VPS (e.g., from DigitalOcean, Linode, AWS EC2) running a recent version of Linux (like Ubuntu 22.04).
 
 **Step 1: Connect to your VPS**
@@ -256,18 +253,28 @@ Install the necessary Node.js packages.
 npm install
 ```
 
-**Step 5: Set Up Environment Variables**
-Create a `.env` file for your production environment variables.
-```bash
-# Create and open the .env file with nano editor
-nano .env
-```
-Add your Gemini API key to this file:
-```env
-# .env
-GEMINI_API_KEY=your_production_google_ai_studio_api_key
-```
-Press `CTRL+X`, then `Y`, then `Enter` to save and exit `nano`.
+**Step 5: Set Up Environment Variables on the Server**
+You must provide your secret keys to the production application. Instead of using a file, it's more secure to set them as actual environment variables on the server.
+
+1. **Add `serviceAccountKey.json`**:
+   Securely transfer your `serviceAccountKey.json` file to the root directory of the project on your VPS. You can use `scp` for this.
+
+2. **Set Environment Variables**:
+   Edit your shell's profile script (e.g., `~/.bashrc`, `~/.profile`, or `~/.zshrc`) to export the variables.
+   ```bash
+   nano ~/.bashrc
+   ```
+   Add these lines to the end of the file:
+   ```bash
+   export GEMINI_API_KEY="your_production_google_ai_studio_api_key"
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/project/serviceAccountKey.json" 
+   # Make sure this is the FULL, absolute path from the root of the server, e.g., /home/your_user/your_project/serviceAccountKey.json
+   ```
+   Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
+   ```bash
+   source ~/.bashrc
+   ```
+   This method is more secure than placing secrets in a git-ignored file on a production server.
 
 **Step 6: Build the Application**
 Create a production-optimized build of your Next.js app.
@@ -276,7 +283,7 @@ npm run build
 ```
 
 **Step 7: Run the Application with a Process Manager**
-It's crucial to use a process manager like **PM2** to keep your application running continuously, even if it crashes or the server reboots.
+It's crucial to use a process manager like **PM2** to keep your application running continuously.
 
 1.  **Install PM2 globally:**
     ```bash
@@ -302,10 +309,6 @@ It's crucial to use a process manager like **PM2** to keep your application runn
     ```
 
 **Step 8: Configure a Reverse Proxy (Recommended)**
-To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. The Next.js app runs on port 3000 by default, and Nginx will forward traffic from port 80 to it.
-
-This is an advanced step and requires separate tutorials on configuring Nginx.
+To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
-
-  
