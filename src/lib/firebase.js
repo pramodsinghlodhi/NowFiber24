@@ -3,15 +3,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// TODO: Replace with your app's Firebase project configuration
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+const firebaseConfig = {"projectId":"nowfiber24-prod","appId":"1:34851993427:web:9c501f278d655f462a6839","storageBucket":"nowfiber24-prod.appspot.com","apiKey":"AIzaSyApG_44BGH1rU1T-aZfSAnEwrHfYpw2O7I","authDomain":"nowfiber24-prod.firebaseapp.com","messagingSenderId":"34851993427"};
 
 // Client-side Firebase app initialization
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
