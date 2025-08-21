@@ -114,7 +114,7 @@ export default function CreateTaskForm({ isOpen, onOpenChange, onSave, technicia
                                     <span className={cn("h-2 w-2 rounded-full", getStatusColor(tech))}></span>
                                     <span>{tech.name}</span>
                                     <span className="ml-auto text-xs text-muted-foreground capitalize">
-                                        {tech.isActive ? tech.status.replace(/-/g, ' ') : 'Inactive'}
+                                        {tech.isActive ? (tech.status || 'Unknown').replace(/-/g, ' ') : 'Inactive'}
                                     </span>
                                </div>
                             </SelectItem>
