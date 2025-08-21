@@ -67,14 +67,14 @@ This application is fully powered by Firebase. **It will not run without a corre
 3.  After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
 
 **C. Configure the Application:**
-1.  In the project's root directory, open the file `src/lib/firebase.ts`.
+1.  In the project's root directory, open the file `src/lib/firebase.js`.
 2.  **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
 
-    - **File:** `src/lib/firebase.ts`
+    - **File:** `src/lib/firebase.js`
     - **Line to Replace:** Approximately line 6
 
-    ```typescript
-    // src/lib/firebase.ts
+    ```javascript
+    // src/lib/firebase.js
 
     import { initializeApp, getApp, getApps } from 'firebase/app';
     import { getAuth } from 'firebase/auth';
@@ -189,13 +189,8 @@ The application will not work without user accounts and initial data. A detailed
     
     # Genkit API Key (Client-side)
     # Get your key from Google AI Studio.
+    # This key is used for any AI features that run in the user's browser.
     GEMINI_API_KEY=your_google_ai_studio_api_key
-
-    # Path to your Firebase service account key for the Admin SDK.
-    # This is used for all server-side operations.
-    # The Admin SDK and Genkit will automatically find and use this variable.
-    # MAKE SURE THIS FILE EXISTS.
-    GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
     ```
     
 4.  **Run the development server:**
@@ -266,9 +261,10 @@ You must provide your secret keys to the production application. Instead of usin
    ```
    Add these lines to the end of the file:
    ```bash
+   export NODE_ENV="production"
    export GEMINI_API_KEY="your_production_google_ai_studio_api_key"
-   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/project/serviceAccountKey.json" 
-   # Make sure this is the FULL, absolute path from the root of the server, e.g., /home/your_user/your_project/serviceAccountKey.json
+   # The server-side code will automatically look for serviceAccountKey.json in the root.
+   # Setting GOOGLE_APPLICATION_CREDENTIALS is not required if the file is named correctly and in the root.
    ```
    Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
    ```bash
