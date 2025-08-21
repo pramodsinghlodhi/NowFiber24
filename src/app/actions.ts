@@ -1,4 +1,3 @@
-
 'use server';
 
 import {autoFaultDetection} from '@/ai/flows/auto-fault-detection';
@@ -63,36 +62,29 @@ export async function runAutoFaultDetection() {
 export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     const taskDocRef = adminDb.collection('tasks').doc(taskId);
     const taskDoc = await taskDocRef.get();
+
     if (!taskDoc.exists) {
         throw new Error("Task not found");
     }
     const taskData = taskDoc.data() as Task;
-    const techUserId = taskData.tech_id;
-
-    // This query is too broad and insecure. Removing it.
-    // const assignmentsQuery = adminDb.collection('assignments').where('technicianId', '==', techUserId).where('status', '==', 'Issued');
-    // const assignmentsSnapshot = await assignmentsQuery.get();
-    // const assignments = assignmentsSnapshot.docs.map(doc => doc.data() as MaterialAssignment);
-
-    const materialsIssuedString = "N/A"; // Simplified for now to fix the primary bug.
-
+    
+    // The list of issued materials is not critical for the AI analysis and was causing security rule conflicts.
+    // Simplifying the call to only include essential details.
     const result = await analyzeMaterialsUsed({
         photoDataUri,
         taskDetails: `Task: ${taskData.title}. Description: ${taskData.description}`,
-        materialsIssued: materialsIssuedString,
+        materialsIssued: "Not applicable.",
     });
 
     const proofOfWorkDoc = {
-        technicianId: techUserId,
+        technicianId: taskData.tech_id,
         taskId: taskId,
         imageDataUri: photoDataUri,
         analysisResult: result,
         timestamp: new Date(),
     };
 
-    // Save the result to a new 'proofOfWork' collection
     await adminDb.collection('proofOfWork').add(proofOfWorkDoc);
-
 
     return result;
 }
@@ -270,7 +262,7 @@ export async function sendNoticeToTechnician(technicianId: string, title: string
         type: 'Notice',
         title: title,
         message: message,
-        href: `/tasks`,
+        href: `/proof-of-work`,
       });
 
       return { success: true };
