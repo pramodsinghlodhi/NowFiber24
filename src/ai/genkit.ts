@@ -1,13 +1,8 @@
 
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import { ai } from '@/lib/firebase-admin';
 
-// IMPORTANT: This file is now the single source of truth for server-side
-// Google Cloud authentication. The Genkit plugin initializes first, and the
-// Firebase Admin SDK relies on the context it establishes.
-// It will automatically pick up the credentials from the GOOGLE_APPLICATION_CREDENTIALS
-// environment variable, which should be set in your .env file.
+// This file now re-exports the initialized Genkit instance from the central
+// firebase-admin file. This ensures a single initialization point for all
+// server-side Google Cloud services.
 
-export const ai = genkit({
-  plugins: [googleAI()],
-});
+export { ai };
