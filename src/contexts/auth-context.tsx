@@ -77,6 +77,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const userData = { uid: userDoc.id, ...userDoc.data() } as User;
         setUser(userData);
+        
+        // If the user account is blocked, log them out immediately.
+        if (userData.isBlocked) {
+            console.warn("User account is blocked. Logging out.");
+            handleLogout();
+            return;
+        }
+
 
         // Clean up previous role-specific listener before creating a new one
         if (unsubscribeRoleSpecific) {
@@ -94,8 +102,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  setLoading(false);
             });
         } else if (userData.role === 'Technician') {
-            // NOTE: A technician's custom ID is stored in the user profile document.
-            // The technicians collection uses this custom ID for its documents.
             const techDocRef = doc(db, 'technicians', userData.id);
             unsubscribeRoleSpecific = onSnapshot(techDocRef, (techDoc) => {
                 setSettings(null);

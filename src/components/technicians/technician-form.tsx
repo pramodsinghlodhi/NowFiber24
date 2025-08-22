@@ -19,6 +19,8 @@ import { Technician, User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Switch } from '../ui/switch';
+import { cn } from '@/lib/utils';
 
 interface TechnicianFormProps {
   isOpen: boolean;
@@ -35,6 +37,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
   const [contact, setContact] = useState('');
   const [role, setRole] = useState<Technician['role']>('Field Engineer');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [isBlocked, setIsBlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -49,6 +52,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
+            setIsBlocked(technician.isBlocked || false);
             setPassword(''); 
         } else {
             const newId = `tech-${String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}`;
@@ -59,6 +63,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             setContact('');
             setRole('Field Engineer');
             setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
+            setIsBlocked(false);
         }
     }
   }, [technician, isOpen]);
@@ -92,7 +97,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         role,
         contact,
         avatarUrl,
-        isBlocked: technician?.isBlocked || false,
+        isBlocked: isBlocked,
         lat: technician?.lat || 34.0522,
         lng: technician?.lng || -118.2437,
         isActive: technician?.isActive || false,
@@ -106,7 +111,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         role: 'Technician',
         avatarUrl,
         email,
-        isBlocked: technician?.isBlocked || false,
+        isBlocked: isBlocked,
         password: password || undefined,
     };
 
@@ -134,7 +139,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         </DialogHeader>
 
         <form onSubmit={handleSubmit} >
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                     <AvatarImage src={avatarUrl || `https://i.pravatar.cc/150?u=${id}`} alt={name} />
@@ -179,8 +184,14 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
                     </Select>
                 </div>
             </div>
+            {isEditing && (
+                <div className="flex items-center space-x-2 rounded-lg border p-4" >
+                    <Switch id="isBlocked" checked={isBlocked} onCheckedChange={setIsBlocked} />
+                    <Label htmlFor="isBlocked" className={cn(isBlocked && "text-destructive")}>Block this technician's account</Label>
+                </div>
+            )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

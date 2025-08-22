@@ -10,9 +10,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/icons/logo';
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence, browserLocalPersistence } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { Checkbox } from '@/components/ui/checkbox';
+import { User } from '@/lib/types';
+
 
 const auth = getAuth(app);
 
@@ -42,10 +45,23 @@ export default function LoginPage() {
 
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
-        // After successful Firebase login, get the ID token
+        // Before creating a session, check if the user is blocked in Firestore
+        const userDocRef = doc(db, "users", userCredential.user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists() && (userDoc.data() as User).isBlocked) {
+            await signOut(auth); // Sign out the user from Firebase Auth
+            toast({
+                title: "Account Blocked",
+                description: "Your account has been blocked by an administrator. Please contact support.",
+                variant: "destructive",
+            });
+            setIsLoading(false);
+            return;
+        }
+        
         const idToken = await userCredential.user.getIdToken();
         
-        // Call the API route to create a session cookie
         const response = await fetch('/api/sessionLogin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
