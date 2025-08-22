@@ -62,7 +62,8 @@ export default function TasksPage() {
             // Optimized to fetch all tasks but this could be further refined with pagination
             return query(collection(db, 'tasks'), orderBy('status'));
         }
-        return query(collection(db, 'tasks'), where('tech_id', '==', user.uid), orderBy('status'));
+        // This query was causing an index error. Removing the orderBy and sorting on the client.
+        return query(collection(db, 'tasks'), where('tech_id', '==', user.uid));
     }, [user]);
     
     const techniciansQuery = useMemo(() => user?.role === 'Admin' ? query(collection(db, 'technicians')) : null, [user]);
