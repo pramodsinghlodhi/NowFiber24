@@ -9,6 +9,7 @@
     "contact": "+15558765432",
     "isActive": true,
     "status": "available",
+    "isBlocked": false,
     "avatarUrl": "https://i.pravatar.cc/150?u=tech-001",
     "path": [
       [34.0522, -118.2437],
@@ -25,6 +26,7 @@
     "contact": "+15559876543",
     "isActive": true,
     "status": "on-task",
+    "isBlocked": false,
     "avatarUrl": "https://i.pravatar.cc/150?u=tech-002",
     "path": []
   },
@@ -37,7 +39,10 @@
     "contact": "+15554567890",
     "isActive": false,
     "status": "available",
+    "isBlocked": false,
     "avatarUrl": "https://i.pravatar.cc/150?u=tech-003",
     "path": []
   }
 }
+
+    

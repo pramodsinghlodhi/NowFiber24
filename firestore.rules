@@ -4,48 +4,105 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Technicians can update their own location and status. Admins can do anything.
-    match /technicians/{techId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == techId || request.auth.token.role == 'Admin';
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Users can only read their own profile. Admins can read all profiles.
-    match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.role == 'Admin');
-      allow write: if request.auth != null && request.auth.uid == userId; // Allow users to update their own profile.
-      allow list: if request.auth != null && request.auth.token.role == 'Admin'; // Allow admins to list users.
+    function isRole(role) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
-    // Authenticated users can read most data. Writing is restricted to Admins.
+    function isOwner(userId) {
+        return request.auth.uid == userId;
+    }
+
+    // Admins can read and write anything
     match /{document=**} {
-      allow read: if request.auth != null;
-    }
-
-    // Write access is generally restricted to Admins, with specific exceptions below.
-    match /{path=**}/ {
-      allow write: if request.auth != null && request.auth.token.role == 'Admin';
+      allow read, write: if isRole('Admin');
     }
     
-    // Technicians can create new referrals.
-    match /referrals/{referralId} {
-        allow create: if request.auth != null;
-    }
-    
-    // Technicians can create Proof of Work documents
-    match /proofOfWork/{proofId} {
-        allow create: if request.auth != null;
-    }
-
-    // Technicians can request materials (create new assignments)
-    match /assignments/{assignmentId} {
-        allow create: if request.auth != null;
-        allow update: if request.auth != null && request.auth.token.role == 'Admin';
+    // Users Collection
+    match /users/{userId} {
+      // Any signed-in user can create their own profile (should be handled by admin for this app)
+      // A user can read their own profile, or an admin can
+      allow read: if isSignedIn() && (isOwner(userId) || isRole('Admin'));
+      // Only an admin can create or update user profiles
+      allow create, update: if isRole('Admin');
+      // Only an admin can delete users
+      allow delete: if isRole('Admin');
     }
 
-    // Tasks can be updated by the assigned tech or an admin.
+    // Technicians Collection
+    match /technicians/{techId} {
+        // Any signed-in user can read technician info
+        allow read: if isSignedIn();
+        // Only admins can create/update technician profiles
+        allow create, update, delete: if isRole('Admin');
+    }
+
+    // Tasks Collection
     match /tasks/{taskId} {
-        allow update: if request.auth.uid == resource.data.tech_id || request.auth.token.role == 'Admin';
+        allow read: if isSignedIn();
+        // Techs can update their own tasks, Admins can create/update/delete any
+        allow update: if isSignedIn() && (isRole('Admin') || get(/databases/$(database)/documents/tasks/$(taskId)).data.tech_id == request.auth.uid);
+        allow create, delete: if isRole('Admin');
     }
+
+    // Alerts, Infrastructure, Connections, Referrals, Materials, Assignments, ProofOfWork, Plans
+    match /alerts/{alertId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isRole('Admin');
+    }
+    match /infrastructure/{deviceId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isRole('Admin') || isRole('Technician');
+    }
+    match /connections/{connectionId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isRole('Admin');
+    }
+    match /referrals/{referralId} {
+        allow read: if isSignedIn();
+        allow create: if isRole('Technician');
+        allow update, delete: if isRole('Admin');
+    }
+     match /materials/{materialId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isRole('Admin');
+    }
+     match /assignments/{assignmentId} {
+        allow read: if isSignedIn();
+        allow create: if isRole('Admin') || isRole('Technician');
+        allow update, delete: if isRole('Admin');
+    }
+     match /proofOfWork/{proofId} {
+        allow read: if isSignedIn();
+        allow create: if isRole('Technician');
+        allow delete: if isRole('Admin');
+    }
+     match /plans/{planId} {
+        allow read: if isRole('Admin');
+        allow create, update, delete: if isRole('Admin');
+    }
+     match /settings/{settingId} {
+        allow read: if isRole('Admin');
+        allow update: if isRole('Admin');
+     }
+     match /contacts/{contactId} {
+        // Public can write
+        allow create;
+        // Admins can manage
+        allow read, update, delete: if isRole('Admin');
+     }
+     
+     // Notifications Subcollection
+     match /users/{userId}/notifications/{notificationId} {
+        // A user can manage their own notifications
+        allow read, update, delete: if isOwner(userId);
+        allow create: if isRole('Admin'); // Only server/admin can create notifications
+     }
   }
 }
+
+    

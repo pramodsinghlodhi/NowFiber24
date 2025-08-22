@@ -1,3 +1,4 @@
+
 # NowFiber24 - FTTH Network Management & Field Engineering Platform
 
 NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
@@ -115,7 +116,7 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
   NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
 
   # === DATABASE SEEDING SCRIPT ===
-  # Credentials for the initial admin user
+  # Credentials for the initial admin user that the script will create
   FIREBASE_ADMIN_EMAIL=admin@nowfiber24.com
   FIREBASE_ADMIN_PASSWORD=admin
   ```
@@ -146,25 +147,14 @@ Your database is currently locked down. You must deploy the included security ru
     ```
     This command reads the `firestore.rules` file and applies them to your database.
 
-**I. Create User Accounts & Data (Required for Login):**
-The application will not work without user accounts and initial data. A detailed guide on how to create the collections and documents is in **`src/lib/data/README.md`**.
-
-1.  **Create Admin User**: You must create at least one admin user in Firebase Authentication. This user's credentials will be used by the automated seeding script.
-    - Go to **Authentication -> Users** and click **"Add user"**.
-    - **Email**: `admin@nowfiber24.com`
-    - **Password**: `admin` (or a secure password of your choice)
-    - After creating the user, copy their **User UID**.
-    - Go to **Firestore Database -> Data** and create the `users` collection.
-    - Add a document where the **Document ID is the UID you just copied**.
-    - Add the fields for the admin user (e.g., `id: "admin"`, `name: "Admin User"`, `role: "Admin"`). See `src/lib/data/users.json` for the full structure.
-
-2.  **Automate Data Seeding**:
-    - The credentials for the seeding script are already in your `.env.local` file from step **2.F**.
-    - Run the automated seeding script:
-      ```bash
-      npm run db:seed
-      ```
-    - This command will log you in as the admin and upload all the necessary data for technicians, tasks, inventory, etc.
+**I. Automate Data Seeding (Required for Login):**
+The application will not work without user accounts and initial data. The seeding script will create all necessary users and data from the `.json` files in `src/lib/data`.
+1.  The credentials for the seeding script are already in your `.env.local` file from step **2.F**. The script will create the admin user with this email and password.
+2.  Run the automated seeding script:
+    ```bash
+    npm run db:seed
+    ```
+3.  This command will log you in as the admin and upload all the necessary data for technicians, tasks, inventory, etc. **If the script fails, ensure your security rules are deployed and your service account has the correct IAM roles.**
 
 ### 3. Local Development
 
@@ -187,15 +177,15 @@ The application will not work without user accounts and initial data. A detailed
 
 ### 4. Default Login Credentials
 
-Use these credentials to log in after setting up the user accounts in Firebase.
+Use these credentials to log in after running the `db:seed` script.
 
 -   **Administrator:**
     -   **Email:** `admin@nowfiber24.com`
-    -   **Password:** `admin` (or the password you set)
+    -   **Password:** `admin` (or the password you set in `.env.local`)
 
 -   **Technician:**
     -   **Email:** `tech-001@nowfiber24.com`
-    -   **Password:** `password` (or the password you set)
+    -   **Password:** `password` (this is the default set in the seeding script)
 
 ### 5. Deployment to a Virtual Private Server (VPS)
 

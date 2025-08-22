@@ -1,11 +1,41 @@
 
 {
-    "admin-uid": {
-        "id": "admin",
-        "name": "Admin User",
-        "role": "Admin",
-        "email": "admin@nowfiber24.com",
-        "isBlocked": false,
-        "avatarUrl": "https://i.pravatar.cc/150?u=admin"
-    }
+  "admin": {
+    "uid": "PLEASE_REPLACE_WITH_ADMIN_UID",
+    "id": "admin",
+    "name": "Admin User",
+    "role": "Admin",
+    "email": "admin@nowfiber24.com",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=admin"
+  },
+  "tech-001": {
+    "uid": "PLEASE_REPLACE_WITH_TECH_001_UID",
+    "id": "tech-001",
+    "name": "John Doe",
+    "role": "Technician",
+    "email": "tech-001@nowfiber24.com",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-001"
+  },
+  "tech-002": {
+    "uid": "PLEASE_REPLACE_WITH_TECH_002_UID",
+    "id": "tech-002",
+    "name": "Jane Smith",
+    "role": "Technician",
+    "email": "tech-002@nowfiber24.com",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-002"
+  },
+  "tech-003": {
+    "uid": "PLEASE_REPLACE_WITH_TECH_003_UID",
+    "id": "tech-003",
+    "name": "Mike Johnson",
+    "role": "Technician",
+    "email": "tech-003@nowfiber24.com",
+    "isBlocked": false,
+    "avatarUrl": "https://i.pravatar.cc/150?u=tech-003"
+  }
 }
+
+    
