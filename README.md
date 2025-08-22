@@ -248,6 +248,10 @@ You must provide your secret keys to the production application. Instead of usin
    export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your_storage_bucket"
    export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your_messaging_sender_id"
    export NEXT_PUBLIC_FIREBASE_APP_ID="your_app_id"
+   
+   # Seeding script
+   export FIREBASE_ADMIN_EMAIL="admin@nowfiber24.com"
+   export FIREBASE_ADMIN_PASSWORD="admin"
    ```
    Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
    ```bash
@@ -291,3 +295,5 @@ It's crucial to use a process manager like **PM2** to keep your application runn
 To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. This is an advanced step and requires separate tutorials on configuring Nginx.
 
 Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
+
+    
