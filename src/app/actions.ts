@@ -68,8 +68,6 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     }
     const taskData = taskDoc.data() as Task;
     
-    // The list of issued materials is not critical for the AI analysis and was causing security rule conflicts.
-    // Simplifying the call to only include essential details.
     const result = await analyzeMaterialsUsed({
         photoDataUri,
         taskDetails: `Task: ${taskData.title}. Description: ${taskData.description}`,
@@ -77,7 +75,7 @@ export async function analyzeMaterials(photoDataUri: string, taskId: string) {
     });
 
     const proofOfWorkDoc = {
-        technicianId: taskData.tech_id,
+        technicianId: taskData.tech_id, // This is the UID
         taskId: taskId,
         imageDataUri: photoDataUri,
         analysisResult: result,
@@ -252,6 +250,7 @@ export async function getTechnician(techId: string): Promise<Technician | null> 
 
 export async function sendNoticeToTechnician(technicianId: string, title: string, message: string) {
     try {
+      // technicianId for this function is the custom ID (e.g. tech-001)
       const techUser = await getTechnicianUserByTechId(technicianId);
       if (!techUser) {
         return { success: false, message: "Technician not found." };

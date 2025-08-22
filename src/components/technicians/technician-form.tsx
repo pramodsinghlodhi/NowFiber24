@@ -45,14 +45,12 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         if (technician) {
             setName(technician.name);
             setId(technician.id);
-            // In a real app, you'd fetch the user's email securely. For now, we construct it.
             setEmail(`${technician.id}@fibervision.com`);
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
             setPassword(''); 
         } else {
-            // Logic for creating a new technician ID could be improved.
             const newId = `tech-${String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}`;
             setName('');
             setId(newId);

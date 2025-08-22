@@ -4,7 +4,6 @@ import { adminDb } from './firebase-admin';
 import { User } from './types';
 
 // This file is now primarily for utility functions related to notifications.
-// The mock data is no longer the primary source.
 
 export const createNotification = async (notification: Omit<NotificationType, 'id'>): Promise<string> => {
     try {
@@ -46,6 +45,8 @@ export const createBroadcast = async (notification: Omit<NotificationType, 'id' 
 
 
 export const getTechnicianUserByTechId = async (techId: string): Promise<User | null> => {
+    // In our data model, the technician's document ID is their custom ID (e.g., 'tech-001').
+    // We need to find the user document that has a matching 'id' field.
     const usersRef = adminDb.collection('users');
     const q = usersRef.where("id", "==", techId).where("role", "==", "Technician");
     const querySnapshot = await q.get();
@@ -57,7 +58,7 @@ export const getTechnicianUserByTechId = async (techId: string): Promise<User | 
     
     // There should only be one
     const userDoc = querySnapshot.docs[0];
-    return { uid: userDoc.id, ...userDoc.data(), email: userDoc.data().email } as User;
+    return { uid: userDoc.id, ...userDoc.data() } as User;
 }
 
 // Mock data can be kept for testing or as a fallback, but is no longer used by the header.

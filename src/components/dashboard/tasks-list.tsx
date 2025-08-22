@@ -43,11 +43,14 @@ function TaskItem({ task, technicians }: TaskItemProps) {
   
   const assignedTechnician = useMemo(() => {
     if (user?.role === 'Technician') return user;
-    const tech = technicians.find(t => t.id === task.tech_id);
-    return tech;
+    // For Admins, we need to find the tech profile whose ID matches the UID stored in the task.
+    // This requires a join between `users` and `technicians` collections, which is what we do here on the client.
+    const techUser = technicians.find(t => t.id === task.tech_id);
+    return techUser;
   }, [technicians, task.tech_id, user]);
 
-  const [assignedTechId, setAssignedTechId] = useState(task.tech_id || '');
+  // The state for the dropdown should be based on the UID stored in the task
+  const [assignedTechUid, setAssignedTechUid] = useState(task.tech_id || '');
 
 
   const handleStatusChange = async (newStatus: Task['status']) => {
@@ -67,7 +70,6 @@ function TaskItem({ task, technicians }: TaskItemProps) {
     const result = await reassignTask(task.id, newTechCustomId, task.title);
 
     if (result.success) {
-        setAssignedTechId(newTechCustomId);
         toast({
             title: "Task Re-assigned",
             description: `${task.title} has been assigned to ${techName}.`
@@ -94,10 +96,10 @@ function TaskItem({ task, technicians }: TaskItemProps) {
          <div className="flex items-center justify-between mt-3 pl-9">
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                 <HardHat className="h-4 w-4" />
-                <span>{assignedTechnician?.name || task.tech_id}</span>
+                <span>{assignedTechnician?.name || 'Unassigned'}</span>
             </div>
             {user?.role === 'Admin' && task.status !== 'Completed' && (
-                 <Select value={assignedTechId} onValueChange={handleReassign}>
+                 <Select onValueChange={handleReassign}>
                     <SelectTrigger className="w-[180px] h-8 text-xs">
                         <SelectValue placeholder="Re-assign task..." />
                     </SelectTrigger>

@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { getAuth, signOut, onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
-import { doc, onSnapshot, Unsubscribe, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User, Technician, Settings } from '@/lib/types'; 
 
@@ -94,6 +94,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  setLoading(false);
             });
         } else if (userData.role === 'Technician') {
+            // NOTE: A technician's custom ID is stored in the user profile document.
+            // The technicians collection uses this custom ID for its documents.
             const techDocRef = doc(db, 'technicians', userData.id);
             unsubscribeRoleSpecific = onSnapshot(techDocRef, (techDoc) => {
                 setSettings(null);
