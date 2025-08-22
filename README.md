@@ -1,4 +1,3 @@
-
 # NowFiber24 - FTTH Network Management & Field Engineering Platform
 
 NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service Providers (ISPs) to manage their Fiber-to-the-Home (FTTH) network operations and empower their field technicians. The application provides a robust suite of tools for real-time monitoring, task management, inventory control, and advanced network diagnostics, all powered by a live Firebase backend.
@@ -116,11 +115,34 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
 1.  In the Firebase Console, click the gear icon next to **Project Overview** and select **Project settings**.
 2.  Go to the **Service accounts** tab.
 3.  Click the **"Generate new private key"** button. A warning will appear; click **"Generate key"** to confirm.
-4.  A JSON file will be downloaded to your computer. **Treat this file like a password; it is highly sensitive.**
-5.  Rename this file to `serviceAccountKey.json`.
-6.  Move this `serviceAccountKey.json` file to the **root directory** of your project. **This file is already listed in `.gitignore`, so it will NOT be committed to your repository.**
+4.  A JSON file will be downloaded to your computer. **This file contains all the credentials needed for the next step. Keep it safe.**
 
-**F. Grant Permissions to Service Account (CRUCIAL STEP):**
+**F. Set Up Server-Side Environment Variables (CRITICAL STEP):**
+1. In your project's root directory, create a file named `.env.local`.
+2. Open the `.env.local` file and the `serviceAccountKey.json` file you just downloaded.
+3. Copy the values from your JSON file into the `.env.local` file, like so:
+  ```env
+  # .env.local
+  
+  # Firebase Admin SDK credentials
+  # Copy these from the serviceAccountKey.json file you downloaded
+  FIREBASE_PROJECT_ID="your-project-id"
+  FIREBASE_CLIENT_EMAIL="firebase-adminsdk-.....@your-project-id.iam.gserviceaccount.com"
+  FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourPrivateKeyHere\n-----END PRIVATE KEY-----\n"
+
+  # Admin credentials for the database seeding script
+  FIREBASE_ADMIN_EMAIL=admin@fibervision.com
+  FIREBASE_ADMIN_PASSWORD=admin
+  
+  # Genkit API Key (Client-side)
+  # Get your key from Google AI Studio.
+  GEMINI_API_KEY=your_google_ai_studio_api_key
+  ```
+4. **IMPORTANT**: For `FIREBASE_PRIVATE_KEY`, you must ensure the newlines (`\n`) are preserved. Copy the entire key, including the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` parts.
+5. Save the `.env.local` file. It is already in `.gitignore` and will not be committed.
+
+
+**G. Grant Permissions to Service Account (CRUCIAL STEP):**
 The server-side code uses the service account to interact with Firebase. By default, this account may not have the necessary permissions.
 
 1.  In your **Google Cloud Console** (not Firebase), navigate to **IAM & Admin -> IAM**.
@@ -132,7 +154,7 @@ The server-side code uses the service account to interact with Firebase. By defa
     *   **"Firebase Authentication Admin"**: This role is required for the seeding script to set custom user claims (e.g., making the admin user an 'Admin').
 6.  Click **Save**.
 
-**G. Deploy Security Rules (CRITICAL STEP):**
+**H. Deploy Security Rules (CRITICAL STEP):**
 Your database is currently locked down. You must deploy the included security rules to allow the app to access data.
 1.  Open your terminal in the project's root directory.
 2.  Log in to Firebase: `firebase login`
@@ -143,7 +165,7 @@ Your database is currently locked down. You must deploy the included security ru
     ```
     This command reads the `firestore.rules` file and applies them to your database.
 
-**H. Create User Accounts & Data (Required for Login):**
+**I. Create User Accounts & Data (Required for Login):**
 The application will not work without user accounts and initial data. A detailed guide on how to create the collections and documents is in **`src/lib/data/README.md`**.
 
 1.  **Create Admin User**: You must create at least one admin user in Firebase Authentication. This user's credentials will be used by the automated seeding script.
@@ -156,13 +178,7 @@ The application will not work without user accounts and initial data. A detailed
     - Add the fields for the admin user (e.g., `id: "admin"`, `name: "Admin User"`, `role: "Admin"`). See `src/lib/data/users.json` for the full structure.
 
 2.  **Automate Data Seeding**:
-    - In your project's root directory, create a file named `.env.local`.
-    - Add your admin user's credentials to this file. **This file is git-ignored and should never be committed.**
-      ```env
-      # .env.local
-      FIREBASE_ADMIN_EMAIL=admin@fibervision.com
-      FIREBASE_ADMIN_PASSWORD=your_admin_password
-      ```
+    - The credentials for the seeding script are already in your `.env.local` file from step **2.F**.
     - Run the automated seeding script:
       ```bash
       npm run db:seed
@@ -181,19 +197,8 @@ The application will not work without user accounts and initial data. A detailed
     ```bash
     npm install
     ```
-
-3.  **Set up environment variables (CRITICAL):**
-    Create a new file named `.env` in the root of your project and add your API keys. This file is for secret keys and should not be committed to version control. Next.js will automatically load this file.
-    ```env
-    # .env
     
-    # Genkit API Key (Client-side)
-    # Get your key from Google AI Studio.
-    # This key is used for any AI features that run in the user's browser.
-    GEMINI_API_KEY=your_google_ai_studio_api_key
-    ```
-    
-4.  **Run the development server:**
+3.  **Run the development server:**
     ```bash
     npm run dev
     ```
@@ -249,28 +254,26 @@ npm install
 ```
 
 **Step 5: Set Up Environment Variables on the Server**
-You must provide your secret keys to the production application. Instead of using a file, it's more secure to set them as actual environment variables on the server.
+You must provide your secret keys to the production application. Instead of using a `.env.local` file on the server, it's more secure to set them as actual environment variables.
 
-1. **Add `serviceAccountKey.json`**:
-   Securely transfer your `serviceAccountKey.json` file to the root directory of the project on your VPS. You can use `scp` for this.
-
-2. **Set Environment Variables**:
+1. **Set Environment Variables**:
    Edit your shell's profile script (e.g., `~/.bashrc`, `~/.profile`, or `~/.zshrc`) to export the variables.
    ```bash
    nano ~/.bashrc
    ```
-   Add these lines to the end of the file:
+   Add these lines to the end of the file, copying the values from your local `.env.local` file:
    ```bash
    export NODE_ENV="production"
    export GEMINI_API_KEY="your_production_google_ai_studio_api_key"
-   # The server-side code will automatically look for serviceAccountKey.json in the root.
-   # Setting GOOGLE_APPLICATION_CREDENTIALS is not required if the file is named correctly and in the root.
+   export FIREBASE_PROJECT_ID="your-project-id"
+   export FIREBASE_CLIENT_EMAIL="your-client-email"
+   export FIREBASE_PRIVATE_KEY="your-private-key-with-newlines"
    ```
    Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
    ```bash
    source ~/.bashrc
    ```
-   This method is more secure than placing secrets in a git-ignored file on a production server.
+   This method is more secure than placing secrets in a file on a production server.
 
 **Step 6: Build the Application**
 Create a production-optimized build of your Next.js app.

@@ -1,26 +1,27 @@
-
 import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // This file is now the single source of truth for all server-side SDK initializations.
 // It ensures that Firebase Admin and Genkit are initialized only once.
 
+// Use environment variables for service account credentials
+const serviceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  // Replace escaped newlines from environment variable
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+}
+
 if (!getApps().length) {
   try {
-    const serviceAccountPath = path.resolve(process.cwd(), 'serviceAccountKey.json');
-    
-    if (!fs.existsSync(serviceAccountPath)) {
-        throw new Error("serviceAccountKey.json not found. Please ensure it is in the root directory of your project.");
+    if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+        throw new Error('Firebase Admin SDK credentials are not set in environment variables. Please check your .env.local file.');
     }
-
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-
+    
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+      credential: admin.credential.cert(serviceAccount as any),
     });
 
     console.log("Firebase Admin SDK initialized successfully.");
