@@ -116,7 +116,7 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
 
   # === DATABASE SEEDING SCRIPT ===
   # Credentials for the initial admin user
-  FIREBASE_ADMIN_EMAIL=admin@fibervision.com
+  FIREBASE_ADMIN_EMAIL=admin@nowfiber24.com
   FIREBASE_ADMIN_PASSWORD=admin
   ```
 3. **IMPORTANT**: For `FIREBASE_PRIVATE_KEY`, you must ensure the newlines (`\n`) are preserved. Copy the entire key, including the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` parts.
@@ -151,7 +151,7 @@ The application will not work without user accounts and initial data. A detailed
 
 1.  **Create Admin User**: You must create at least one admin user in Firebase Authentication. This user's credentials will be used by the automated seeding script.
     - Go to **Authentication -> Users** and click **"Add user"**.
-    - **Email**: `admin@fibervision.com`
+    - **Email**: `admin@nowfiber24.com`
     - **Password**: `admin` (or a secure password of your choice)
     - After creating the user, copy their **User UID**.
     - Go to **Firestore Database -> Data** and create the `users` collection.
@@ -190,11 +190,11 @@ The application will not work without user accounts and initial data. A detailed
 Use these credentials to log in after setting up the user accounts in Firebase.
 
 -   **Administrator:**
-    -   **Email:** `admin@fibervision.com`
+    -   **Email:** `admin@nowfiber24.com`
     -   **Password:** `admin` (or the password you set)
 
 -   **Technician:**
-    -   **Email:** `tech-001@fibervision.com`
+    -   **Email:** `tech-001@nowfiber24.com`
     -   **Password:** `password` (or the password you set)
 
 ### 5. Deployment to a Virtual Private Server (VPS)

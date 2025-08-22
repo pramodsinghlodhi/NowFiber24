@@ -101,7 +101,7 @@ export default function LoginPage() {
                     <Input
                     id="email"
                     type="email"
-                    placeholder="e.g., admin@fibervision.com"
+                    placeholder="e.g., admin@nowfiber24.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required

@@ -45,7 +45,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
         if (technician) {
             setName(technician.name);
             setId(technician.id);
-            setEmail(`${technician.id}@fibervision.com`);
+            setEmail(`${technician.id}@nowfiber24.com`);
             setRole(technician.role);
             setContact(technician.contact);
             setAvatarUrl(technician.avatarUrl || `https://i.pravatar.cc/150?u=${technician.id}`);
@@ -54,7 +54,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
             const newId = `tech-${String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}`;
             setName('');
             setId(newId);
-            setEmail(`${newId}@fibervision.com`);
+            setEmail(`${newId}@nowfiber24.com`);
             setPassword('');
             setContact('');
             setRole('Field Engineer');
@@ -68,7 +68,7 @@ export default function TechnicianForm({ isOpen, onOpenChange, onSave, technicia
     setId(newId);
     if (!isEditing) {
       setAvatarUrl(`https://i.pravatar.cc/150?u=${newId}`);
-      setEmail(`${newId}@fibervision.com`);
+      setEmail(`${newId}@nowfiber24.com`);
     }
   };
 
