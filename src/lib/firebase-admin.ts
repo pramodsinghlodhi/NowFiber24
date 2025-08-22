@@ -2,6 +2,9 @@ import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
+import { User } from './types';
+import {getAuth} from 'firebase-admin/auth';
+import {getFirestore} from 'firebase-admin/firestore';
 
 // This file is now the single source of truth for all server-side SDK initializations.
 // It ensures that Firebase Admin and Genkit are initialized only once.
@@ -33,12 +36,15 @@ if (!getApps().length) {
 }
 
 const adminApp = admin.app();
-const adminAuth = admin.auth();
-const adminDb = admin.firestore();
+const adminAuth = getAuth(adminApp);
+const adminDb = getFirestore(adminApp);
+
 
 // Initialize Genkit in the same central location
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [googleAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  })],
 });
 
 

@@ -4,12 +4,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-    "projectId":"nowfiber24-prod",
-    "appId":"1:696733926983:web:9697d0cff33625685c5362",
-    "storageBucket":"nowfiber24-prod.firebasestorage.app",
-    "apiKey":"AIzaSyCnhdO7XRc03E3E4NlHk-jeSiRyIAosfuE",
-    "authDomain":"nowfiber24-prod.firebaseapp.com",
-    "messagingSenderId":"696733926983"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Client-side Firebase app initialization

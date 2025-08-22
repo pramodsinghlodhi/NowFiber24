@@ -60,44 +60,17 @@ This application is fully powered by Firebase. **It will not run without a corre
 4.  You can choose to enable Google Analytics or not for this project. It is not required for the application to function. Click **"Continue"**.
 5.  After a moment, your project will be ready. Click **"Continue"**.
 
-**B. Create a Web App:**
+**B. Get your Google AI API Key:**
+1.  Go to [Google AI Studio](https://aistudio.google.com/).
+2.  Sign in with your Google account.
+3.  Click on the **"Get API key"** button.
+4.  Create a new API key in a new or existing Google Cloud project.
+5.  **Copy the generated API key.** You will need this for the `GEMINI_API_KEY` environment variable.
+
+**C. Create a Web App and Get Config:**
 1.  Inside your new project, click the Web icon (`</>`) to create a new Web App.
 2.  Register your app with a nickname (e.g., "NowFiber24 Web"). You do **not** need to set up Firebase Hosting at this stage.
-3.  After registering, Firebase will provide you with a `firebaseConfig` object. **Copy this object.**
-
-**C. Configure the Application:**
-1.  In the project's root directory, open the file `src/lib/firebase.js`.
-2.  **Replace the placeholder `firebaseConfig` object with the one you copied** from your Firebase console. The file and line numbers are provided below for clarity.
-
-    - **File:** `src/lib/firebase.js`
-    - **Line to Replace:** Approximately line 6
-
-    ```javascript
-    // src/lib/firebase.js
-
-    import { initializeApp, getApp, getApps } from 'firebase/app';
-    import { getAuth } from 'firebase/auth';
-    import { getFirestore } from 'firebase/firestore';
-
-    // v-- PASTE YOUR FIREBASE CONFIG OBJECT HERE --v
-    const firebaseConfig = {
-      apiKey: "AIza...",
-      authDomain: "your-project-id.firebaseapp.com",
-      projectId: "your-project-id",
-      storageBucket: "your-project-id.appspot.com",
-      messagingSenderId: "...",
-      appId: "1:...",
-      measurementId: "G-..."
-    };
-    // ^-- PASTE YOUR FIREBASE CONFIG OBJECT HERE --^
-
-    // Initialize Firebase
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    export { app, auth, db };
-    ```
+3.  After registering, Firebase will provide you with a `firebaseConfig` object. **You will need these values** for the client-side environment variables.
 
 **D. Enable Firebase Services:**
 1.  In the Firebase Console, go to the **Authentication** section in the left-hand menu (under Build).
@@ -117,29 +90,37 @@ All server-side functionality (AI tools, server actions, etc.) requires a servic
 3.  Click the **"Generate new private key"** button. A warning will appear; click **"Generate key"** to confirm.
 4.  A JSON file will be downloaded to your computer. **This file contains all the credentials needed for the next step. Keep it safe.**
 
-**F. Set Up Server-Side Environment Variables (CRITICAL STEP):**
+**F. Set Up Environment Variables (`.env.local` - CRITICAL STEP):**
 1. In your project's root directory, create a file named `.env.local`.
-2. Open the `.env.local` file and the `serviceAccountKey.json` file you just downloaded.
-3. Copy the values from your JSON file into the `.env.local` file, like so:
+2. Open the `.env.local` file and add the following content. You will populate this with the keys and configs from the previous steps.
   ```env
   # .env.local
   
-  # Firebase Admin SDK credentials
-  # Copy these from the serviceAccountKey.json file you downloaded
+  # === SERVER-SIDE CONFIGURATION ===
+  # From the serviceAccountKey.json file you downloaded
   FIREBASE_PROJECT_ID="your-project-id"
   FIREBASE_CLIENT_EMAIL="firebase-adminsdk-.....@your-project-id.iam.gserviceaccount.com"
   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourPrivateKeyHere\n-----END PRIVATE KEY-----\n"
 
-  # Admin credentials for the database seeding script
+  # From Google AI Studio
+  GEMINI_API_KEY=your_google_ai_studio_api_key
+
+  # === CLIENT-SIDE CONFIGURATION ===
+  # From your Firebase Web App config (Project Settings -> General -> Your Apps -> SDK setup and configuration)
+  NEXT_PUBLIC_FIREBASE_API_KEY="your_web_api_key"
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project-id.firebaseapp.com"
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-messaging-sender-id"
+  NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
+
+  # === DATABASE SEEDING SCRIPT ===
+  # Credentials for the initial admin user
   FIREBASE_ADMIN_EMAIL=admin@fibervision.com
   FIREBASE_ADMIN_PASSWORD=admin
-  
-  # Genkit API Key (Client-side)
-  # Get your key from Google AI Studio.
-  GEMINI_API_KEY=your_google_ai_studio_api_key
   ```
-4. **IMPORTANT**: For `FIREBASE_PRIVATE_KEY`, you must ensure the newlines (`\n`) are preserved. Copy the entire key, including the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` parts.
-5. Save the `.env.local` file. It is already in `.gitignore` and will not be committed.
+3. **IMPORTANT**: For `FIREBASE_PRIVATE_KEY`, you must ensure the newlines (`\n`) are preserved. Copy the entire key, including the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` parts.
+4. Save the `.env.local` file. It is already in `.gitignore` and will not be committed.
 
 
 **G. Grant Permissions to Service Account (CRUCIAL STEP):**
@@ -264,10 +245,20 @@ You must provide your secret keys to the production application. Instead of usin
    Add these lines to the end of the file, copying the values from your local `.env.local` file:
    ```bash
    export NODE_ENV="production"
-   export GEMINI_API_KEY="your_production_google_ai_studio_api_key"
+   
+   # Server-side
    export FIREBASE_PROJECT_ID="your-project-id"
    export FIREBASE_CLIENT_EMAIL="your-client-email"
    export FIREBASE_PRIVATE_KEY="your-private-key-with-newlines"
+   export GEMINI_API_KEY="your_google_ai_studio_api_key"
+
+   # Client-side
+   export NEXT_PUBLIC_FIREBASE_API_KEY="your_web_api_key"
+   export NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your_auth_domain"
+   export NEXT_PUBLIC_FIREBASE_PROJECT_ID="your_project_id"
+   export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your_storage_bucket"
+   export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your_messaging_sender_id"
+   export NEXT_PUBLIC_FIREBASE_APP_ID="your_app_id"
    ```
    Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
    ```bash
