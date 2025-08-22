@@ -1,6 +1,10 @@
 
+'use server';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { User, Technician } from '@/lib/types';
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -10,49 +14,43 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Technician ID is required.' }, { status: 400 });
         }
         
+        // Find the user UID from the 'users' collection based on the custom technician ID
         const usersRef = adminDb.collection('users');
         const userQuery = await usersRef.where('id', '==', techId).limit(1).get();
 
-        if (userQuery.empty) {
-            // If no user found in 'users' collection, maybe it exists in auth but not firestore, or just in technicians collection.
-            // We should still try to delete the technician document.
-            const techDocRef = adminDb.collection('technicians').doc(techId);
-            const techDoc = await techDocRef.get();
-            if (techDoc.exists) {
-                await techDocRef.delete();
-                 return NextResponse.json({ success: true, message: 'Technician data removed from Firestore. No matching authentication user found.' });
-            }
-            return NextResponse.json({ success: false, message: 'Technician not found.' }, { status: 404 });
-        }
-        
-        const userDoc = userQuery.docs[0];
-        const uid = userDoc.id; // The document ID is the UID
-
-        // Delete from Firebase Authentication
-        try {
-            await adminAuth.deleteUser(uid);
-            console.log(`Successfully deleted auth user with UID: ${uid}`);
-        } catch(authError: any) {
-             if (authError.code === 'auth/user-not-found') {
-                console.warn(`Auth user with UID: ${uid} not found. Proceeding with Firestore cleanup.`);
-             } else {
-                // For other auth errors, we should stop and report.
-                throw authError;
-             }
-        }
-
-        // Delete from Firestore using a batch
         const batch = adminDb.batch();
-        const userDocRef = adminDb.collection('users').doc(uid);
+        
+        // Delete the technician document in Firestore
         const techDocRef = adminDb.collection('technicians').doc(techId);
-
-        batch.delete(userDocRef);
         batch.delete(techDocRef);
 
-        await batch.commit();
-        console.log(`Successfully deleted Firestore documents for techId: ${techId}`);
+        // If a matching user profile exists, delete it and their auth account
+        if (!userQuery.empty) {
+            const userDoc = userQuery.docs[0];
+            const uid = userDoc.id; // The document ID is the UID
+            const userDocRef = adminDb.collection('users').doc(uid);
+            batch.delete(userDocRef);
 
-        return NextResponse.json({ success: true, message: `Technician ${techId} and associated user data have been deleted.` });
+            // Delete from Firebase Authentication, but don't fail if already deleted
+            try {
+                await adminAuth.deleteUser(uid);
+                console.log(`Successfully deleted auth user with UID: ${uid}`);
+            } catch(authError: any) {
+                 if (authError.code === 'auth/user-not-found') {
+                    console.warn(`Auth user with UID: ${uid} not found, but proceeding with Firestore cleanup.`);
+                 } else {
+                    // For other auth errors, we should stop and report.
+                    throw authError;
+                 }
+            }
+        } else {
+            console.warn(`No user profile found for techId: ${techId}. Deleting technician document only.`);
+        }
+
+        // Commit all batched deletions
+        await batch.commit();
+
+        return NextResponse.json({ success: true, message: `Technician ${techId} and associated data have been deleted.` });
 
     } catch (error: any) {
         console.error('Error deleting user:', error);
