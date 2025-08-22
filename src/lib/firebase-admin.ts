@@ -49,3 +49,5 @@ export const ai = genkit({
 
 
 export { adminApp, adminAuth, adminDb };
+
+    
