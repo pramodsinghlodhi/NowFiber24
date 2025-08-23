@@ -29,7 +29,7 @@ NowFiber24 is a comprehensive, AI-powered platform designed for Internet Service
 - **Framework**: Next.js 15 (with App Router & Turbopack)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS & ShadCN UI
-- **Backend & Database**: Firebase (Authentication, Firestore)
+- **Backend & Database**: Firebase (Authentication, Firestore, Hosting)
 - **Generative AI**: Google Genkit with Gemini
 - **Mapping**: Leaflet.js
 
@@ -186,114 +186,25 @@ Use these credentials to log in after running the `db:seed` script.
     -   **Email:** `tech-001@nowfiber24.com`
     -   **Password:** `password` (this is the default set in the seeding script)
 
-### 5. Deployment to a Virtual Private Server (VPS)
+### 5. Production Deployment (Firebase Hosting)
 
-This guide assumes you have a VPS (e.g., from DigitalOcean, Linode, AWS EC2) running a recent version of Linux (like Ubuntu 22.04).
+This application is configured for easy deployment to Firebase Hosting.
 
-**Step 1: Connect to your VPS**
-Connect to your server via SSH:
-```bash
-ssh your_username@your_vps_ip_address
-```
-
-**Step 2: Install Prerequisites**
-You'll need `git` to clone the repository and `Node.js` to run the application.
-```bash
-# Update package lists
-sudo apt update
-
-# Install git
-sudo apt install git -y
-
-# Install Node.js (v18 or later recommended)
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
-**Step 3: Clone Your Project**
-Clone your project repository from GitHub (or your preferred Git provider) to the VPS.
-```bash
-git clone https://your-repository-url.git
-cd <repository-name>
-```
-
-**Step 4: Install Dependencies**
-Install the necessary Node.js packages.
-```bash
-npm install
-```
-
-**Step 5: Set Up Environment Variables on the Server**
-You must provide your secret keys to the production application. Instead of using a `.env.local` file on the server, it's more secure to set them as actual environment variables.
-
-1. **Set Environment Variables**:
-   Edit your shell's profile script (e.g., `~/.bashrc`, `~/.profile`, or `~/.zshrc`) to export the variables.
-   ```bash
-   nano ~/.bashrc
-   ```
-   Add these lines to the end of the file, copying the values from your local `.env.local` file:
-   ```bash
-   export NODE_ENV="production"
-   
-   # Server-side
-   export FIREBASE_PROJECT_ID="your-project-id"
-   export FIREBASE_CLIENT_EMAIL="your-client-email"
-   export FIREBASE_PRIVATE_KEY="your-private-key-with-newlines"
-   export GEMINI_API_KEY="your_google_ai_studio_api_key"
-
-   # Client-side
-   export NEXT_PUBLIC_FIREBASE_API_KEY="your_web_api_key"
-   export NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your_auth_domain"
-   export NEXT_PUBLIC_FIREBASE_PROJECT_ID="your_project_id"
-   export NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your_storage_bucket"
-   export NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your_messaging_sender_id"
-   export NEXT_PUBLIC_FIREBASE_APP_ID="your_app_id"
-   
-   # Seeding script
-   export FIREBASE_ADMIN_EMAIL="admin@nowfiber24.com"
-   export FIREBASE_ADMIN_PASSWORD="admin"
-   ```
-   Save the file (`CTRL+X`, then `Y`, then `Enter`) and load the new variables:
-   ```bash
-   source ~/.bashrc
-   ```
-   This method is more secure than placing secrets in a file on a production server.
-
-**Step 6: Build the Application**
-Create a production-optimized build of your Next.js app.
+**Step 1: Build the Project**
+Create a production-ready build of your Next.js application.
 ```bash
 npm run build
 ```
 
-**Step 7: Run the Application with a Process Manager**
-It's crucial to use a process manager like **PM2** to keep your application running continuously.
+**Step 2: Connect a Custom Domain (Optional but Recommended)**
+1. In the [Firebase Console](https://console.firebase.google.com/), navigate to the **Hosting** section.
+2. Click **"Add custom domain"**.
+3. Follow the on-screen instructions to verify your domain ownership. Firebase will provide you with DNS records (usually TXT or CNAME records) to add to your domain registrar's settings.
+4. After your domain is verified, Firebase will provide you with IP addresses (A records) for the root domain and any subdomains. **Update your DNS settings at your registrar to point to these Firebase IP addresses.** DNS propagation may take a few hours.
 
-1.  **Install PM2 globally:**
-    ```bash
-    sudo npm install pm2 -g
-    ```
-
-2.  **Start your application with PM2:**
-    ```bash
-    pm2 start npm --name "nowfiber24" -- start
-    ```
-    - `--name "nowfiber24"` gives your process a memorable name.
-    - `-- start` tells PM2 to use the `start` script from your `package.json`.
-
-3.  **Ensure PM2 starts on server reboot:**
-    ```bash
-    pm2 startup
-    ```
-    This command will generate another command that you need to copy and paste to complete the setup.
-
-4.  **Save the current process list:**
-    ```bash
-    pm2 save
-    ```
-
-**Step 8: Configure a Reverse Proxy (Recommended)**
-To serve your app over port 80 (HTTP) or 443 (HTTPS) and add security, use a web server like Nginx as a reverse proxy. This is an advanced step and requires separate tutorials on configuring Nginx.
-
-Your application is now running on your VPS! You can view logs with `pm2 logs nowfiber24` and manage the process with `pm2 stop nowfiber24`, `pm2 restart nowfiber24`, etc.
-
-    
+**Step 3: Deploy to Firebase**
+Once your project is built and your domain is configured, deploy the application with a single command from your project's root directory:
+```bash
+firebase deploy --only hosting
+```
+Firebase will upload your built project and, if configured, automatically provision an SSL certificate for your custom domain. Your site will be live!
